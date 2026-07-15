@@ -51,6 +51,15 @@ namespace exmod::menu
             m_uiScale = 1.0f;
             overlay::setUiScale(m_uiScale);
         }
+
+        ImGui::SeparatorText("input");
+        bool allowGameInput = overlay::allowGameInput();
+        if (ImGui::Checkbox("Allow input and movement in menu", &allowGameInput))
+            overlay::setAllowGameInput(allowGameInput);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Keep moving and looking with the menu open. The menu becomes a display-only\n"
+                              "HUD and the game grabs the cursor, so widgets are not clickable in this mode.\n"
+                              "Press INSERT or DELETE to close and return to the interactive menu.");
     }
 
     void ModTab::drawMemory()

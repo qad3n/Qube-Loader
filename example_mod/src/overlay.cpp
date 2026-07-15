@@ -28,6 +28,7 @@ namespace exmod::overlay
         std::atomic<bool> g_visible{false};
         std::atomic<bool> g_focusRequest{false};
         std::atomic<bool> g_initFailed{false};
+        std::atomic<bool> g_allowGameInput{false}; // menu open but game keeps movement/camera (HUD mode)
         bool g_ready = false; // render thread only
         bool g_haveDrawData = false; // render thread only
         LARGE_INTEGER g_qpcFreq = {};
@@ -171,6 +172,19 @@ namespace exmod::overlay
         return g_dpiScale;
     }
 
+    void setAllowGameInput(bool allow)
+    {
+        g_allowGameInput.store(allow);
+        // Apply now if the menu is open: passthrough hands input back to the game, interactive re-freezes.
+        if (g_visible.load())
+            setInputBlocked(!allow);
+    }
+
+    bool allowGameInput()
+    {
+        return g_allowGameInput.load();
+    }
+
     void CUBE_CALL onFrame(CubeEventArgs* args)
     {
         if (!g_ready)
@@ -189,8 +203,8 @@ namespace exmod::overlay
         }
 
         const bool visible = g_visible.load();
-        // Rely on the OS cursor (the loader forces it visible while the menu is open). wine:
-        // an ImGui software cursor too produced a second frozen cursor, so keep it off.
+        // Draw with the OS cursor (the loader reveals it while the menu is open); a second ImGui
+        // software cursor would just double it.
         ImGui::GetIO().MouseDrawCursor = false;
         if (!visible)
             return;
@@ -237,7 +251,9 @@ namespace exmod::overlay
         {
             const bool nowVisible = !g_visible.load();
             g_visible.store(nowVisible);
-            setInputBlocked(nowVisible); // freeze movement/camera/cursor while the menu is up
+            if (!nowVisible)
+                g_allowGameInput.store(false); // reset HUD passthrough so the next open is interactive
+            setInputBlocked(nowVisible && !g_allowGameInput.load()); // freeze the game only in interactive mode
             if (nowVisible)
                 g_focusRequest.store(true);
             cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: menu %s", nowVisible ? "shown" : "hidden");
@@ -247,9 +263,9 @@ namespace exmod::overlay
             return;
 
         ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
-        // While the menu is open, eat discrete input so it never reaches the game (ImGui
-        // saw it above). Movement/camera are already frozen by the loader input hook.
-        if (g_visible.load() && isBlockableInput(msg))
+        // While the menu owns input, eat discrete input so it never reaches the game (ImGui saw it
+        // above). In HUD passthrough the game is meant to keep receiving it, so do not swallow.
+        if (g_visible.load() && !g_allowGameInput.load() && isBlockableInput(msg))
             args->swallow = 1;
     }
 

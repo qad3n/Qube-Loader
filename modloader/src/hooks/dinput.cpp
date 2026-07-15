@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstring>
 
 namespace hooks::dinput
 {
@@ -15,41 +16,30 @@ namespace hooks::dinput
     {
         constexpr char kCategory[] = "dinput";
         constexpr std::size_t kGetDeviceStateSlot = 9; // IDirectInputDevice8 vtable: Acquire 7, Unacquire 8, GetDeviceState 9
-        constexpr int kMaxDevices = 4; // mouse + keyboard (+ headroom); the game creates two
         constexpr DWORD kTeardownDrainMs = 30;
 
         typedef HRESULT(WINAPI* GetDeviceStateFn)(IDirectInputDevice8W*, DWORD, LPVOID);
 
-        // Borrowed pointers: the game owns these devices for the whole session (it never releases or
-        // re-creates them), so we cache the raw pointers without an AddRef.
-        std::atomic<IDirectInputDevice8W*> g_devices[kMaxDevices] = {};
-        std::atomic<bool> g_suspended{false};
+        std::atomic<bool> g_blocked{false};
+        std::atomic<int> g_inFlight{0};
         bool g_installed = false;
         void* g_getDeviceStateTarget = nullptr;
         GetDeviceStateFn g_origGetDeviceState = nullptr;
 
-        // Runs on the game thread every polled frame; record each distinct device once.
-        void captureDevice(IDirectInputDevice8W* device)
-        {
-            if (!device)
-                return;
-            for (int i = 0; i < kMaxDevices; ++i)
-            {
-                IDirectInputDevice8W* current = g_devices[i].load();
-                if (current == device)
-                    return;
-                if (current == nullptr)
-                {
-                    g_devices[i].store(device);
-                    return;
-                }
-            }
-        }
-
+        // Runs on the game thread every input poll. Let the real read fill the buffer, then (while the
+        // overlay owns input) zero it so the game's keyboard (movement/actions) and mouse (camera look/
+        // buttons) reads see nothing. Zero is "no keys down / no mouse delta / no buttons" for both the
+        // 256-byte keyboard state and the DIMOUSESTATE, so one memset covers every device.
         HRESULT WINAPI hkGetDeviceState(IDirectInputDevice8W* device, DWORD cbData, LPVOID lpvData)
         {
-            captureDevice(device);
-            return g_origGetDeviceState(device, cbData, lpvData);
+            g_inFlight.fetch_add(1);
+            const HRESULT hr = g_origGetDeviceState(device, cbData, lpvData);
+
+            if (g_blocked.load() && SUCCEEDED(hr) && lpvData && cbData)
+                std::memset(lpvData, 0, cbData);
+
+            g_inFlight.fetch_sub(1);
+            return hr;
         }
 
         // Grab the shared IDirectInputDevice8W vtable from a throwaway device (the d3d9-probe pattern);
@@ -90,7 +80,7 @@ namespace hooks::dinput
         void** vtable = acquireVtable();
         if (!vtable)
         {
-            LOGC(Warn, kCategory, "could not obtain the DirectInput device vtable; overlay clicks may be lost");
+            LOGC(Warn, kCategory, "could not obtain the DirectInput device vtable; game input will not be blocked");
             return false;
         }
 
@@ -104,7 +94,7 @@ namespace hooks::dinput
         }
 
         g_installed = true;
-        LOGC(Debug, kCategory, "GetDeviceState hooked (slot %zu); will capture the game's DI devices",
+        LOGC(Debug, kCategory, "GetDeviceState hooked (slot %zu); zeroes the game's input while the menu is open",
              kGetDeviceStateSlot);
         return true;
     }
@@ -114,15 +104,14 @@ namespace hooks::dinput
         if (!g_installed)
             return;
 
-        setAcquired(true); // never leave the game's devices unacquired if we unload while a menu is open
+        g_blocked.store(false); // never leave the game's input zeroed if we unload while a menu is open
 
-        // Close the hook path, then drain before MinHook frees the trampoline. wine: mingw has no SEH,
-        // so an in-flight GetDeviceState call is an inherent (tiny) window.
+        // Close the hook path, then drain before MinHook frees the trampoline. mingw has no SEH, so an
+        // in-flight GetDeviceState call is an inherent (tiny) window.
         detour::remove(g_getDeviceStateTarget);
-        Sleep(kTeardownDrainMs);
+        while (g_inFlight.load() > 0)
+            Sleep(kTeardownDrainMs);
 
-        for (int i = 0; i < kMaxDevices; ++i)
-            g_devices[i].store(nullptr);
         g_origGetDeviceState = nullptr;
         g_getDeviceStateTarget = nullptr;
         g_installed = false;
@@ -130,24 +119,8 @@ namespace hooks::dinput
         LOGC(Debug, kCategory, "GetDeviceState hook removed");
     }
 
-    void setAcquired(bool acquired)
+    void setBlocked(bool blocked)
     {
-        const bool suspend = !acquired;
-        if (g_suspended.exchange(suspend) == suspend)
-            return; // edge only: nothing to do if already in this state
-
-        int touched = 0;
-        for (int i = 0; i < kMaxDevices; ++i)
-        {
-            IDirectInputDevice8W* device = g_devices[i].load();
-            if (!device)
-                continue;
-            if (suspend)
-                device->Unacquire();
-            else
-                device->Acquire();
-            ++touched;
-        }
-        LOGC(Debug, kCategory, "%s %d DI device(s)", suspend ? "unacquired" : "re-acquired", touched);
+        g_blocked.store(blocked);
     }
 }

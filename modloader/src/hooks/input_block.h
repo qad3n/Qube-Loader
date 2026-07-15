@@ -1,14 +1,13 @@
 #pragma once
-// Freezes game input while an overlay is open (client only) by IAT-hooking GetFocus to report "not
-// focused", so the game's `if (GetFocus() == gameWindow)` input+recenter block is skipped. On the
-// block edge it also suspends the game's DirectInput acquisition (see hooks::dinput) so window
-// messages reach the overlay, and forces the OS cursor visible. No cursor clip/warp (it only fought
-// the Wayland compositor and desynced the pointer).
+// Coordinates the overlay's input freeze (client only). Movement and camera are blocked at the source
+// by zeroing the game's DirectInput reads (see hooks::dinput); this module frees the OS cursor for the
+// menu by IAT-hooking the game's mouse-look recenter (user32 SetCursorPos) and swallowing it while a
+// menu is open, and drives the DirectInput block + cursor visibility on the block edge.
 
 namespace hooks::input_block
 {
-    bool install(); // IAT-hook GetFocus (+ SetCursorPos) so the game reads no input while blocked
-    void remove(); // restore the IAT slots (call before detour::shutdown)
+    bool install(); // IAT-hook SetCursorPos so the game's camera recenter is suppressed while blocked
+    void remove(); // restore the IAT slot (call before detour::shutdown)
     void setBlocked(bool blocked); // true: freeze game input + free visible cursor; false: restore
     bool blocked();
 }

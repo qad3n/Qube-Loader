@@ -22,4 +22,11 @@ namespace exmod::overlay
     float uiScale();
     float dpiScale();
 
+    // "Allow input and movement in menu" (Mod tab): when true, the open menu does NOT freeze the game
+    // - movement and camera stay live and the menu is a display-only HUD (the game grabs the cursor for
+    // look, so widgets are not clickable in this mode). Reset to false when the menu closes so the next
+    // open is the normal interactive menu. setAllowGameInput applies the change immediately.
+    void setAllowGameInput(bool allow);
+    bool allowGameInput();
+
 }

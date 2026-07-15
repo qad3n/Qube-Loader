@@ -1,13 +1,14 @@
 #pragma once
-// Suspends the game's DirectInput mouse+keyboard acquisition while an overlay is open. wine: an
-// acquired DI mouse swallows the WM_*BUTTON messages ImGui reads, so unacquiring the game's devices
-// lets Wine deliver mouse+keyboard window messages again and the overlay's normal input path works.
-// The game holds its devices acquired for the whole session and does not re-acquire on its own, so
-// re-acquiring on menu close hands input back cleanly.
+// Blocks the game's DirectInput reads while an overlay owns input. The game polls its keyboard device
+// (movement + action keys) and mouse device (camera look + buttons) through IDirectInputDevice8::
+// GetDeviceState every frame; we hook that one call and, while blocked, hand back an all-zero buffer.
+// That freezes movement and camera at the exact point the game reads them, WITHOUT unacquiring the
+// device - so on Windows (where the game holds the mouse non-exclusively) window messages still reach
+// the overlay's normal WndProc input path.
 
 namespace hooks::dinput
 {
-    bool install(); // hook IDirectInputDevice8::GetDeviceState (shared vtable) to capture the game's devices
-    void remove(); // re-acquire if suspended, then remove the hook
-    void setAcquired(bool acquired); // false: unacquire captured devices (menu open); true: re-acquire (menu close)
+    bool install(); // hook IDirectInputDevice8::GetDeviceState (shared vtable)
+    void remove(); // clear the block, then remove the hook
+    void setBlocked(bool blocked); // true: zero every GetDeviceState result (menu open); false: pass through
 }

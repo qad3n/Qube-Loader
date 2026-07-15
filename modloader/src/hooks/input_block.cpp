@@ -13,35 +13,19 @@ namespace hooks::input_block
     {
         constexpr char kCategory[] = "input";
         constexpr char kUser32[] = "user32.dll";
-        constexpr char kGetFocus[] = "GetFocus";
         constexpr char kSetCursorPos[] = "SetCursorPos";
 
-        typedef HWND(WINAPI* GetFocusFn)();
         typedef BOOL(WINAPI* SetCursorPosFn)(int, int);
 
         std::atomic<bool> g_blocked{false};
         bool g_installed = false;
 
-        GetFocusFn g_origGetFocus = nullptr;
-        void** g_getFocusSlot = nullptr;
-
         SetCursorPosFn g_origSetCursorPos = nullptr;
         void** g_setCursorPosSlot = nullptr;
 
-        // Returning a non-window handle while blocked makes the game skip its GetFocus-gated
-        // input+recenter block, halting WASD, mouse-look and cursor warp at once.
-        HWND WINAPI hkGetFocus()
-        {
-            if (g_blocked.load())
-                return nullptr;
-            if (g_origGetFocus)
-                return g_origGetFocus();
-
-            return nullptr;
-        }
-
-        // Defense in depth: the game's cursor-mode entry recenter is not behind GetFocus, so
-        // swallow SetCursorPos while blocked to guarantee the cursor never warps under the menu.
+        // The game recenters the cursor to the client center every frame for infinite mouse-look (its
+        // focused-and-no-UI recenter). Swallow it while the overlay owns input so the pointer stays put
+        // for the menu; otherwise the game warps it back to center on every frame.
         BOOL WINAPI hkSetCursorPos(int x, int y)
         {
             if (g_blocked.load())
@@ -60,7 +44,7 @@ namespace hooks::input_block
                 ShowCursor(FALSE); // restore the game's hidden-cursor state (it did ShowCursor(0))
         }
 
-        // Patch one user32 IAT slot the game imports (original via outOrig); false if absent (logged).
+        // Patch the user32 SetCursorPos IAT slot the game imports (original via outOrig); false if absent.
         bool hookImport(const char* funcName, void* replacement, void*** outSlot, void** outOrig)
         {
             HMODULE user32 = GetModuleHandleA(kUser32);
@@ -83,20 +67,15 @@ namespace hooks::input_block
         if (g_installed)
             return true;
 
-        if (!hookImport(kGetFocus, reinterpret_cast<void*>(&hkGetFocus), &g_getFocusSlot, reinterpret_cast<void**>(&g_origGetFocus)))
+        if (!hookImport(kSetCursorPos, reinterpret_cast<void*>(&hkSetCursorPos), &g_setCursorPosSlot,
+                        reinterpret_cast<void**>(&g_origSetCursorPos)))
         {
-            LOGC(Warn, kCategory, "could not hook GetFocus; input freeze disabled");
+            LOGC(Warn, kCategory, "could not hook SetCursorPos; the camera recenter cannot be suppressed while the menu is open");
             return false;
         }
 
-        // Best-effort: the GetFocus gate already covers the main recenter path.
-        if (!hookImport(kSetCursorPos, reinterpret_cast<void*>(&hkSetCursorPos), &g_setCursorPosSlot,
-                        reinterpret_cast<void**>(&g_origSetCursorPos)))
-            LOGC(Debug, kCategory, "SetCursorPos not hooked (cursor covered by GetFocus gate)");
-
         g_installed = true;
-        LOGC(Debug, kCategory, "input freeze armed (GetFocus gate%s)",
-             g_setCursorPosSlot ? " + cursor recenter" : "");
+        LOGC(Debug, kCategory, "cursor recenter hook armed (SetCursorPos)");
         return true;
     }
 
@@ -105,35 +84,31 @@ namespace hooks::input_block
         if (!g_installed)
             return;
         if (g_blocked.exchange(false))
-            showCursor(false); // never leave the OS cursor forced-visible if we unload while blocked
-
-        if (g_getFocusSlot && g_origGetFocus)
         {
-            iat::writeSlot(g_getFocusSlot, reinterpret_cast<void*>(g_origGetFocus));
-            g_getFocusSlot = nullptr;
+            hooks::dinput::setBlocked(false); // never leave the game's input zeroed on unload
+            showCursor(false);
         }
+
         if (g_setCursorPosSlot && g_origSetCursorPos)
         {
             iat::writeSlot(g_setCursorPosSlot, reinterpret_cast<void*>(g_origSetCursorPos));
             g_setCursorPosSlot = nullptr;
         }
 
-        g_origGetFocus = nullptr;
         g_origSetCursorPos = nullptr;
         g_installed = false;
 
-        LOGC(Debug, kCategory, "input freeze removed");
+        LOGC(Debug, kCategory, "cursor recenter hook removed");
     }
 
     void setBlocked(bool blocked)
     {
-        // Act only on the edge. The DI suspend is what actually restores overlay clicks under Wine
-        // (unacquiring the game's mouse lets window messages flow); the GetFocus gate freezes the
-        // game meanwhile. No cursor clip/recenter: it only fought the Wayland compositor.
         if (g_blocked.exchange(blocked) == blocked)
-            return;
+            return; // edge only: nothing to do if already in this state
 
-        hooks::dinput::setAcquired(!blocked);
+        // Zero the game's DirectInput keyboard+mouse reads at the source (movement + camera halt), and
+        // reveal the OS cursor for the menu (restoring the game's hidden state on close).
+        hooks::dinput::setBlocked(blocked);
         showCursor(blocked);
     }
 
