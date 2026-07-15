@@ -91,6 +91,13 @@ namespace off
     constexpr int32_t kItemTypeFood = 0x14; // food; also the pet-taming / pet-food item
     constexpr int32_t kItemTypeAccessory = 0x15; // accessory / medical (Medicine/Antivenom/Bandage/...)
     constexpr int32_t kItemTypeVehicle = 0x17; // HangGlider / Boat
+    // Valid types per item_icon_id @0x4ec400: raw byte 0x1..0x15 and 0x17..0x19 (0 empty, 0x16
+    // unused). Valid weapon subtypes are 0..0x14 per item_name_string_id @0x51be60. The name
+    // catalog does not list every valid id, so corruption checks use these ranges instead.
+    constexpr int32_t kItemTypeValidMin = 0x1;
+    constexpr int32_t kItemTypeValidMax = 0x19;
+    constexpr int32_t kItemTypeUnused = 0x16;
+    constexpr int32_t kWeaponSubtypeMax = 0x14;
     // Food/consumable magnitude (heal or nourishment) is the level field @0x10; eating sets the
     // action byte to kActionEat. Pet-taming uses a Food item (type 0x14) on a passive tameable
     // species (game predicate FUN_00444680: species in kPassiveSpecies AND state +0x7e & 0x1a00 == 0).

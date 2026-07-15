@@ -30,17 +30,25 @@ namespace game
             return catalogName(catalog, id) != nullptr;
         }
 
-        bool weaponSubtypeKnown(int32_t subtype)
+        // Valid ranges from offsets.h. Separate from the name catalog so a valid type with no
+        // catalog name (10, 14, 15, 16, 17) is not reported as corrupt.
+        bool isValidItemType(int32_t type)
         {
-            return isKnownCatalogId(CUBE_CATALOG_WEAPON_SUBTYPE, subtype);
+            return type >= off::kItemTypeValidMin && type <= off::kItemTypeValidMax
+                && type != off::kItemTypeUnused;
         }
 
-        // Weapons MUST use a registered weapon subtype (unregistered ones render a blank name).
-        // Non-weapon subtypes are not fully cataloged and are not a crash vector, so accept any.
+        bool isValidWeaponSubtype(int32_t subtype)
+        {
+            return subtype >= 0 && subtype <= off::kWeaponSubtypeMax;
+        }
+
+        // Weapons must use a valid subtype (out of range renders blank). Other item subtypes are
+        // not a crash vector, so accept any.
         bool subtypeAcceptable(int32_t type, int32_t subtype)
         {
             if (type == off::kItemTypeWeapon)
-                return weaponSubtypeKnown(subtype);
+                return isValidWeaponSubtype(subtype);
             return true;
         }
 
@@ -61,22 +69,20 @@ namespace game
             return off::kItemUpgradeMaxOneHand;
         }
 
-        // Why the item at itemBase is corrupt (renders "?" and can crash on draw), or nullptr
-        // if valid. type is decisive: an unknown type (0 included) has no model/name/placement.
+        // Why the item at itemBase is corrupt (renders "?" and can crash on draw), or nullptr if
+        // valid. Checks the type range, then the weapon subtype range for weapons.
         const char* itemDefectReason(uintptr_t itemBase)
         {
             uint8_t type = 0;
             if (!mem::read(itemBase + off::kItemTypeOff, type))
                 return "unreadable item memory";
-            if (!isKnownCatalogId(CUBE_CATALOG_ITEM_TYPE, static_cast<int32_t>(type)))
-                return "unknown item type (no model/name; welds to cursor; crashes on draw)";
+            if (!isValidItemType(static_cast<int32_t>(type)))
+                return "invalid item type (no model; welds to cursor; crashes on draw)";
 
             uint8_t subtype = 0;
             mem::read(itemBase + off::kItemSubtypeOff, subtype);
-            // Only weapon subtypes are cataloged; an unregistered one renders blank. Non-weapon
-            // subtypes are not a crash vector, so not flagged.
-            if (type == off::kItemTypeWeapon && !weaponSubtypeKnown(static_cast<int32_t>(subtype)))
-                return "unregistered weapon subtype (renders as '?')";
+            if (type == off::kItemTypeWeapon && !isValidWeaponSubtype(static_cast<int32_t>(subtype)))
+                return "invalid weapon subtype (renders as '?')";
             return nullptr;
         }
 
@@ -393,6 +399,11 @@ namespace game
                         continue;
 
                     const uintptr_t itemBase = cell + off::kInventoryCellItemOff;
+                    // Skip empty cells (type 0), like the equipment scan and the normal lister do.
+                    uint8_t cellType = 0;
+                    if (!mem::read(itemBase + off::kItemTypeOff, cellType) || cellType == 0)
+                        continue;
+
                     const char* reason = itemDefectReason(itemBase);
                     if (reason)
                         out[count++] = makeDefect(itemBase, ItemDefectLocation::Inventory, cellIndex, reason);
@@ -402,8 +413,8 @@ namespace game
         return count;
     }
 
-    // Writes one item field. Rejects/clamps edits that make the item unrenderable (unknown type
-    // or modelless subtype -> "?" item that welds to cursor + crashes on draw); ranges from catalogs.
+    // Writes one item field. Rejects or clamps edits that make the item unrenderable (an invalid
+    // type or weapon subtype produces a "?" item that welds to the cursor and crashes on draw).
     bool setItemField(uint32_t itemAddress, int32_t fieldId, int32_t value)
     {
         const uintptr_t addr = static_cast<uintptr_t>(itemAddress);
@@ -421,15 +432,15 @@ namespace game
         {
             case CUBE_ITEM_FIELD_TYPE:
             {
-                // Unknown type (0 included) is THE corrupting edit: no model/name, welds to cursor. Reject.
-                if (!isKnownCatalogId(CUBE_CATALOG_ITEM_TYPE, value))
+                // An out of range type (0 included) has no model and welds to cursor. Reject.
+                if (!isValidItemType(value))
                     return false;
                 if (!mem::write<uint8_t>(addr + off::kItemTypeOff, static_cast<uint8_t>(value)))
                     return false;
                 // Keep type/subtype coherent: a mismatched subtype has no model. Keep a valid
                 // weapon subtype for weapons; otherwise reset to the universal subtype 0.
                 {
-                    const int32_t coherent = (value == off::kItemTypeWeapon && weaponSubtypeKnown(static_cast<int32_t>(curSubtype)))
+                    const int32_t coherent = (value == off::kItemTypeWeapon && isValidWeaponSubtype(static_cast<int32_t>(curSubtype)))
                                                  ? static_cast<int32_t>(curSubtype) : off::kItemDefaultSubtype;
                     if (coherent != static_cast<int32_t>(curSubtype))
                         mem::write<uint8_t>(addr + off::kItemSubtypeOff, static_cast<uint8_t>(coherent));

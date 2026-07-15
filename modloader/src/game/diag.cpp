@@ -315,14 +315,21 @@ namespace game::diag
             }
         }
 
+        bool containsSignature(uint32_t signature, const uint32_t* set, int32_t count)
+        {
+            for (int32_t i = 0; i < count; ++i)
+            {
+                if (set[i] == signature)
+                    return true;
+            }
+            return false;
+        }
+
         void warnDefectIfNew(const ItemDefect& defect, uint32_t* warned, int32_t& warnedCount)
         {
             const uint32_t signature = defectSignature(defect);
-            for (int32_t i = 0; i < warnedCount; ++i)
-            {
-                if (warned[i] == signature)
-                    return;
-            }
+            if (containsSignature(signature, warned, warnedCount))
+                return;
             LOGC(Warn, kItemCategory, "CORRUPT %s item @0x%08X (slot %d): type=%d subtype=%d - %s",
                  defectLocationName(defect.location), defect.address, defect.slot, defect.type,
                  defect.subtype, defect.reason);
@@ -338,6 +345,11 @@ namespace game::diag
         static int32_t g_countdown = 0; // frames until the next scan
         static uint32_t g_warned[kMaxWarnedDefects] = {};
         static int32_t g_warnedCount = 0;
+        // Signatures from the previous scan. A defect must appear in two scans in a row before it
+        // warns, so a torn read of the live inventory (the game thread can mutate it mid scan) does
+        // not produce a false warning.
+        static uint32_t g_pending[kMaxItemDefects] = {};
+        static int32_t g_pendingCount = 0;
 
         uintptr_t gc = 0;
         uintptr_t creature = 0;
@@ -347,6 +359,7 @@ namespace game::diag
             {
                 g_inWorld = false;
                 g_warnedCount = 0; // forget warnings so re-entering the world re-checks
+                g_pendingCount = 0;
             }
             return;
         }
@@ -364,7 +377,20 @@ namespace game::diag
 
         ItemDefect defects[kMaxItemDefects];
         const int32_t found = scanCorruptItems(defects, kMaxItemDefects);
+
+        uint32_t current[kMaxItemDefects] = {};
+        int32_t currentCount = 0;
         for (int32_t i = 0; i < found; ++i)
-            warnDefectIfNew(defects[i], g_warned, g_warnedCount);
+        {
+            const uint32_t signature = defectSignature(defects[i]);
+            if (currentCount < kMaxItemDefects)
+                current[currentCount++] = signature;
+            if (containsSignature(signature, g_pending, g_pendingCount))
+                warnDefectIfNew(defects[i], g_warned, g_warnedCount);
+        }
+
+        g_pendingCount = currentCount;
+        for (int32_t i = 0; i < currentCount; ++i)
+            g_pending[i] = current[i];
     }
 }
