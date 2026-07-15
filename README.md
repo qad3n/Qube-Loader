@@ -30,18 +30,6 @@ set expectations accordingly:
 Contributions and community involvement are very welcome. Covering the whole game
 inside a mod API takes time, and help of any kind moves it forward faster.
 
-## Related project: the reverse-engineering source
-
-CWAML is built in direct reference to a companion project I maintain:
-
-  https://github.com/qad3n/CubeWorld-Reversal
-
-That repository is dedicated to reversing the latest deprecated alpha build of Cube
-World from 2013. Every offset, pointer chain, and struct layout the loader uses comes
-from that work. Because it is decompiled and reconstructed rather than official, some
-of it is approximate. If a value the loader exposes looks wrong, the reversal is the
-place to check it, and corrections there flow back into the loader.
-
 ## How it works
 
 The design rule is "thin mod, fat loader." All offsets, pointer chains, struct layouts,
@@ -66,6 +54,28 @@ mods            your DLLs, #include "cube_mod.hpp" only, zero addresses
   game          the ONLY layer that knows addresses: offsets, per-domain readers/writers
   core          infrastructure: guarded memory, logging, crash handler, config
 ```
+
+## Requirements
+
+- A copy of the 2013 alpha `Cube.exe` (32-bit). The loader is Win32-only by nature; it
+  hooks a Windows binary, so it does not run natively on Linux or macOS. On Linux it
+  runs under Wine.
+- CMake 3.16 or newer.
+- A 32-bit C++17 toolchain:
+  - Windows: Visual Studio 2019 or newer (the "Desktop development with C++" workload).
+  - Linux: the mingw-w64 cross toolchain (`i686-w64-mingw32-g++`).
+- Git (the loader and example mod pull MinHook and ImGui as submodules).
+
+## Roadmap
+
+- Grow API coverage. More reads, writes, events, and built-in hooks for corners of the
+  game not yet surfaced. This is the bulk of ongoing work that will take up most of my time.
+- Loader services mods actually need: a per-mod config and save-data API, a mod manifest
+  with a stable id, dependency resolution and load order, ABI gating at load time, and
+  an enable/disable registry so a bad mod can be toggled off instead of deleted.
+- A Lua scripting tier so mods can be written without a C++ compiler (maybe).
+- Server-side support (`Server.exe`), building on the client/server seam already in the
+  API.
 
 ## Structure
 
@@ -93,16 +103,30 @@ example_mod/          a full example mod: an ImGui menu exercising the whole API
   include/imgui/      Dear ImGui (git submodule, this mod only)
 ```
 
-## Roadmap
+## Your first mod
 
-- Grow API coverage. More reads, writes, events, and built-in hooks for corners of the
-  game not yet surfaced. This is the bulk of ongoing work that will take up most of my time.
-- Loader services mods actually need: a per-mod config and save-data API, a mod manifest
-  with a stable id, dependency resolution and load order, ABI gating at load time, and
-  an enable/disable registry so a bad mod can be toggled off instead of deleted.
-- A Lua scripting tier so mods can be written without a C++ compiler (maybe).
-- Server-side support (`Server.exe`), building on the client/server seam already in the
-  API.
+1. Create a folder for your mod with its own `CMakeLists.txt` that builds a 32-bit
+   shared library and adds `modloader/sdk` to its include path. The example mod is a
+   working template; copy its `CMakeLists.txt` and drop the ImGui parts if you do not
+   need an overlay.
+2. In your source, include only `cube_mod.hpp` and write a `CUBE_MOD(...)` block:
+
+   ```cpp
+   #include "cube_mod.hpp"
+
+   CUBE_MOD("Hello", "1.0.0", "you")
+   {
+       mod.log.info("hello from my first mod");
+   }
+   ```
+
+3. Build it into a DLL and place that DLL in the `mods/` folder next to `cube_mod.dll`
+   (the example builds into `build/mods/`). The loader discovers and loads every DLL in
+   that folder on startup.
+4. Inject the loader and watch `cube_mod.log`.
+
+That is the whole contract: a DLL that exports `CubeMod_Init`, which the `CUBE_MOD`
+macro generates for you. No offsets, no manual memory access.
 
 ## Core features and examples
 
@@ -208,17 +232,6 @@ bool wrote = mod.write<int>(address, 100); // false if blocked or unmapped
 unsigned live = mod.rebase(0x00525a30); // static address -> live address
 ```
 
-## Requirements
-
-- A copy of the 2013 alpha `Cube.exe` (32-bit). The loader is Win32-only by nature; it
-  hooks a Windows binary, so it does not run natively on Linux or macOS. On Linux it
-  runs under Wine.
-- CMake 3.16 or newer.
-- A 32-bit C++17 toolchain:
-  - Windows: Visual Studio 2019 or newer (the "Desktop development with C++" workload).
-  - Linux: the mingw-w64 cross toolchain (`i686-w64-mingw32-g++`).
-- Git (the loader and example mod pull MinHook and ImGui as submodules).
-
 ## Build
 
 Windows (Visual Studio / MSVC), from a Developer Command Prompt:
@@ -258,30 +271,17 @@ owns the overlay (press INSERT or DELETE in-game to toggle its menu).
 Loader settings come from defaults, then `cube_mod.ini` next to the DLL, then
 environment variables. See `cube_mod.ini.sample`.
 
-## Your first mod
+## Related project: the reverse-engineering source
 
-1. Create a folder for your mod with its own `CMakeLists.txt` that builds a 32-bit
-   shared library and adds `modloader/sdk` to its include path. The example mod is a
-   working template; copy its `CMakeLists.txt` and drop the ImGui parts if you do not
-   need an overlay.
-2. In your source, include only `cube_mod.hpp` and write a `CUBE_MOD(...)` block:
+CWAML is built in direct reference to a companion project I maintain:
 
-   ```cpp
-   #include "cube_mod.hpp"
+  https://github.com/qad3n/CubeWorld-Reversal
 
-   CUBE_MOD("Hello", "1.0.0", "you")
-   {
-       mod.log.info("hello from my first mod");
-   }
-   ```
-
-3. Build it into a DLL and place that DLL in the `mods/` folder next to `cube_mod.dll`
-   (the example builds into `build/mods/`). The loader discovers and loads every DLL in
-   that folder on startup.
-4. Inject the loader and watch `cube_mod.log`.
-
-That is the whole contract: a DLL that exports `CubeMod_Init`, which the `CUBE_MOD`
-macro generates for you. No offsets, no manual memory access.
+That repository is dedicated to reversing the latest deprecated alpha build of Cube
+World from 2013. Every offset, pointer chain, and struct layout the loader uses comes
+from that work. Because it is decompiled and reconstructed rather than official, some
+of it is approximate. If a value the loader exposes looks wrong, the reversal is the
+place to check it, and corrections there flow back into the loader.
 
 ## License
 
