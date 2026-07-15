@@ -24,6 +24,14 @@ namespace exmod
 CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
 {
     exmod::g_api = mod.raw();
+
+    // Manifest (ABI 20 loader): a stable id keys this mod's future config/storage/services; capabilities
+    // document what it uses. requiredAbi is stamped automatically by CUBE_MOD. A mod with dependencies
+    // would also call mod.dependsOn("other.mod.id", "1.0").
+    mod.setId("cube_mod.example");
+    mod.setCapabilities(cube::Capability::RawMem | cube::Capability::Writes |
+                        cube::Capability::RawHooks | cube::Capability::Overlay);
+
     mod.log.info("example_mod: init; menu on INSERT/DELETE, listening for game events");
 
     // Rendering: the loader hands us the device/window through these events; the overlay owns all

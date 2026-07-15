@@ -31,6 +31,15 @@ typedef struct CubeApi
     CubeHooksApi hooks; // game-function interception (cancel/modify/override), separate from events
 } CubeApi;
 
+// One declared dependency on another mod (CubeModInfo::deps, a null-terminated array). The loader
+// resolves these by id after all mods load and before CUBE_EVENT_READY.
+typedef struct CubeModDep
+{
+    const char* id;         // required mod's id (array terminator = entry whose id is NULL)
+    const char* minVersion; // minimum acceptable version string, NULL/"" = any
+    int32_t hard;           // 1 = hard (refuse to load this mod if unmet), 0 = soft (load anyway)
+} CubeModDep;
+
 typedef struct CubeModInfo
 {
     uint32_t structSize;
@@ -40,6 +49,11 @@ typedef struct CubeModInfo
     // Dispatch priority: higher runs LAST in every event/hook reduce (final say on last-writer-wins
     // returns); ties keep load order. Set via Mod::setPriority in the mod body; 0 = default.
     int32_t priority;
+    // --- appended in ABI 20; each read only under a structSize gate so older mods still load ---
+    const char* id;         // stable machine id (unique); loader falls back to the DLL stem if NULL
+    uint32_t requiredAbi;   // ABI the mod was built against (CUBE_MOD sets it automatically); 0 = unspecified
+    uint32_t capabilities;  // CubeModCapability bitset; 0 = unrestricted
+    const CubeModDep* deps; // null-terminated dependency array; NULL = none
 } CubeModInfo;
 
 // Required export: called once when the mod is loaded. Return a static CubeModInfo.

@@ -2,6 +2,7 @@
 #include "core/log.h"
 #include "core/exception_name.h"
 #include "modloader/core/owner_name.h"
+#include "modloader/core/modregistry.h"
 
 #include <windows.h>
 #include <atomic>
@@ -26,6 +27,7 @@ namespace faultguard
         constexpr char kCategory[] = "faultguard";
         constexpr int kFirstHandler = 1; // AddVectoredExceptionHandler: place ahead of others
         using modloader::ownerName;
+        using modloader::ownerStem;
 
         struct GuardFrame
         {
@@ -90,6 +92,9 @@ namespace faultguard
             addQuarantine(owner);
             LOGC(Error, kCategory, "mod '%s' faulted (%s @0x%08X) - disabling it; the game continues",
                  ownerName(owner), core::exceptionName(code), static_cast<unsigned>(addr));
+            // Persist a strike so a mod that faults every launch is auto-disabled instead of crash-looping.
+            if (owner)
+                modloader::modregistry::recordFault(ownerStem(owner));
         }
 
         LONG CALLBACK vectoredHandler(EXCEPTION_POINTERS* ep)

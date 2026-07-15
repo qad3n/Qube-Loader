@@ -1,5 +1,6 @@
 #include "modloader/modloader.h"
 #include "modloader/core/internal.h"
+#include "modloader/core/modregistry.h"
 #include "modloader/core/events.h"
 #include "modloader/game/gameevents.h"
 #include "modloader/core/writeguard.h"
@@ -74,6 +75,9 @@ namespace modloader
 
             return 0;
         }
+
+        // Load the enable/disable + fault-strike registry so scan() can skip disabled mods.
+        modregistry::load(dllDir);
 
         scan(modsDir);
 

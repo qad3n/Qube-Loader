@@ -203,6 +203,26 @@ namespace cube
         Server = CUBE_ENV_SERVER
     };
 
+    // Declared powers (mod.setCapabilities), OR them together. None = undeclared = unrestricted.
+    enum class Capability
+    {
+        None = CUBE_CAP_NONE,
+        RawMem = CUBE_CAP_RAW_MEM,
+        RawHooks = CUBE_CAP_RAW_HOOKS,
+        Writes = CUBE_CAP_WRITES,
+        Overlay = CUBE_CAP_OVERLAY
+    };
+
+    inline unsigned operator|(Capability a, Capability b)
+    {
+        return static_cast<unsigned>(a) | static_cast<unsigned>(b);
+    }
+
+    inline unsigned operator|(unsigned a, Capability b)
+    {
+        return a | static_cast<unsigned>(b);
+    }
+
     enum class Relation
     {
         Unknown = CUBE_REL_UNKNOWN,

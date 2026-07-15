@@ -13,6 +13,17 @@ typedef enum CubeEnvironment
     CUBE_ENV_SERVER
 } CubeEnvironment;
 
+// Declared powers a mod uses (CubeModInfo::capabilities bitset). 0 = undeclared = unrestricted (the
+// loader gates a mod only once it declares a non-zero set); see api::fill capability stubbing.
+typedef enum CubeModCapability
+{
+    CUBE_CAP_NONE = 0,
+    CUBE_CAP_RAW_MEM = 1 << 0,   // mem.read/readable/write over arbitrary addresses
+    CUBE_CAP_RAW_HOOKS = 1 << 1, // hooks.onRaw / rawDetour on user addresses
+    CUBE_CAP_WRITES = 1 << 2,    // guarded game-state writes (setStat/setField)
+    CUBE_CAP_OVERLAY = 1 << 3    // render/input surfaces (camera/display/ui/input)
+} CubeModCapability;
+
 typedef enum CubeLogLevel
 {
     CUBE_LOG_TRACE = 0,

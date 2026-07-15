@@ -119,11 +119,47 @@ namespace cube
         void setPriority(int priority) { m_priority = priority; }
         int priority() const { return m_priority; }
 
+        // Declare a stable machine id (unique across mods) - the key for this mod's config, storage,
+        // services, and dependency references. Defaults to the DLL filename stem if left unset.
+        void setId(const char* id) { m_id = id; }
+        const char* id() const { return m_id; }
+
+        // Declare the powers this mod uses (OR Capability flags). Leave unset for unrestricted access.
+        void setCapabilities(unsigned capabilities) { m_capabilities = capabilities; }
+        unsigned capabilities() const { return m_capabilities; }
+
+        // Declare a dependency on another mod by id. A hard dep refuses to load this mod when unmet.
+        void dependsOn(const char* id, const char* minVersion = nullptr, bool hard = true)
+        {
+            CubeModDep dep;
+            dep.id = id;
+            dep.minVersion = minVersion;
+            dep.hard = hard ? 1 : 0;
+            m_deps.push_back(dep);
+        }
+
         // Internal: wired by the CUBE_MOD entry point and the event trampoline.
         void bind(const CubeApi* api)
         {
             m_api = api;
             log = Logger(api);
+        }
+
+        // Internal: the null-terminated dep array handed to the loader via CubeModInfo (read once at boot).
+        const CubeModDep* depsData()
+        {
+            if (m_deps.empty())
+                return nullptr;
+            if (!m_depsTerminated)
+            {
+                CubeModDep terminator;
+                terminator.id = nullptr;
+                terminator.minVersion = nullptr;
+                terminator.hard = 0;
+                m_deps.push_back(terminator);
+                m_depsTerminated = true;
+            }
+            return m_deps.data();
         }
 
     private:
@@ -264,6 +300,10 @@ namespace cube
 
         const CubeApi* m_api = nullptr;
         int m_priority = 0;
+        const char* m_id = nullptr;
+        unsigned m_capabilities = 0;
+        std::vector<CubeModDep> m_deps;
+        bool m_depsTerminated = false;
         std::vector<std::function<void(EventArgs*)>> m_handlers[CUBE_EVENT_COUNT];
         bool m_subscribed[CUBE_EVENT_COUNT] = {};
         uint32_t m_eventTokens[CUBE_EVENT_COUNT] = {};
@@ -352,9 +392,10 @@ namespace cube
         inline CubeModInfo* boot(const CubeApi* api, const char* name, const char* version,
                                  const char* author, void (*entry)(Mod&))
         {
-            // Reject a loader whose ABI does not match what this mod was built against, so a stale
-            // binary fails cleanly at load instead of reading shifted struct offsets at runtime.
-            if (!api || api->abiVersion != CUBE_ABI_VERSION)
+            // Reject a loader OLDER than what this mod was built against: it would be missing sub-apis
+            // or struct fields the mod expects. A newer loader is fine because ABI growth is additive
+            // (appended members keep existing offsets), so the loader still serves this mod's prefix.
+            if (!api || api->abiVersion < CUBE_ABI_VERSION)
                 return nullptr;
             mod().bind(api);
             info().structSize = sizeof(CubeModInfo);
@@ -364,6 +405,12 @@ namespace cube
             info().priority = 0;
             entry(mod());
             info().priority = mod().priority();
+            // Manifest fields resolved from what the mod declared in its body. requiredAbi is stamped
+            // automatically to the ABI this mod compiled against, so the loader can range-check it.
+            info().requiredAbi = CUBE_ABI_VERSION;
+            info().id = mod().id();
+            info().capabilities = mod().capabilities();
+            info().deps = mod().depsData();
             return &info();
         }
 

@@ -14,12 +14,24 @@ namespace modloader
 {
     constexpr char kCategory[] = "modloader"; // shared log category for the loader units
 
+    // A copied dependency declaration (owned by the loader, decoupled from the mod DLL's statics).
+    struct Dep
+    {
+        std::string id;
+        std::string minVersion; // empty = any
+        bool hard = true;
+    };
+
     struct LoadedMod
     {
         HMODULE module = nullptr;
         ModContext context;
         CubeModShutdownFn shutdown = nullptr;
         std::string name;
+        std::string version;                 // copied for dependency version compares (F8)
+        uint32_t requiredAbi = 0;            // ABI the mod declared it was built against (0 = unspecified)
+        uint32_t capabilities = 0;          // CubeModCapability bitset (0 = unrestricted)
+        std::vector<Dep> deps;
     };
 
     // The process-wide loaded-mod list (owned/defined by core.cpp).

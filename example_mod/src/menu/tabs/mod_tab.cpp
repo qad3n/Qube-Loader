@@ -30,6 +30,9 @@ namespace exmod::menu
         const ImGuiIO& io = ImGui::GetIO();
         if (beginTable("mod_info"))
         {
+            const char* modId = cube::mod().id();
+            row("Mod id", "%s", (modId && modId[0]) ? modId : "(stem fallback)");
+            row("Capabilities", "0x%X", cube::mod().capabilities());
             row("Environment", "%s", cube::mod().isClient() ? "client" : "server");
             row("Loader ABI", "%u", g_api->abiVersion);
             row("SDK ABI", "%d", CUBE_ABI_VERSION);

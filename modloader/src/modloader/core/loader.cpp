@@ -1,4 +1,5 @@
 #include "modloader/core/internal.h"
+#include "modloader/core/modregistry.h"
 #include "modloader/core/events.h"
 #include "modloader/core/conflict.h"
 #include "game/gamehooks/gamehooks.h"
@@ -36,13 +37,14 @@ namespace modloader
             return name;
         }
 
-        // How many already-loaded mods report this exact name (0 = unique so far).
-        int32_t countLoadedNamed(const std::string& name)
+        // How many already-loaded mods share this exact id (0 = unique so far). Id is the stable
+        // identity (manifest id, or DLL stem fallback), so a match is a genuine collision.
+        int32_t countLoadedId(const std::string& id)
         {
             int32_t count = 0;
             for (const std::unique_ptr<LoadedMod>& mod : loadedMods())
             {
-                if (mod->name == name)
+                if (mod->context.id == id)
                     ++count;
             }
 
@@ -71,6 +73,7 @@ namespace modloader
             std::unique_ptr<LoadedMod> mod(new LoadedMod());
             mod->module = module;
             mod->context.category = stem;
+            mod->context.stem = stem;
 
             if (!api::fill(mod->context.api))
             {
@@ -103,6 +106,7 @@ namespace modloader
             if (!info || !info->name)
             {
                 LOGC(Warn, kCategory, "%s: CubeMod_Init returned no info; unloading", stem.c_str());
+                modregistry::recordFault(stem);
                 modloader::events::unsubscribeOwner(&mod->context.api);
                 game::gamehooks::unsubscribeOwner(&mod->context.api);
                 FreeLibrary(module);
@@ -112,12 +116,50 @@ namespace modloader
             mod->name = info->name;
             if (info->structSize >= offsetof(CubeModInfo, priority) + sizeof(info->priority))
                 mod->context.priority = info->priority;
-            const int32_t priorSameName = countLoadedNamed(info->name);
-            if (priorSameName > 0)
+
+            // Manifest fields (ABI 20+), each read only if the mod's struct is large enough to hold it.
+            const char* declaredId = nullptr;
+            if (info->structSize >= offsetof(CubeModInfo, id) + sizeof(info->id))
+                declaredId = info->id;
+            if (info->structSize >= offsetof(CubeModInfo, requiredAbi) + sizeof(info->requiredAbi))
+                mod->requiredAbi = info->requiredAbi;
+            if (info->structSize >= offsetof(CubeModInfo, capabilities) + sizeof(info->capabilities))
+                mod->capabilities = info->capabilities;
+            if (info->structSize >= offsetof(CubeModInfo, deps) + sizeof(const CubeModDep*) && info->deps)
             {
-                mod->context.category = std::string(info->name) + "#" + std::to_string(priorSameName + 1);
-                conflict::error("two mods are named '%s'; loading both (as '%s' and '%s'). Logs are ambiguous and the game may crash or misbehave - remove one",
-                                info->name, info->name, mod->context.category.c_str());
+                for (const CubeModDep* d = info->deps; d->id; ++d)
+                {
+                    Dep dep;
+                    dep.id = d->id;
+                    dep.minVersion = d->minVersion ? d->minVersion : "";
+                    dep.hard = d->hard != 0;
+                    mod->deps.push_back(dep);
+                }
+            }
+            mod->version = info->version ? info->version : "";
+            mod->context.id = (declaredId && declaredId[0]) ? declaredId : stem;
+
+            // ABI gate: reject a mod built against an ABI this loader cannot serve. requiredAbi==0
+            // means undeclared (a raw-C mod that did not stamp it) and passes. CUBE_MOD mods always
+            // stamp it, so this backs up the mod-side boot check for the raw-ABI path.
+            if (mod->requiredAbi != 0 &&
+                (mod->requiredAbi < CUBE_MIN_ABI_VERSION || mod->requiredAbi > CUBE_ABI_VERSION))
+            {
+                conflict::error("mod '%s' was built against ABI v%u, but this loader serves v%u..v%u; rebuild the mod",
+                                mod->context.id.c_str(), static_cast<unsigned>(mod->requiredAbi),
+                                static_cast<unsigned>(CUBE_MIN_ABI_VERSION), static_cast<unsigned>(CUBE_ABI_VERSION));
+                modloader::events::unsubscribeOwner(&mod->context.api);
+                game::gamehooks::unsubscribeOwner(&mod->context.api);
+                FreeLibrary(module);
+                return;
+            }
+
+            const int32_t priorSameId = countLoadedId(mod->context.id);
+            if (priorSameId > 0)
+            {
+                mod->context.category = mod->context.id + "#" + std::to_string(priorSameId + 1);
+                conflict::error("two mods share id '%s'; loading both (as '%s' and '%s'). State keyed by id will collide and the game may crash or misbehave - give one a distinct id or remove it",
+                                mod->context.id.c_str(), mod->context.id.c_str(), mod->context.category.c_str());
             }
             else
             {
@@ -146,8 +188,16 @@ namespace modloader
             if (entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 continue;
 
+            const std::string stem = stemOf(entry.cFileName);
+            if (!modregistry::isEnabled(stem))
+            {
+                LOGC(Info, kCategory, "%s is disabled in mods.ini; skipping", stem.c_str());
+                continue;
+            }
+            modregistry::noteSeen(stem);
+
             const std::string full = paths::join(modsDir, entry.cFileName);
-            loadOne(full, stemOf(entry.cFileName));
+            loadOne(full, stem);
         }
         while (FindNextFileA(find, &entry));
 
