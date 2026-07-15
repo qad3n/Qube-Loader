@@ -1,0 +1,14 @@
+# Copy to cube_mod.ini next to the DLL. Environment variables override these.
+# log_level: trace|debug|info|warn|error. debug (default) shows the mod's
+# diagnostics; info shows only user-facing menu/hotkey output and game captures.
+log_level = debug
+# log_dir =
+console = 1
+color = 1
+# color_mode: detect|ansi|win32|none. detect auto-picks; force ansi or win32 if
+# the Wine console window renders colors wrong (raw codes -> use win32).
+color_mode = detect
+capture_game_log = 1
+# fault_isolation: 1 keeps the game alive when a mod callback faults (disables that
+# mod); 0 lets the crash handler take the process down instead.
+fault_isolation = 1

@@ -1,0 +1,6 @@
+[submodule "modloader/include/minhook"]
+	path = modloader/include/minhook
+	url = https://github.com/TsudaKageyu/minhook.git
+[submodule "example_mod/include/imgui"]
+	path = example_mod/include/imgui
+	url = https://github.com/ocornut/imgui.git

@@ -1,0 +1,17 @@
+# Build output (never commit build artifacts)
+build/
+
+# Logs and crash dumps
+*.log
+*.dmp
+cube_mod_crash.dmp
+
+# Local runtime config (copy from cube_mod.ini.sample instead)
+cube_mod.ini
+
+# clangd / editor caches
+.cache/
+
+# OS cruft
+.DS_Store
+Thumbs.db

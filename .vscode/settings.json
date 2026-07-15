@@ -1,0 +1,8 @@
+{
+    "git.ignoreLimitWarning": true,
+    "clangd.arguments": [
+        "--background-index",
+        "--header-insertion=never",
+        "--completion-style=detailed"
+    ]
+}

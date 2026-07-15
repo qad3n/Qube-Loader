@@ -1,0 +1,11 @@
+# For full IntelliSense on the i686-w64-mingw32 cross target, launch clangd with
+#   --query-driver=/usr/bin/i686-w64-mingw32-*
+# (an editor/clangd CLI setting; clangd will not query a cross-compiler driver for its
+# system include paths unless that driver is allowlisted).
+CompileFlags:
+  CompilationDatabase: build
+  Compiler: i686-w64-mingw32-g++
+  Remove:
+    - -mno-*
+    - -static-libgcc
+    - -static-libstdc++
