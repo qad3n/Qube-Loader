@@ -13,6 +13,8 @@
 #include "cube/selection.hpp"
 #include "cube/hookcall.hpp"
 #include "cube/logger.hpp"
+#include "cube/config.hpp"
+#include "cube/storage.hpp"
 #include "cube/events.hpp"
 
 namespace cube
@@ -41,6 +43,11 @@ namespace cube
         Session session() const { return Session(m_api); }
         Ui ui() const { return Ui(m_api); }
         Selection selection() const { return Selection(m_api); }
+        // Per-mod persistence: config() is user-editable settings (<stem>.ini); storage() is mod-owned
+        // binary save data. Both keyed by this mod's DLL stem (stable and available even in init,
+        // unlike the manifest id), so a mod's own files stay put regardless of the id it declares.
+        Config config() const { return Config(m_api); }
+        Storage storage() const { return Storage(m_api); }
         // The most recently picked-up item (E key). present()==false until the first pickup.
         // Item.getStack() is the count picked up; the item base address is 0 (transient staging copy).
         Item lastPickup() const

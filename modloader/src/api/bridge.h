@@ -172,4 +172,6 @@ namespace modloader::api
     void fillSelection(CubeApi& api);
     void fillPickup(CubeApi& api);
     void fillHooks(CubeApi& api);
+    void fillConfig(CubeApi& api);
+    void fillStorage(CubeApi& api);
 }

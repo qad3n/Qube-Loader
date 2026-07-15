@@ -1,6 +1,8 @@
 #include "modloader/modloader.h"
 #include "modloader/core/internal.h"
 #include "modloader/core/modregistry.h"
+#include "modloader/core/modconfig.h"
+#include "modloader/core/modstorage.h"
 #include "modloader/core/events.h"
 #include "modloader/game/gameevents.h"
 #include "modloader/core/writeguard.h"
@@ -91,6 +93,10 @@ namespace modloader
 
         // Load the enable/disable + fault-strike registry so scan() can skip disabled mods.
         modregistry::load(dllDir);
+
+        // Root the per-mod config + storage stores before scan(): a mod may read either in its init.
+        modconfig::init(dllDir);
+        modstorage::init(dllDir);
 
         scan(modsDir);
 

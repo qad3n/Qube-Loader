@@ -7,6 +7,9 @@ namespace exmod::menu
 {
 
     constexpr int kLogInputSize = 128;
+    constexpr int kConfigInputSize = 128;
+    constexpr int kNoteInputSize = 256;
+    constexpr int kScopeInputSize = 32;
 
     class ModTab : public Tab
     {
@@ -26,9 +29,15 @@ namespace exmod::menu
         void drawInfo(const CubeEventArgs& frame);
         void drawMemory();
         void drawLogging();
+        void drawPersist();
+        void reloadNote(); // pull the storage note for the active scope into m_note
 
         LogState m_log;
         float m_uiScale = 1.0f;
+        char m_greeting[kConfigInputSize] = "";
+        bool m_greetOnLoad = true;
+        char m_note[kNoteInputSize] = "";  // storage() blob demo (a persistent free-text note)
+        char m_scope[kScopeInputSize] = ""; // storage().setScope demo (namespace the note per save)
     };
 
 }

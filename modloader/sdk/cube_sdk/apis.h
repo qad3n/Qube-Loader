@@ -308,3 +308,34 @@ typedef struct CubeHooksApi
     uint32_t (CUBE_CALL* builtinTarget)(const struct CubeApi* api, int32_t hook);
 } CubeHooksApi;
 
+// Per-mod user-editable settings, persisted to <dllDir>/config/<mod-id>.ini (keyed by mod id, resolved
+// loader-side - no id argument). Each getter takes a fallback returned when the key is missing/malformed.
+typedef struct CubeConfigApi
+{
+    int32_t (CUBE_CALL* getInt)(const struct CubeApi* api, const char* key, int32_t fallback);
+    double (CUBE_CALL* getFloat)(const struct CubeApi* api, const char* key, double fallback);
+    int32_t (CUBE_CALL* getBool)(const struct CubeApi* api, const char* key, int32_t fallback);
+    // Copies the value (or fallback) into out (always null-terminated within size); returns the string length.
+    int32_t (CUBE_CALL* getString)(const struct CubeApi* api, const char* key, const char* fallback, char* out, int32_t size);
+    int32_t (CUBE_CALL* setInt)(const struct CubeApi* api, const char* key, int32_t value);
+    int32_t (CUBE_CALL* setFloat)(const struct CubeApi* api, const char* key, double value);
+    int32_t (CUBE_CALL* setBool)(const struct CubeApi* api, const char* key, int32_t value);
+    int32_t (CUBE_CALL* setString)(const struct CubeApi* api, const char* key, const char* value);
+} CubeConfigApi;
+
+// Per-mod save data: opaque binary blobs under <dllDir>/data/<mod-id>/ (keyed by mod id, resolved
+// loader-side). Distinct from config (that is user-editable text); this is mod-owned, binary-safe state.
+typedef struct CubeStorageApi
+{
+    // Namespace subsequent get/put/... under a scope subdirectory (e.g. world seed / character). "" or NULL = the unscoped root. Returns 1.
+    int32_t (CUBE_CALL* setScope)(const struct CubeApi* api, const char* scope);
+    // Copies up to size bytes of the blob at key into out; returns bytes read (0 if absent). out == NULL probes: returns the stored size.
+    int32_t (CUBE_CALL* get)(const struct CubeApi* api, const char* key, void* out, int32_t size);
+    // Writes size bytes as the blob at key (overwrites). Returns 1 on success.
+    int32_t (CUBE_CALL* put)(const struct CubeApi* api, const char* key, const void* data, int32_t size);
+    // Deletes the blob at key. Returns 1 if it existed and was removed.
+    int32_t (CUBE_CALL* remove)(const struct CubeApi* api, const char* key);
+    // 1 if a blob exists at key.
+    int32_t (CUBE_CALL* has)(const struct CubeApi* api, const char* key);
+} CubeStorageApi;
+

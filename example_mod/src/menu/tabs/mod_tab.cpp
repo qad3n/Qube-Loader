@@ -17,12 +17,42 @@ namespace exmod::menu
 
         const char* const kLogLevelNames[] = {"Trace", "Debug", "Info", "Warn", "Error"};
 
+        // config() keys: these persist REAL example_mod settings across restarts (not throwaway demo
+        // values) - the UI scale, log level, and the on-load greeting.
+        constexpr char kUiScaleKey[] = "ui_scale";
+        constexpr char kLogLevelKey[] = "log_level";
+        constexpr char kGreetOnLoadKey[] = "greet_on_load";
+        constexpr char kGreetingKey[] = "greeting";
+        constexpr char kGreetingDefault[] = "welcome back";
+
+        // storage() keys: mod-owned binary save data (the launch counter and a free-text note blob).
+        constexpr char kLaunchesKey[] = "launches";
+        constexpr char kNoteKey[] = "note";
+
     }
 
     ModTab::ModTab()
     {
-        m_uiScale = overlay::uiScale();
         std::snprintf(m_log.message, sizeof(m_log.message), "%s", kDefaultLogMessage);
+
+        // Seed every editable field from this mod's persisted config (written last session), and apply
+        // the ones with a live effect now so the saved UI scale / log level take hold immediately.
+        cube::Config config = cube::mod().config();
+        m_uiScale = config.getFloat(kUiScaleKey, overlay::uiScale());
+        overlay::setUiScale(m_uiScale);
+        m_log.levelIndex = config.getInt(kLogLevelKey, CUBE_LOG_INFO);
+        m_greetOnLoad = config.getBool(kGreetOnLoadKey, true);
+        std::snprintf(m_greeting, sizeof(m_greeting), "%s",
+                      config.getString(kGreetingKey, kGreetingDefault).c_str());
+
+        reloadNote();
+    }
+
+    void ModTab::reloadNote()
+    {
+        cube::Storage storage = cube::mod().storage();
+        storage.setScope(m_scope);
+        std::snprintf(m_note, sizeof(m_note), "%s", storage.getString(kNoteKey).c_str());
     }
 
     void ModTab::drawInfo(const CubeEventArgs& frame)
@@ -41,15 +71,21 @@ namespace exmod::menu
             row("DPI scale", "%.2fx", overlay::dpiScale());
             ImGui::EndTable();
         }
-        ImGui::SeparatorText("ui scale");
+        // UI scale is persisted through mod.config() (a float setting), so it survives a restart -
+        // exactly the pain point config solves (this slider used to reset every launch).
+        ImGui::SeparatorText("ui scale (saved to config)");
         ImGui::SetNextItemWidth(sc(kInputWidth));
         if (ImGui::SliderFloat("scale", &m_uiScale, overlay::kMinUiScale, overlay::kMaxUiScale, "%.2fx", kClampFlags))
+        {
             overlay::setUiScale(m_uiScale);
+            cube::mod().config().setFloat(kUiScaleKey, m_uiScale);
+        }
         ImGui::SameLine();
         if (ImGui::Button("Reset##scale"))
         {
             m_uiScale = 1.0f;
             overlay::setUiScale(m_uiScale);
+            cube::mod().config().setFloat(kUiScaleKey, m_uiScale);
         }
 
         ImGui::SeparatorText("input");
@@ -102,7 +138,9 @@ namespace exmod::menu
     {
         ImGui::TextDisabled("emit a line at any level via log.write");
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::Combo("level", &m_log.levelIndex, kLogLevelNames, IM_ARRAYSIZE(kLogLevelNames));
+        // The chosen level is remembered in mod.config() (an int setting), so it persists across restarts.
+        if (ImGui::Combo("level", &m_log.levelIndex, kLogLevelNames, IM_ARRAYSIZE(kLogLevelNames)))
+            cube::mod().config().setInt(kLogLevelKey, m_log.levelIndex);
         ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
         ImGui::InputText("message", m_log.message, sizeof(m_log.message));
         if (ImGui::Button("Log message"))
@@ -125,6 +163,92 @@ namespace exmod::menu
             emitLog(CUBE_LOG_ERROR, "example_mod: error test line");
     }
 
+    void ModTab::drawPersist()
+    {
+        // config() = user-editable settings (<stem>.ini); storage() = mod-owned binary save data. Both
+        // key on this mod's DLL stem and persist across restarts. This tab exercises the whole surface;
+        // ui_scale (float) and log_level (int) are edited on the Info / Logging tabs and shown here.
+        cube::Config config = cube::mod().config();
+        cube::Storage storage = cube::mod().storage();
+
+        ImGui::TextDisabled("mod.config() - settings saved to config/<stem>.ini (all four types)");
+        const int levelIndex = (m_log.levelIndex >= 0 && m_log.levelIndex < IM_ARRAYSIZE(kLogLevelNames))
+            ? m_log.levelIndex : CUBE_LOG_INFO;
+        if (beginTable("mod_cfg"))
+        {
+            row("ui_scale (float)", "%.2f  [Info tab]", config.getFloat(kUiScaleKey, 1.0f));
+            row("log_level (int)", "%s  [Logging tab]", kLogLevelNames[levelIndex]);
+            row("greet_on_load (bool)", "%s", yesNo(config.getBool(kGreetOnLoadKey, true)));
+            ImGui::EndTable();
+        }
+        if (ImGui::Checkbox("Greet on load", &m_greetOnLoad))
+            config.setBool(kGreetOnLoadKey, m_greetOnLoad);
+        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
+        ImGui::InputText("greeting (string)", m_greeting, sizeof(m_greeting));
+        ImGui::SameLine();
+        if (ImGui::Button("Save##greeting"))
+        {
+            config.setString(kGreetingKey, m_greeting);
+            emitLog(CUBE_LOG_INFO, "example_mod: greeting saved to config");
+        }
+
+        // storage() launch counter lives at the unscoped root (as written by example_mod.cpp init).
+        ImGui::SeparatorText("mod.storage() - binary save data under data/<stem>/");
+        storage.setScope("");
+        if (beginTable("mod_launch"))
+        {
+            row("launch count", "%d", storage.getValue<int>(kLaunchesKey, 0));
+            ImGui::EndTable();
+        }
+        ImGui::TextDisabled("bumped once per game launch (example_mod.cpp init); survives restarts");
+        if (ImGui::Button("Reset launch count"))
+        {
+            storage.setScope("");
+            storage.putValue<int>(kLaunchesKey, 0);
+            emitLog(CUBE_LOG_INFO, "example_mod: launch count reset");
+        }
+
+        // A free-text note blob, optionally namespaced by a scope (setScope) so each save/world keeps
+        // its own copy. Demonstrates put/getString, has, size and remove.
+        ImGui::SeparatorText("note blob (put/getString + has/size/remove + setScope)");
+        ImGui::SetNextItemWidth(sc(kInputWidth));
+        ImGui::InputText("scope", m_scope, sizeof(m_scope));
+        ImGui::SameLine();
+        if (ImGui::Button("Apply scope"))
+            reloadNote();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Namespaces the note under data/<stem>/<scope>/ (e.g. per world seed or\n"
+                              "character). Empty scope is the shared root. Applying reloads the note.");
+        storage.setScope(m_scope);
+        const bool hasNote = storage.has(kNoteKey);
+        const int noteSize = storage.size(kNoteKey);
+        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
+        ImGui::InputText("note", m_note, sizeof(m_note));
+        if (ImGui::Button("Save##note"))
+        {
+            storage.putString(kNoteKey, m_note);
+            emitLog(CUBE_LOG_INFO, "example_mod: note saved to storage");
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Reload##note"))
+            reloadNote();
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!hasNote);
+        if (ImGui::Button("Delete##note"))
+        {
+            storage.remove(kNoteKey);
+            m_note[0] = '\0';
+            emitLog(CUBE_LOG_INFO, "example_mod: note removed from storage");
+        }
+        ImGui::EndDisabled();
+        if (beginTable("mod_note"))
+        {
+            row("exists (has)", "%s", yesNo(hasNote));
+            row("size (bytes)", "%d", noteSize);
+            ImGui::EndTable();
+        }
+    }
+
     void ModTab::draw(const CubeEventArgs& frame)
     {
         if (!ImGui::BeginTabBar("##modtabs"))
@@ -142,6 +266,11 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Logging"))
         {
             drawLogging();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Persist"))
+        {
+            drawPersist();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

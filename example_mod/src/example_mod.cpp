@@ -25,7 +25,7 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
 {
     exmod::g_api = mod.raw();
 
-    // Manifest (ABI 20 loader): a stable id keys this mod's future config/storage/services; capabilities
+    // Manifest (ABI 21 loader): a stable id keys this mod's config/storage/services; capabilities
     // document what it uses. requiredAbi is stamped automatically by CUBE_MOD. A mod with dependencies
     // would also call mod.dependsOn("other.mod.id", "1.0").
     mod.setId("cube_mod.example");
@@ -33,6 +33,15 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
                         cube::Capability::RawHooks | cube::Capability::Overlay);
 
     mod.log.info("example_mod: init; menu on INSERT/DELETE, listening for game events");
+
+    // Persistence demo (ABI 21): storage() holds mod-owned save data (this launch counter survives
+    // restarts); config() holds user-editable settings (see the Mod > Persist tab). Both key on this
+    // mod's DLL stem (example_mod), not the id above, so they work here in init before the id resolves.
+    const int launches = mod.storage().getValue<int>("launches", 0) + 1;
+    mod.storage().putValue<int>("launches", launches);
+    if (mod.config().getBool("greet_on_load", true))
+        mod.log.info("example_mod: launch #%d - %s", launches,
+                     mod.config().getString("greeting", "welcome back").c_str());
 
     // Rendering: the loader hands us the device/window through these events; the overlay owns all
     // ImGui (see overlay.cpp).
