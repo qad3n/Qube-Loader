@@ -1,5 +1,6 @@
 #include "game/gamelog.h"
 #include "game/offsets.h"
+#include "game/signature.h"
 #include "core/iat.h"
 #include "core/log.h"
 #include "core/mem.h"
@@ -151,6 +152,15 @@ namespace gamelog
 
         bool installSqliteLog()
         {
+            // kSqliteXLog is a hard data offset for one Cube.exe build. On a mismatch it may not be the
+            // log pointer at all, so writing our callback there could hand the game a bad function
+            // pointer. Skip on a build mismatch (the readable/null checks below are not enough).
+            if (!game::signature::compatibleBuild())
+            {
+                LOGC(Warn, kCategory, "sqlite xLog: skipped, Cube.exe build mismatch (offset 0x%08X is not trusted on this binary)", fmt::u32(off::kSqliteXLog));
+                return false;
+            }
+
             void** xLog = reinterpret_cast<void**>(mem::rebase(off::kSqliteXLog));
             void** logArg = reinterpret_cast<void**>(mem::rebase(off::kSqlitePLogArg));
 

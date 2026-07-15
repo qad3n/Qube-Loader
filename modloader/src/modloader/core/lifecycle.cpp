@@ -5,6 +5,7 @@
 #include "modloader/game/gameevents.h"
 #include "modloader/core/writeguard.h"
 #include "game/gamehooks/gamehooks.h"
+#include "game/signature.h"
 #include "game/selection.h"
 #include "game/pickup.h"
 #include "hooks/render_dispatch.h"
@@ -39,10 +40,22 @@ namespace modloader
         // until a mod calls input.setBlocked. With no mod loaded none of these are installed at all.
         void installModHooks()
         {
-            game::gamehooks::armAttackWatch();
-            game::gamehooks::armCritCounter();
-            game::selection::install();
-            game::pickup::install();
+            // Game-function detours target hard addresses from one Cube.exe build; on a mismatched
+            // binary they would corrupt code. Verify the build once (before any patch) and skip them
+            // if it differs - the overlay and guarded reads still run, so the user gets a working menu
+            // instead of an instant crash.
+            if (game::signature::compatibleBuild())
+            {
+                game::gamehooks::armAttackWatch();
+                game::gamehooks::armCritCounter();
+                game::selection::install();
+                game::pickup::install();
+            }
+            else
+                LOGC(Warn, kCategory, "game-function hooks skipped (Cube.exe build mismatch): attack/crit sampling, R-select and E-pickup capture are OFF; overlay and reads still work");
+
+            // The input freeze (user32 IAT by import name) and DI suspend (system-DLL vtable) are
+            // build-independent, so they stay on to keep overlay input working on any binary.
             hooks::input_block::install();
             hooks::dinput::install();
         }

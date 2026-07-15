@@ -6,6 +6,7 @@
 // drains in-flight calls before MinHook frees the trampoline (mingw has no SEH for the race).
 
 #include "hooks/detour.h"
+#include "game/signature.h"
 #include "core/mem.h"
 #include "core/log.h"
 #include "util/guard.h"
@@ -34,6 +35,14 @@ namespace game
         {
             if (m_installed)
                 return true;
+
+            // Refuse to patch a mismatched build: on a different Cube.exe this pinned address is not
+            // the intended function and hooking it would corrupt code (crash on the next call).
+            if (!signature::verifyTarget(m_targetFn))
+            {
+                LOGC(Warn, m_category, "%s (build signature mismatch; wrong Cube.exe version)", m_failMsg);
+                return false;
+            }
 
             if (!hooks::detour::create(target(), detour, reinterpret_cast<void**>(&m_original)))
             {

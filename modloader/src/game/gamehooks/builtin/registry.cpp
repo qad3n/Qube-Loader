@@ -1,5 +1,6 @@
 #include "game/gamehooks/builtin/builtin.h"
 #include "game/gamehooks/gamehooks.h"
+#include "game/signature.h"
 #include "hooks/detour.h"
 #include "core/mem.h"
 #include "core/log.h"
@@ -79,6 +80,15 @@ namespace game::gamehooks
 
         if (g_installed[hook].load())
             return true;
+
+        // Refuse to patch a target whose bytes do not match the RE-target build: on a different
+        // Cube.exe the pinned address is mid-function and hooking it would corrupt the game.
+        if (!signature::verifyTarget(def->target))
+        {
+            LOGC(Warn, kCategory, "built-in hook %s NOT armed: build signature mismatch at static 0x%X (wrong Cube.exe)",
+                 hookName(hook), fmt::ptr(reinterpret_cast<void*>(def->target)));
+            return false;
+        }
 
         void* target = rebasePtr(def->target);
 
