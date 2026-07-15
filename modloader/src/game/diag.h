@@ -12,7 +12,7 @@ namespace game::diag
     // Render-thread poll: emits the full report the first frame the player resolves; re-arms on leave.
     void pollResolutionReport();
 
-    // Render-thread poll: periodically scans items for corruption (unrenderable "?" items
-    // that can crash on menu-open) and WARNs on each new one. Throttled + de-duplicated.
+    // Scans held, equipped and stored items for corruption and warns on each new one. Throttled,
+    // duplicate suppressed, and a defect must appear in two scans before it warns.
     void pollItemCorruption();
 }
