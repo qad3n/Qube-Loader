@@ -72,28 +72,6 @@ namespace exmod
             return index >= 0 && index < CUBE_EVENT_COUNT;
         }
 
-        // Events that fire continuously from passive play (looking around, walking, creatures
-        // streaming in/out, combat damage ticks) would flood the log, so their console echo starts
-        // off. The Events tab still counts and lists every one, and each is toggleable there; the
-        // discrete milestones below stay echoed so the log still demonstrates events reaching it.
-        bool noisyByDefault(int index)
-        {
-            switch (index)
-            {
-                case CUBE_EVENT_PLAYER_ATTACK:
-                case CUBE_EVENT_ENTITY_DAMAGED:
-                case CUBE_EVENT_MOVEMENT_CHANGED:
-                case CUBE_EVENT_TARGET_CHANGED:
-                case CUBE_EVENT_AIM_TARGET_CHANGED:
-                case CUBE_EVENT_ENTITY_SPAWN:
-                case CUBE_EVENT_ENTITY_DESPAWN:
-                case CUBE_EVENT_BUFF_GAINED:
-                case CUBE_EVENT_BUFF_LOST:
-                    return true;
-                default:
-                    return false;
-            }
-        }
     }
 
     GameEvents& gameEvents()
@@ -104,8 +82,10 @@ namespace exmod
 
     GameEvents::GameEvents()
     {
+        // Every event echoes to the console by default; each is still toggleable in the Events tab
+        // (the high-frequency ones like MOVEMENT_CHANGED / ENTITY_DAMAGED can be muted there).
         for (int i = 0; i < CUBE_EVENT_COUNT; ++i)
-            m_console[i] = !noisyByDefault(i);
+            m_console[i] = true;
     }
 
     void GameEvents::install(cube::EventListener& listener)

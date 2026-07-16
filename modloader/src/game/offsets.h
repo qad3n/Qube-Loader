@@ -77,6 +77,11 @@ namespace off
     constexpr uint8_t kContactClimbBit = 0x04; // +0x5c bit2 = climbable-surface contact
     constexpr uintptr_t kPlayerStateFlagsOff = 0x124; // u16 state flags
     constexpr uint16_t kClimbEnableBit = 0x0001; // +0x124 bit0 = climb/grab active
+    // +0x124 bit4 = hang-glider deployed: the movement handler (FUN_004a6b50 @0x4a824x) gates its
+    // airborne stamina-draining air-control branch on (state & 0x10) && airborne && stamina>0, which is
+    // the glide state (SkillHangGliding). UNTESTED live: the bit has no traceable set-site in the static
+    // dump, so confirm in-game before trusting GLIDING (it is gated to airborne, so a miss reads AIRBORNE).
+    constexpr uint16_t kGlideActiveBit = 0x0010;
     constexpr uint8_t kActionBlock = 0x6b; // block/guard action; unmapped ids resolve to UNKNOWN
 
     // Item POD (0x118 bytes).

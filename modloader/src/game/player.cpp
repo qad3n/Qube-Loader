@@ -25,7 +25,9 @@ namespace game
                 return CUBE_MOVE_SWIMMING;
             if (contact & off::kGroundContactBit)
                 return sneaking ? CUBE_MOVE_SNEAKING : CUBE_MOVE_GROUNDED;
-            return CUBE_MOVE_AIRBORNE; // off the ground and not climbing/swimming
+            if (stateFlags & off::kGlideActiveBit)
+                return CUBE_MOVE_GLIDING; // airborne with the hang-glider deployed (see kGlideActiveBit)
+            return CUBE_MOVE_AIRBORNE; // off the ground and not climbing/swimming/gliding
         }
 
         CubeAction resolveAction(uintptr_t creature, uint8_t action, bool combat)
