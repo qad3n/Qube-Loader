@@ -1,6 +1,7 @@
 #include "game/player.h"
 #include "game/creature.h"
 #include "game/gamecontroller.h"
+#include "game/actionlock.h"
 #include "game/offsets.h"
 #include "util/field.h"
 #include "game/catalog.h"
@@ -100,6 +101,8 @@ namespace game
         if (!resolveLocalPlayer(gc, obj))
             return false;
 
+        actionlock::sample(obj);
+
         out.address = static_cast<uint32_t>(obj);
         field::f32(obj, off::kPlayerHealthOff, out.health);
         out.alive = (out.health > kDeadHealth) ? 1 : 0;
@@ -121,6 +124,8 @@ namespace game
         readActionState(obj, out);
         if (!out.alive)
             out.action = CUBE_ACTION_DEAD;
+        else if (actionlock::rolling())
+            out.action = CUBE_ACTION_ROLLING; // roll leaves the action byte idle; the lock classifier owns it
         readVitals(obj, out);
 
         // Facing: camera/look yaw is on the GameController and stays live airborne.

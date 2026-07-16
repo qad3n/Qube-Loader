@@ -152,8 +152,12 @@ namespace off
     constexpr uintptr_t kPlayerSpiritOff = 0x188; // float spirit base
     constexpr uintptr_t kPlayerComboOff = 0x1164; // int combo / rune counter
     constexpr uintptr_t kPlayerAttackCooldownOff = 0x144; // float attack windup (ready <= 0)
-    constexpr uintptr_t kPlayerHitStunOff = 0x128; // int hit-stun/stun-lock timer 0..600
-    // hitStun is set to this max on a heavy hit, counts down; gates acting while > 0.
+    constexpr uintptr_t kPlayerHitStunOff = 0x128; // int control-lock timer 0..600 (shared)
+    // +0x128 is a SHARED "cannot act" lock, NOT hit-stun alone: the dodge-roll (FUN_004a6b50) sets it
+    // to the max too, on top of spending stamina and applying a dash + upward pop, with the action
+    // byte left idle. So timer > 0 does NOT imply a hit - game::actionlock classifies the rising edge
+    // (health lost -> stun, no damage from the ground -> roll). Set to this max on a heavy hit / roll,
+    // counts down; gates acting while > 0.
     constexpr int32_t kHitStunMax = 600;
     constexpr uintptr_t kPlayerAttackSpeedOff = 0x17c; // float attack timescale (higher = faster)
     // +0x1190 is the STEALTH/sneak stat (0..1): it reduces enemy detection range and decays when

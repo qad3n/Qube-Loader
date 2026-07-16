@@ -132,6 +132,8 @@ namespace modloader::events
                 return "ENTITY_SELECTED";
             case CUBE_EVENT_ITEM_PICKUP:
                 return "ITEM_PICKUP";
+            case CUBE_EVENT_PLAYER_ROLL:
+                return "PLAYER_ROLL";
             case CUBE_EVENT_ENTITY_RECOVERED:
                 return "ENTITY_RECOVERED";
             case CUBE_EVENT_PET_RECOVERED:

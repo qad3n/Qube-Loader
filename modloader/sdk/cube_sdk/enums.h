@@ -104,10 +104,10 @@ typedef enum CubeEvent
     CUBE_EVENT_PET_SUMMONED, // the local player's pet was created / changed; args.subject = pet creature
     CUBE_EVENT_PET_DIED, // the local player's pet's health reached zero; args.subject = pet creature
     CUBE_EVENT_PET_DISMISSED, // the local player's pet was destroyed / dismissed; args.subject = last address
-    CUBE_EVENT_PLAYER_STUNNED, // the LOCAL player's stun-lock became active (cannot act); args.subject =
-                               // player, args.param = stun-lock timer. NOTE: the game applies this stun-lock
-                               // on hard falls / high-speed collisions too, not only enemy crowd-control, so
-                               // it can fire when nothing "attacked" you. For creatures use ENTITY_STUNNED.
+    CUBE_EVENT_PLAYER_STUNNED, // the LOCAL player's stun-lock became active from taking damage (cannot act);
+                               // args.subject = player, args.param = stun-lock timer. The shared lock the game
+                               // also uses for a dodge-roll is filtered out (that raises PLAYER_ROLL instead),
+                               // so this fires on a genuine hit / hard fall. For creatures use ENTITY_STUNNED.
     CUBE_EVENT_PLAYER_KNOCKED_DOWN, // the LOCAL player entered the downed state (on-ground, stars). subject = player
     CUBE_EVENT_PLAYER_RECOVERED, // the LOCAL player's stun-lock ended (can act again). subject = player.
                                // Pairs with PLAYER_STUNNED, so it likewise follows a hard fall/collision, not
@@ -128,6 +128,10 @@ typedef enum CubeEvent
     CUBE_EVENT_ITEM_PICKUP, // the local player picked up an item (E / hold-to-pickup completes).
                             // subject = item type, param = subtype, param2 = stack count. Use
                             // pickup.getLast() (or the onItemPickup hpp lambda) for the full CubeItem.
+    CUBE_EVENT_PLAYER_ROLL, // the LOCAL player performed a dodge-roll (stamina dash + brief action
+                            // lock; the action reads CUBE_ACTION_ROLLING for its duration). subject =
+                            // player, amount = vertical pop velocity. Distinct from PLAYER_JUMP: the
+                            // roll's upward pop no longer misfires as a jump / hit-stun.
     CUBE_EVENT_COUNT
 } CubeEvent;
 

@@ -73,6 +73,9 @@ namespace cube
         void onLand(std::function<void()> fn) { on(Event::Land, std::move(fn)); }
         // Payload: vertical velocity (velZ) the game had at the landing edge.
         void onLand(std::function<void(float verticalVelocity)> fn) { onRaw(Event::Land, [fn = std::move(fn)](EventArgs& a) { fn(a.amount); }); }
+        // A dodge-roll (distinct from a jump: the roll's upward pop no longer fires onJump/onStunned).
+        void onRoll(std::function<void()> fn) { on(Event::Roll, std::move(fn)); }
+        void onRoll(std::function<void(float verticalVelocity)> fn) { onRaw(Event::Roll, [fn = std::move(fn)](EventArgs& a) { fn(a.amount); }); }
         // Payload-carrying events pass the decoded value to the handler; use onRaw() for the full EventArgs.
         void onMovementChanged(std::function<void(Movement)> fn) { onRaw(Event::MovementChanged, [fn = std::move(fn)](EventArgs& a) { fn(static_cast<Movement>(a.param)); }); }
         void onMovementChanged(std::function<void(Movement current, Movement previous)> fn) { onRaw(Event::MovementChanged, [fn = std::move(fn)](EventArgs& a) { fn(static_cast<Movement>(a.param), static_cast<Movement>(a.param2)); }); }

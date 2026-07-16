@@ -51,6 +51,7 @@ namespace cube
         Death = CUBE_EVENT_PLAYER_DEATH,
         Respawn = CUBE_EVENT_PLAYER_RESPAWN,
         Land = CUBE_EVENT_PLAYER_LAND,
+        Roll = CUBE_EVENT_PLAYER_ROLL,
         MovementChanged = CUBE_EVENT_MOVEMENT_CHANGED,
         TargetChanged = CUBE_EVENT_TARGET_CHANGED,
         EntitySpawn = CUBE_EVENT_ENTITY_SPAWN,

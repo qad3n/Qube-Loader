@@ -6,6 +6,7 @@
 #include "game/player.h"
 #include "game/gamecontroller.h"
 #include "game/attackwatch.h"
+#include "game/actionlock.h"
 #include "game/combat.h"
 #include "game/world.h"
 #include "game/session.h"
@@ -45,7 +46,7 @@ namespace modloader::gameevents
             int32_t movement = 0;
             uint32_t target = 0;
             int32_t coins = 0;
-            int32_t stunned = 0;
+            game::actionlock::Cause lockCause = game::actionlock::Cause::None;
             int32_t knockedDown = 0;
             uint64_t petId = 0;
             uint32_t petAddress = 0;
@@ -332,11 +333,14 @@ namespace modloader::gameevents
                 // Tell the game-thread attack watcher who the local player is (cheap per-tick filter).
                 game::attackwatch::setLocalPlayer(player.address);
 
-                // Stun-lock timer and the downed action drive the stun edges.
+                // The +0x128 control-lock is SHARED by hit-stun and the dodge-roll. game::actionlock
+                // (sampled in readPlayer) tells the two apart; hitStun carries the raw timer for the
+                // STUNNED payload. While rolling, the roll's upward pop and lock must not misfire as a
+                // jump / movement change / stun - it raises a single PLAYER_ROLL instead.
                 int32_t hitStun = 0;
-                // A failed read leaves hitStun 0; do not treat that as "recovered" or lose the prior state.
-                const bool stunReadOk = mem::read(static_cast<uintptr_t>(player.address) + off::kPlayerHitStunOff, hitStun);
-                const int32_t stunnedNow = (hitStun > 0) ? 1 : 0;
+                mem::read(static_cast<uintptr_t>(player.address) + off::kPlayerHitStunOff, hitStun);
+                const game::actionlock::Cause lockCause = game::actionlock::cause();
+                const bool rolling = lockCause == game::actionlock::Cause::Rolling;
                 if (g_prev.valid)
                 {
                     // PLAYER_ATTACK is detected on the game thread by the attack watcher (it catches a
@@ -347,11 +351,11 @@ namespace modloader::gameevents
                         // param = action id, param2 = the selected target at the edge (0 if none)
                         emitEvent(CUBE_EVENT_PLAYER_ATTACK, player.address, player.actionId, static_cast<int32_t>(player.target));
                     }
-                    if (g_prev.onGround && !player.onGround)
+                    if (g_prev.onGround && !player.onGround && !rolling)
                     {
                         emitEvent(CUBE_EVENT_PLAYER_JUMP, player.address, 0, 0, player.velZ);
                     }
-                    if (!g_prev.onGround && player.onGround)
+                    if (!g_prev.onGround && player.onGround && !rolling)
                     {
                         emitEvent(CUBE_EVENT_PLAYER_LAND, player.address, 0, 0, player.velZ);
                     }
@@ -367,7 +371,7 @@ namespace modloader::gameevents
                     {
                         emitEvent(CUBE_EVENT_PLAYER_RESPAWN, player.address, 0);
                     }
-                    if (player.movement != g_prev.movement)
+                    if (player.movement != g_prev.movement && !rolling)
                     {
                         emitEvent(CUBE_EVENT_MOVEMENT_CHANGED, player.address, player.movement, g_prev.movement);
                     }
@@ -379,13 +383,24 @@ namespace modloader::gameevents
                     {
                         emitEvent(CUBE_EVENT_COINS_CHANGED, 0, player.coins, player.coins - g_prev.coins);
                     }
-                    if (stunReadOk && !g_prev.stunned && stunnedNow)
+                    // Emit on the classified lock-cause transition: a fresh roll -> PLAYER_ROLL, a fresh
+                    // hit -> PLAYER_STUNNED, clearing a hit -> PLAYER_RECOVERED. A roll ending is silent
+                    // (Rolling -> None): the roll is one atomic event, not a stun/recover pair.
+                    if (lockCause != g_prev.lockCause)
                     {
-                        emitEvent(CUBE_EVENT_PLAYER_STUNNED, player.address, hitStun);
-                    }
-                    if (stunReadOk && g_prev.stunned && !stunnedNow)
-                    {
-                        emitEvent(CUBE_EVENT_PLAYER_RECOVERED, player.address, 0);
+                        switch (lockCause)
+                        {
+                            case game::actionlock::Cause::Rolling:
+                                emitEvent(CUBE_EVENT_PLAYER_ROLL, player.address, 0, 0, player.velZ);
+                                break;
+                            case game::actionlock::Cause::Stunned:
+                                emitEvent(CUBE_EVENT_PLAYER_STUNNED, player.address, hitStun);
+                                break;
+                            case game::actionlock::Cause::None:
+                                if (g_prev.lockCause == game::actionlock::Cause::Stunned)
+                                    emitEvent(CUBE_EVENT_PLAYER_RECOVERED, player.address, 0);
+                                break;
+                        }
                     }
                     if (!g_prev.knockedDown && player.knockedDown)
                     {
@@ -422,8 +437,7 @@ namespace modloader::gameevents
                 g_prev.movement = player.movement;
                 g_prev.target = player.target;
                 g_prev.coins = player.coins;
-                if (stunReadOk)
-                    g_prev.stunned = stunnedNow;
+                g_prev.lockCause = lockCause;
                 g_prev.knockedDown = player.knockedDown;
                 g_prev.valid = true;
                 pollInventoryState();

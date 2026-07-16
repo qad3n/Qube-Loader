@@ -49,7 +49,7 @@ namespace exmod
             {"PetSummoned", "the player's pet was created (subject = pet)"},
             {"PetDied", "the player's pet was killed (subject = pet)"},
             {"PetDismissed", "the player's pet was destroyed (subject = address)"},
-            {"PlayerStunned", "LOCAL player's stun lock started (param = timer); also fires on hard falls/collisions"},
+            {"PlayerStunned", "LOCAL player's stun lock started from a hit/fall (param = timer); rolls are excluded"},
             {"PlayerKnockedDown", "LOCAL player was knocked down"},
             {"PlayerRecovered", "LOCAL player's stun lock ended (can act); pairs with PlayerStunned"},
             {"EntityStunned", "a nearby creature became stunned (subject = creature, param/param2 = category/type)"},
@@ -60,7 +60,8 @@ namespace exmod
             {"EntityRecovered", "a nearby creature's stun lock ended (subject = creature, param/param2 = category/type)"},
             {"PetRecovered", "the player's pet's stun lock ended (subject = pet)"},
             {"AbilityUsed", "used a hotbar ability 1-5 (param = ability id, param2 = cooldown ms)"},
-            {"ItemPickup", "picked up an item (E) (subject = type, param = subtype, param2 = stack)"}
+            {"ItemPickup", "picked up an item (E) (subject = type, param = subtype, param2 = stack)"},
+            {"PlayerRoll", "LOCAL player dodge-rolled (amount = vertical pop); no longer misreads as jump/stun"}
         };
 
         bool inRange(int index)
@@ -167,6 +168,12 @@ namespace exmod
             char detail[24];
             std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
             record(CUBE_EVENT_PLAYER_LAND, detail);
+        });
+        listener.onRoll([this](float verticalVelocity)
+        {
+            char detail[24];
+            std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
+            record(CUBE_EVENT_PLAYER_ROLL, detail);
         });
         listener.onMovementChanged([this](cube::Movement current, cube::Movement previous)
         {
