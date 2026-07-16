@@ -140,6 +140,12 @@ namespace modloader::events
                 return "PET_RECOVERED";
             case CUBE_EVENT_ABILITY_USED:
                 return "ABILITY_USED";
+            case CUBE_EVENT_READY:
+                return "READY";
+            case CUBE_EVENT_WORLD_ENTER:
+                return "WORLD_ENTER";
+            case CUBE_EVENT_WORLD_EXIT:
+                return "WORLD_EXIT";
             default:
                 return "?";
         }
@@ -189,10 +195,13 @@ namespace modloader::events
         g_registry.snapshotInto(matched, [&](const Subscription& sub) { return sub.event == args.event; });
 
         // Dispatch low-to-high priority so the highest-priority mod runs last (final say on swallow);
-        // stable_sort keeps load order within one priority.
+        // within one priority, a dependency's lower topological rank runs before its dependents;
+        // stable_sort keeps load order when both are equal.
         std::stable_sort(matched.begin(), matched.end(), [](const Subscription& a, const Subscription& b)
         {
-            return ownerPriority(a.owner) < ownerPriority(b.owner);
+            if (ownerPriority(a.owner) != ownerPriority(b.owner))
+                return ownerPriority(a.owner) < ownerPriority(b.owner);
+            return ownerOrder(a.owner) < ownerOrder(b.owner);
         });
 
         if (!matched.empty() && !isHighFrequency(args.event))

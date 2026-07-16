@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define CUBE_ABI_VERSION 21
+#define CUBE_ABI_VERSION 22
 // Oldest mod ABI this loader still accepts. Held FIXED as CUBE_ABI_VERSION grows (growth is
 // additive-only), so a mod built against any ABI in [CUBE_MIN_ABI_VERSION, CUBE_ABI_VERSION] keeps
 // loading. Only raise it if a non-additive break makes older mods genuinely incompatible.

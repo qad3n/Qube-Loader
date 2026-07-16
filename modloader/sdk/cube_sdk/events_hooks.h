@@ -24,6 +24,21 @@ typedef struct CubeEventArgs
 
 typedef void (CUBE_CALL* CubeEventFn)(CubeEventArgs* args);
 
+// One directed inter-mod message (CubeServicesApi.sendMessage -> the target mod's onMessage handler).
+// The payload is an opaque mod-defined blob; sender and receiver agree its meaning by msgId. Unlike the
+// broadcast event bus this is point-to-point, addressed by the target mod's manifest id.
+typedef struct CubeMessageArgs
+{
+    uint32_t structSize;
+    const char* senderId; // manifest id of the sending mod (never NULL; "?" if unresolved)
+    uint32_t msgId; // mod-defined message discriminator agreed by both sides
+    void* payload; // opaque sender-owned buffer, valid only for the duration of the call (may be NULL)
+    uint32_t payloadSize; // bytes at payload (0 if none)
+    int32_t result; // out: a handler sets this; sendMessage returns the last handler's value
+} CubeMessageArgs;
+
+typedef void (CUBE_CALL* CubeMessageFn)(const struct CubeApi* api, CubeMessageArgs* args, void* user);
+
 // Game-function hooks intercept a real game call (cancel / mutate args / override return via CubeHookCall).
 // WARNING: the handler runs synchronously on the game thread - keep it small and do NOT touch the overlay.
 typedef enum CubeHook

@@ -39,6 +39,7 @@ namespace modloader::gameevents
         {
             bool valid = false;
             bool hadArea = false;
+            bool inWorld = false;
             int32_t attacking = 0;
             int32_t lastActionId = -1;
             int32_t onGround = 1;
@@ -327,6 +328,19 @@ namespace modloader::gameevents
             CubeWorld world = {};
             world.structSize = sizeof(CubeWorld);
             const bool okWorld = game::readWorld(world);
+
+            // World residency edge (title/menu <-> in-world), distinct from AREA_CHANGE (zone to zone).
+            // Default-false baseline is "not in world", so ENTER only fires on a real title->world cross
+            // and EXIT never fires spuriously on the first poll.
+            const bool nowInWorld = okPlayer && player.hasState;
+            if (nowInWorld != g_prev.inWorld)
+            {
+                if (nowInWorld)
+                    emitEvent(CUBE_EVENT_WORLD_ENTER, player.address, 0);
+                else
+                    emitEvent(CUBE_EVENT_WORLD_EXIT, 0, 0);
+                g_prev.inWorld = nowInWorld;
+            }
 
             if (okPlayer && player.hasState)
             {

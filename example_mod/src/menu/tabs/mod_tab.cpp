@@ -2,6 +2,7 @@
 #include "mod_context.h"
 #include "overlay.h"
 #include "features/memory_probe.h"
+#include "features/services_demo.h"
 
 #include "cube_mod.hpp"
 #include "imgui.h"
@@ -249,6 +250,35 @@ namespace exmod::menu
         }
     }
 
+    void ModTab::drawServices()
+    {
+        // Inter-mod ecosystem (ABI 22): example_mod publishes "example.ping", resolves it at READY, and
+        // exchanges a directed message. It targets its OWN id here (one DLL); with a second mod the
+        // provider/consumer split is identical. See features/services_demo.cpp.
+        ServicesDemo& demo = servicesDemo();
+        ImGui::TextDisabled("mod.services(): register / query / onMessage / sendMessage");
+        if (beginTable("mod_services"))
+        {
+            row("service resolved (onReady)", "%s", yesNo(demo.serviceResolved()));
+            row("ping(21) via query", "%d", demo.lastPingResult());
+            row("messages received", "%u", demo.messagesReceived());
+            row("last payload -> reply", "%d -> %d", demo.lastPayload(), demo.lastReply());
+            ImGui::EndTable();
+        }
+
+        ImGui::SeparatorText("send a directed message to self");
+        ImGui::SetNextItemWidth(sc(kInputWidth));
+        ImGui::InputInt("payload", &m_pingValue);
+        if (ImGui::Button("Send self ping"))
+        {
+            m_pingResult = demo.sendSelfPing(m_pingValue);
+            emitLog(CUBE_LOG_INFO, "example_mod: sendMessage(self) returned a reply");
+        }
+        ImGui::SameLine();
+        ImGui::Text("reply: %d", m_pingResult);
+        ImGui::TextDisabled("the handler replies payload + 1; sendMessage returns that value");
+    }
+
     void ModTab::draw(const CubeEventArgs& frame)
     {
         if (!ImGui::BeginTabBar("##modtabs"))
@@ -271,6 +301,11 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Persist"))
         {
             drawPersist();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Services"))
+        {
+            drawServices();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

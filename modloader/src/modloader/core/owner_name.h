@@ -39,4 +39,14 @@ namespace modloader
             return 0;
         return reinterpret_cast<const ModContext*>(owner)->priority;
     }
+
+    // Dependency topological rank (0 for the loader's internal sentinel owners). The secondary reduce
+    // sort key behind priority: at equal priority a dependency (lower rank) dispatches before its
+    // dependents. Set by deps::resolve; 0 when no dep graph reordering applies.
+    inline int32_t ownerOrder(const CubeApi* owner)
+    {
+        if (!owner)
+            return 0;
+        return reinterpret_cast<const ModContext*>(owner)->dispatchOrder;
+    }
 }

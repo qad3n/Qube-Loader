@@ -32,6 +32,8 @@ typedef struct CubeApi
     // --- appended in ABI 21 (persistence); older mods never read past here, so growth stays additive ---
     CubeConfigApi config; // per-mod user-editable settings (<dllDir>/config/<mod-id>.ini)
     CubeStorageApi storage; // per-mod binary save data (<dllDir>/data/<mod-id>/)
+    // --- appended in ABI 22 (ecosystem) ---
+    CubeServicesApi services; // shared-service registry + directed inter-mod messaging (by manifest id)
 } CubeApi;
 
 // One declared dependency on another mod (CubeModInfo::deps, a null-terminated array). The loader

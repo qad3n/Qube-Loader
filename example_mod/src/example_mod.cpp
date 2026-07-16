@@ -5,6 +5,7 @@
 #include "features/game_events.h"
 #include "features/game_hooks.h"
 #include "features/health_history.h"
+#include "features/services_demo.h"
 
 namespace exmod
 {
@@ -25,9 +26,9 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
 {
     exmod::g_api = mod.raw();
 
-    // Manifest (ABI 21 loader): a stable id keys this mod's config/storage/services; capabilities
-    // document what it uses. requiredAbi is stamped automatically by CUBE_MOD. A mod with dependencies
-    // would also call mod.dependsOn("other.mod.id", "1.0").
+    // Manifest: a stable id keys this mod's config/storage/services; capabilities document what it
+    // uses. requiredAbi is stamped automatically by CUBE_MOD. A mod with dependencies would also call
+    // mod.dependsOn("other.mod.id", "1.0") to require another mod be present (and in range) first.
     mod.setId("cube_mod.example");
     mod.setCapabilities(cube::Capability::RawMem | cube::Capability::Writes |
                         cube::Capability::RawHooks | cube::Capability::Overlay);
@@ -62,4 +63,8 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
     // Each owns its wiring + state in its feature class; the menu only views/toggles it.
     exmod::gameEvents().install(eventListener);
     exmod::gameHooks().install();
+
+    // Inter-mod ecosystem demo (ABI 22): publish a service, resolve it at onReady, exchange a directed
+    // message. Self-targeted here (one DLL), but the round-trip is identical across two mods.
+    exmod::servicesDemo().install(mod);
 }

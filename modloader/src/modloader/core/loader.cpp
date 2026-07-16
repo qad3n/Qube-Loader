@@ -1,6 +1,7 @@
 #include "modloader/core/internal.h"
 #include "modloader/core/modregistry.h"
 #include "modloader/core/events.h"
+#include "modloader/core/services.h"
 #include "modloader/core/conflict.h"
 #include "game/gamehooks/gamehooks.h"
 #include "api/api.h"
@@ -51,6 +52,17 @@ namespace modloader
             return count;
         }
 
+    }
+
+    void detachOwner(const CubeApi* api)
+    {
+        modloader::events::unsubscribeOwner(api);
+        game::gamehooks::unsubscribeOwner(api);
+        services::unregisterOwner(api);
+    }
+
+    namespace
+    {
         void loadOne(const std::string& fullPath, const std::string& stem)
         {
             HMODULE module = LoadLibraryA(fullPath.c_str());
@@ -97,8 +109,7 @@ namespace modloader
             if (!initOk)
             {
                 LOGC(Warn, kCategory, "%s: CubeMod_Init threw; unloading (its handlers were dropped)", stem.c_str());
-                modloader::events::unsubscribeOwner(&mod->context.api);
-                game::gamehooks::unsubscribeOwner(&mod->context.api);
+                detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
             }
@@ -107,8 +118,7 @@ namespace modloader
             {
                 LOGC(Warn, kCategory, "%s: CubeMod_Init returned no info; unloading", stem.c_str());
                 modregistry::recordFault(stem);
-                modloader::events::unsubscribeOwner(&mod->context.api);
-                game::gamehooks::unsubscribeOwner(&mod->context.api);
+                detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
             }
@@ -148,8 +158,7 @@ namespace modloader
                 conflict::error("mod '%s' was built against ABI v%u, but this loader serves v%u..v%u; rebuild the mod",
                                 mod->context.id.c_str(), static_cast<unsigned>(mod->requiredAbi),
                                 static_cast<unsigned>(CUBE_MIN_ABI_VERSION), static_cast<unsigned>(CUBE_ABI_VERSION));
-                modloader::events::unsubscribeOwner(&mod->context.api);
-                game::gamehooks::unsubscribeOwner(&mod->context.api);
+                detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
             }

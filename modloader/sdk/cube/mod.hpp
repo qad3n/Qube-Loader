@@ -15,6 +15,7 @@
 #include "cube/logger.hpp"
 #include "cube/config.hpp"
 #include "cube/storage.hpp"
+#include "cube/services.hpp"
 #include "cube/events.hpp"
 
 namespace cube
@@ -48,6 +49,9 @@ namespace cube
         // unlike the manifest id), so a mod's own files stay put regardless of the id it declares.
         Config config() const { return Config(m_api); }
         Storage storage() const { return Storage(m_api); }
+        // Inter-mod ecosystem: publish/resolve a named shared service and message another mod by its id.
+        // Resolve peers at eventListener().onReady() (every mod has loaded by then).
+        Services services() const { return Services(m_api, const_cast<Mod*>(this)); }
         // The most recently picked-up item (E key). present()==false until the first pickup.
         // Item.getStack() is the count picked up; the item base address is 0 (transient staging copy).
         Item lastPickup() const
@@ -172,6 +176,7 @@ namespace cube
     private:
         friend class EventListener;
         friend class EventHook;
+        friend class Services;
 
         void dispatch(EventArgs* args)
         {
@@ -302,8 +307,34 @@ namespace cube
                 fn(call);
         }
 
+        // Inter-mod message receiver: store a handler and (once) subscribe the loader-side trampoline,
+        // fanning every directed message out to all handlers - the messaging analogue of addEventHandler.
+        void addMessageHandler(std::function<void(Message&)> fn)
+        {
+            m_messageHandlers.push_back(std::move(fn));
+            if (m_api && !m_messageSubscribed)
+            {
+                const uint32_t token = m_api->services.onMessage(m_api, &messageTrampoline, nullptr);
+                if (token)
+                {
+                    m_messageSubscribed = true;
+                    m_messageToken = token;
+                }
+            }
+        }
+
+        void dispatchMessage(CubeMessageArgs* raw)
+        {
+            Message msg(raw);
+            // Snapshot before calling (see dispatch): a handler may (un)register handlers mid-dispatch.
+            const std::vector<std::function<void(Message&)>> handlers = m_messageHandlers;
+            for (const std::function<void(Message&)>& fn : handlers)
+                fn(msg);
+        }
+
         static void CUBE_CALL trampoline(EventArgs* args);
         static void CUBE_CALL hookTrampoline(CubeHookCall* call);
+        static void CUBE_CALL messageTrampoline(const CubeApi* api, CubeMessageArgs* args, void* user);
 
         const CubeApi* m_api = nullptr;
         int m_priority = 0;
@@ -317,6 +348,9 @@ namespace cube
         std::vector<std::function<void(HookCall&)>> m_hookHandlers[CUBE_HOOK_COUNT];
         bool m_hookSubscribed[CUBE_HOOK_COUNT] = {};
         std::map<unsigned, std::vector<std::function<void(HookCall&)>>> m_rawHandlers;
+        std::vector<std::function<void(Message&)>> m_messageHandlers;
+        bool m_messageSubscribed = false;
+        uint32_t m_messageToken = 0;
     };
 
     // Out-of-line EventListener / EventHook method definitions (Mod is now a complete type).
@@ -371,6 +405,12 @@ namespace cube
         return m_mod->builtinHookTarget(hook);
     }
 
+    inline void Services::onMessage(std::function<void(Message&)> fn) const
+    {
+        if (m_mod)
+            m_mod->addMessageHandler(std::move(fn));
+    }
+
     inline Mod& mod()
     {
         static Mod g_mod;
@@ -385,6 +425,11 @@ namespace cube
     inline void CUBE_CALL Mod::hookTrampoline(CubeHookCall* call)
     {
         mod().dispatchHook(call);
+    }
+
+    inline void CUBE_CALL Mod::messageTrampoline(const CubeApi*, CubeMessageArgs* args, void*)
+    {
+        mod().dispatchMessage(args);
     }
 
     namespace detail

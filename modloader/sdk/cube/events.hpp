@@ -68,6 +68,13 @@ namespace cube
         void onLevelUp(std::function<void(int newLevel)> fn) { onRaw(Event::LevelUp, [fn = std::move(fn)](EventArgs& a) { fn(a.param); }); }
         void onLevelUp(std::function<void(int newLevel, int previousLevel)> fn) { onRaw(Event::LevelUp, [fn = std::move(fn)](EventArgs& a) { fn(a.param, a.param2); }); }
         void onUnload(std::function<void()> fn) { on(Event::Shutdown, std::move(fn)); }
+        // Fires once after every mod has loaded and passed dependency resolution: the safe point to
+        // resolve another mod's registered service (mod.services().query). Runs on the load thread.
+        void onReady(std::function<void()> fn) { on(Event::Ready, std::move(fn)); }
+        // The local player became resident in / left a world (title/menu <-> in-world). Distinct from
+        // onAreaChange, which fires on zone-to-zone crossings while already in a world.
+        void onWorldEnter(std::function<void()> fn) { on(Event::WorldEnter, std::move(fn)); }
+        void onWorldExit(std::function<void()> fn) { on(Event::WorldExit, std::move(fn)); }
         void onDeath(std::function<void()> fn) { on(Event::Death, std::move(fn)); }
         void onRespawn(std::function<void()> fn) { on(Event::Respawn, std::move(fn)); }
         void onLand(std::function<void()> fn) { on(Event::Land, std::move(fn)); }

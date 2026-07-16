@@ -13,5 +13,8 @@ namespace modloader
         std::string id;          // stable machine id (manifest id, or DLL stem fallback)
         std::string stem;        // DLL filename stem; the enable/disable + fault-strike registry key
         int32_t priority = 0; // mod-declared dispatch priority; higher runs last in every reduce
+        // Dependency topological rank within one priority (deps::resolve sets it; default 0 = load
+        // order). A dependency ranks below its dependents so it dispatches first at equal priority.
+        int32_t dispatchOrder = 0;
     };
 }

@@ -132,6 +132,12 @@ typedef enum CubeEvent
                             // lock; the action reads CUBE_ACTION_ROLLING for its duration). subject =
                             // player, amount = vertical pop velocity. Distinct from PLAYER_JUMP: the
                             // roll's upward pop no longer misfires as a jump / hit-stun.
+    CUBE_EVENT_READY, // all mods have loaded and passed dependency resolution; emitted once on the load
+                      // thread after STARTUP and before the render arm. Safe point to resolve another
+                      // mod's registered service (see CubeServicesApi). No payload.
+    CUBE_EVENT_WORLD_ENTER, // the local player became resident in a world (title/menu -> in-world edge).
+                            // subject = player. Distinct from AREA_CHANGE (zone-to-zone within a world).
+    CUBE_EVENT_WORLD_EXIT, // the local player left the world (in-world -> title/menu edge). subject = 0.
     CUBE_EVENT_COUNT
 } CubeEvent;
 

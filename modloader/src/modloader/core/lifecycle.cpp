@@ -4,6 +4,7 @@
 #include "modloader/core/modconfig.h"
 #include "modloader/core/modstorage.h"
 #include "modloader/core/events.h"
+#include "modloader/core/services.h"
 #include "modloader/game/gameevents.h"
 #include "modloader/core/writeguard.h"
 #include "game/gamehooks/gamehooks.h"
@@ -72,11 +73,44 @@ namespace modloader
             hooks::input_block::remove();
         }
 
+        // Per-mod teardown (no list erase): guarded shutdown, drop loader-side registrations, free the
+        // DLL. Shared by remove() (bulk) and unloadOne (single) so there is exactly one teardown path.
+        void teardownMod(LoadedMod* mod)
+        {
+            if (mod->shutdown)
+            {
+                const std::string shutdownLabel = std::string("mod '") + mod->name + "' shutdown";
+                guard::tryRun(shutdownLabel.c_str(), &mod->context.api, [&]()
+                {
+                    mod->shutdown();
+                });
+            }
+
+            detachOwner(&mod->context.api);
+            FreeLibrary(mod->module);
+            LOGC(Debug, kCategory, "unloaded %s", mod->name.c_str());
+        }
+
     }
 
     std::vector<std::unique_ptr<LoadedMod>>& loadedMods()
     {
         return g_mods;
+    }
+
+    void unloadOne(LoadedMod* mod)
+    {
+        if (!mod)
+            return;
+        teardownMod(mod);
+        for (std::size_t i = 0; i < g_mods.size(); ++i)
+        {
+            if (g_mods[i].get() == mod)
+            {
+                g_mods.erase(g_mods.begin() + static_cast<std::ptrdiff_t>(i));
+                return;
+            }
+        }
     }
 
     std::size_t install(const std::string& dllDir)
@@ -106,6 +140,17 @@ namespace modloader
             return 0;
         }
 
+        // Resolve dependencies before anything else looks at the mod set: unload mods with unmet hard
+        // deps (cascading) and topo-rank the survivors' dispatch order. Runs before READY so an unloaded
+        // mod never reaches READY nor registers a service.
+        resolveDependencies();
+
+        if (g_mods.empty())
+        {
+            LOGC(Info, kCategory, "all mods unloaded by dependency resolution");
+            return 0;
+        }
+
         // Report what mods attached to and warn about shared hooks, before the loader's own internal
         // subscriptions below would muddy the index.
         reportCompatibility();
@@ -119,6 +164,10 @@ namespace modloader
         // Deliver STARTUP on this (mod) thread and drain it BEFORE arming the render dispatch, so a
         // FRAME cannot reenter a mod on the render thread while its STARTUP handler still runs.
         gameevents::emitLifecycle(CUBE_EVENT_STARTUP);
+
+        // Every mod is loaded, initialized, and past dependency resolution: READY is the safe point for
+        // a mod to resolve another mod's registered service. Same thread/drain discipline as STARTUP.
+        gameevents::emitLifecycle(CUBE_EVENT_READY);
 
         hooks::d3d9::Callbacks callbacks;
         callbacks.onRender = &gameevents::onFrame;
@@ -141,24 +190,10 @@ namespace modloader
         if (!g_mods.empty())
             gameevents::emitLifecycle(CUBE_EVENT_SHUTDOWN);
 
+        // Reverse order (mirrors load order) so a later mod tears down before an earlier one it may
+        // depend on. teardownMod does not erase; g_mods is cleared in bulk below.
         for (size_t i = g_mods.size(); i > 0; --i)
-        {
-            LoadedMod* mod = g_mods[i - 1].get();
-            if (mod->shutdown)
-            {
-                const std::string shutdownLabel = std::string("mod '") + mod->name + "' shutdown";
-                guard::tryRun(shutdownLabel.c_str(), &mod->context.api, [&]()
-                {
-                    mod->shutdown();
-                });
-            }
-
-            modloader::events::unsubscribeOwner(&mod->context.api);
-            game::gamehooks::unsubscribeOwner(&mod->context.api);
-
-            FreeLibrary(mod->module);
-            LOGC(Debug, kCategory, "unloaded %s", mod->name.c_str());
-        }
+            teardownMod(g_mods[i - 1].get());
 
         // Remove the loader's own game hooks (detours + input/DI IAT). No-ops if installModHooks never
         // ran (no mods). The IMPACT/CRIT reservations are torn down by gamehooks::shutdown afterward.
@@ -167,6 +202,7 @@ namespace modloader
         g_mods.clear();
         modloader::events::clear();
         game::gamehooks::clear();
+        services::clear();
         writeguard::remove();
     }
 
