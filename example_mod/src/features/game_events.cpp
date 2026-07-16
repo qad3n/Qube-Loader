@@ -61,7 +61,10 @@ namespace exmod
             {"PetRecovered", "the player's pet's stun lock ended (subject = pet)"},
             {"AbilityUsed", "used a hotbar ability 1-5 (param = ability id, param2 = cooldown ms)"},
             {"ItemPickup", "picked up an item (E) (subject = type, param = subtype, param2 = stack)"},
-            {"PlayerRoll", "LOCAL player dodge-rolled (amount = vertical pop); no longer misreads as jump/stun"}
+            {"PlayerRoll", "LOCAL player dodge-rolled (amount = vertical pop); no longer misreads as jump/stun"},
+            {"Ready", "all mods loaded + deps resolved; safe to resolve another mod's service"},
+            {"WorldEnter", "local player became resident in a world (title/menu -> in-world)"},
+            {"WorldExit", "local player left the world (in-world -> title/menu)"}
         };
 
         bool inRange(int index)
@@ -286,6 +289,11 @@ namespace exmod
             std::snprintf(detail, sizeof(detail), "%s x%d (type %d)", item.getName(), item.getStack(), item.getType());
             record(CUBE_EVENT_ITEM_PICKUP, detail);
         });
+        // Lifecycle edges (ABI 22): READY fires once after all mods load + deps resolve; WorldEnter/Exit
+        // on the title/menu <-> in-world crossing (distinct from AreaChange's zone-to-zone).
+        listener.onReady([this] { record(CUBE_EVENT_READY); });
+        listener.onWorldEnter([this] { record(CUBE_EVENT_WORLD_ENTER); });
+        listener.onWorldExit([this] { record(CUBE_EVENT_WORLD_EXIT); });
     }
 
     void GameEvents::record(CubeEvent event)

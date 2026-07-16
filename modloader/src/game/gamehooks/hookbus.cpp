@@ -27,6 +27,7 @@ namespace game::gamehooks
         constexpr int kLabelMax = 96; // stack buffer for a per-handler guard label (no heap alloc)
         using modloader::ownerName;
         using modloader::ownerPriority;
+        using modloader::ownerOrder;
 
         struct HookSub
         {
@@ -153,12 +154,15 @@ namespace game::gamehooks
         }
 
         // Order handlers low-to-high priority so the highest-priority mod runs LAST and wins the
-        // last-writer-wins return reduce; stable so equal priorities keep subscription (load) order.
+        // last-writer-wins return reduce; within one priority a dependency (lower topological rank)
+        // runs before its dependents; stable so fully-equal keys keep subscription (load) order.
         void sortByPriority(std::vector<HookSub>& matched)
         {
             std::stable_sort(matched.begin(), matched.end(), [](const HookSub& a, const HookSub& b)
             {
-                return ownerPriority(a.owner) < ownerPriority(b.owner);
+                if (ownerPriority(a.owner) != ownerPriority(b.owner))
+                    return ownerPriority(a.owner) < ownerPriority(b.owner);
+                return ownerOrder(a.owner) < ownerOrder(b.owner);
             });
         }
 

@@ -174,4 +174,5 @@ namespace modloader::api
     void fillHooks(CubeApi& api);
     void fillConfig(CubeApi& api);
     void fillStorage(CubeApi& api);
+    void fillServices(CubeApi& api);
 }

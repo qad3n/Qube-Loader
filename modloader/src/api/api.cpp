@@ -53,6 +53,7 @@ namespace modloader::api
                 spanOf("hooks", api.hooks),
                 spanOf("config", api.config),
                 spanOf("storage", api.storage),
+                spanOf("services", api.services),
             };
             const std::size_t subCount = sizeof(spans) / sizeof(spans[0]);
 
@@ -108,6 +109,7 @@ namespace modloader::api
         fillHooks(api);
         fillConfig(api);
         fillStorage(api);
+        fillServices(api);
         return validate(api) == 0;
     }
 }

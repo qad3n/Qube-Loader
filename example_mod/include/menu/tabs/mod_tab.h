@@ -30,6 +30,7 @@ namespace exmod::menu
         void drawMemory();
         void drawLogging();
         void drawPersist();
+        void drawServices(); // inter-mod services + messaging demo (ABI 22)
         void reloadNote(); // pull the storage note for the active scope into m_note
 
         LogState m_log;
@@ -38,6 +39,8 @@ namespace exmod::menu
         bool m_greetOnLoad = true;
         char m_note[kNoteInputSize] = "";  // storage() blob demo (a persistent free-text note)
         char m_scope[kScopeInputSize] = ""; // storage().setScope demo (namespace the note per save)
+        int m_pingValue = 21; // services demo: payload sent by the self-ping button
+        int m_pingResult = 0; // last self-ping reply
     };
 
 }

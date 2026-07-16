@@ -339,3 +339,26 @@ typedef struct CubeStorageApi
     int32_t (CUBE_CALL* has)(const struct CubeApi* api, const char* key);
 } CubeStorageApi;
 
+// Inter-mod ecosystem: a mod publishes a named, versioned shared service (any consumer resolves it by
+// name at CUBE_EVENT_READY) and/or receives directed messages addressed to its manifest id. The service
+// impl pointer and message payloads cross the DLL boundary raw - provider and consumer own their
+// lifetime and agree their layout by contract (the loader never dereferences either).
+typedef struct CubeServicesApi
+{
+    // Publish impl under name at version (>=1). Re-registering the same name from the same mod replaces
+    // it. Returns 1 on success, 0 on bad args.
+    int32_t (CUBE_CALL* registerService)(const struct CubeApi* api, const char* name, uint32_t version, void* impl);
+    // Withdraw this mod's service named name. Returns 1 if one existed. (Also dropped automatically on unload.)
+    int32_t (CUBE_CALL* unregisterService)(const struct CubeApi* api, const char* name);
+    // Resolve the highest-version provider of name whose version >= minVersion; NULL if none. Optionally
+    // writes the chosen provider's version to outVersion (may be NULL).
+    void* (CUBE_CALL* query)(const struct CubeApi* api, const char* name, uint32_t minVersion, uint32_t* outVersion);
+    // Register this mod's message receiver. Returns a token (0 on failure); pass it to clearMessageHandler.
+    uint32_t (CUBE_CALL* onMessage)(const struct CubeApi* api, CubeMessageFn fn, void* user);
+    // Remove a receiver installed by onMessage. Returns 1 if it existed. (Also dropped on unload.)
+    int32_t (CUBE_CALL* clearMessageHandler)(const struct CubeApi* api, uint32_t token);
+    // Send msgId + optional payload to the mod whose manifest id == targetModId. Returns the receiving
+    // handler's CubeMessageArgs.result, or -1 if the target id is unknown or has no message handler.
+    int32_t (CUBE_CALL* sendMessage)(const struct CubeApi* api, const char* targetModId, uint32_t msgId, void* payload, uint32_t payloadSize);
+} CubeServicesApi;
+

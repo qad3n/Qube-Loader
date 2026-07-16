@@ -78,7 +78,10 @@ namespace cube
         EntityRecovered = CUBE_EVENT_ENTITY_RECOVERED,
         PetRecovered = CUBE_EVENT_PET_RECOVERED,
         AbilityUsed = CUBE_EVENT_ABILITY_USED,
-        ItemPickup = CUBE_EVENT_ITEM_PICKUP
+        ItemPickup = CUBE_EVENT_ITEM_PICKUP,
+        Ready = CUBE_EVENT_READY,
+        WorldEnter = CUBE_EVENT_WORLD_ENTER,
+        WorldExit = CUBE_EVENT_WORLD_EXIT
     };
 
     enum class SelectionKind
