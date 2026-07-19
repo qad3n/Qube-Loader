@@ -8,59 +8,20 @@ namespace exmod
     namespace
     {
 
-        // Indexed by CubeEvent value; the name doubles as the log/counter label. The trailing comment
-        // on each entry documents the event (and how it packs subject/param/param2/amount) for anyone
-        // reading here - that reference used to be a menu tab, which was noise.
+        // Indexed by CubeEvent value; the name doubles as the log/counter label. Per-event payload
+        // semantics (subject/param/param2/amount) are documented in the SDK event catalog (enums.h).
         const char* const kEventNames[CUBE_EVENT_COUNT] =
         {
-            "Startup", // loader finished loading mods
-            "Shutdown", // mod is being unloaded
-            "Frame", // once per rendered frame
-            "DeviceReset", // D3D9 device lost / reset
-            "WndProc", // a window message (swallowable)
-            "Attack", // local player started an attack (param = action id, param2 = selected target)
-            "Jump", // local player left the ground (amount = vertical velocity)
-            "AreaChange", // entered a new zone (param/param2 = zoneX/zoneY)
-            "Damaged", // local player HP dropped (amount = damage, param2 = HP left)
-            "EntityDamaged", // ANY creature took damage, attacker unattributed (subject = victim, param = category, amount = damage, param2 = HP left)
-            "Crit", // the LOCAL player landed a critical hit (detour backed)
-            "MenuOpen", // a tracked HUD menu opened
-            "MenuClose", // all tracked HUD menus closed
-            "LevelUp", // level increased (param/param2 = new/previous level)
-            "Death", // local player's health reached zero
-            "Respawn", // local player returned to life
-            "Land", // touched down (amount = vertical velocity)
-            "MovementChanged", // locomotion changed (param/param2 = new/previous)
-            "TargetChanged", // target changed (subject/param = new/previous address)
-            "EntitySpawn", // a creature entered range (param/param2 = category/type, amount = health)
-            "EntityDeath", // a tracked creature died (subject = creature, param/param2 = category/type)
-            "CoinsChanged", // coin total changed (param/param2 = total/delta)
-            "DayNight", // day/night flipped (param = day, param2 = hour)
-            "BuffGained", // a status effect was applied (param = type, amount = magnitude, param2 = ms)
-            "BuffLost", // a status effect ended (param = type)
-            "EquipmentChanged", // an equipment slot changed (param = slot, param2 = item type)
-            "SkillRankChanged", // a skill rank changed (param/param2 = index/new rank)
-            "AimTargetChanged", // crosshair hover target changed (subject = creature)
-            "EntityDespawn", // a creature left range (subject = address, param/param2 = category/type)
-            "PetSummoned", // the player's pet was created (subject = pet)
-            "PetDied", // the player's pet was killed (subject = pet)
-            "PetDismissed", // the player's pet was destroyed (subject = address)
-            "PlayerStunned", // LOCAL player's stun lock started from a hit/fall (param = timer); rolls are excluded
-            "PlayerKnockedDown", // LOCAL player was knocked down
-            "PlayerRecovered", // LOCAL player's stun lock ended (can act); pairs with PlayerStunned
-            "EntityStunned", // a nearby creature became stunned (subject = creature, param/param2 = category/type)
-            "EntityKnockedDown", // a nearby creature was knocked down (subject = creature, param/param2 = category/type)
-            "PetStunned", // the player's pet became stunned (subject = pet)
-            "PetKnockedDown", // the player's pet was knocked down (subject = pet)
-            "EntitySelected", // selected an entity (R / use) (subject = target, param = kind, param2 = typeByte)
-            "EntityRecovered", // a nearby creature's stun lock ended (subject = creature, param/param2 = category/type)
-            "PetRecovered", // the player's pet's stun lock ended (subject = pet)
-            "AbilityUsed", // used a hotbar ability 1-5 (param = ability id, param2 = cooldown ms)
-            "ItemPickup", // picked up an item (E) (subject = type, param = subtype, param2 = stack)
-            "PlayerRoll", // LOCAL player dodge-rolled (amount = vertical pop); no longer misreads as jump/stun
-            "Ready", // all mods loaded + deps resolved; safe to resolve another mod's service
-            "WorldEnter", // local player became resident in a world (title/menu -> in-world)
-            "WorldExit" // local player left the world (in-world -> title/menu)
+            "Startup", "Shutdown", "Frame", "DeviceReset", "WndProc",
+            "Attack", "Jump", "AreaChange", "Damaged", "EntityDamaged",
+            "Crit", "MenuOpen", "MenuClose", "LevelUp", "Death",
+            "Respawn", "Land", "MovementChanged", "TargetChanged", "EntitySpawn",
+            "EntityDeath", "CoinsChanged", "DayNight", "BuffGained", "BuffLost",
+            "EquipmentChanged", "SkillRankChanged", "AimTargetChanged", "EntityDespawn", "PetSummoned",
+            "PetDied", "PetDismissed", "PlayerStunned", "PlayerKnockedDown", "PlayerRecovered",
+            "EntityStunned", "EntityKnockedDown", "PetStunned", "PetKnockedDown", "EntitySelected",
+            "EntityRecovered", "PetRecovered", "AbilityUsed", "ItemPickup", "PlayerRoll",
+            "Ready", "WorldEnter", "WorldExit"
         };
 
         bool inRange(int index)

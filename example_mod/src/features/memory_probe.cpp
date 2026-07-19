@@ -1,4 +1,5 @@
 #include "features/memory_probe.h"
+#include "mod_context.h"
 
 #include "cube_mod.hpp"
 
@@ -9,7 +10,6 @@ namespace exmod
 {
     namespace
     {
-        constexpr int kHexRadix = 16;
         constexpr unsigned kReadSize = sizeof(uint32_t);
     }
 

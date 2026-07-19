@@ -69,6 +69,32 @@ namespace exmod::menu
 
     }
 
+    template <typename Creature>
+    void EntitiesTab::drawTransformEditors(const Creature& creature, char* nameBuf, size_t nameSize, cube::Hero& hero, const char* teleportLabel)
+    {
+        float facing = creature.getFacing();
+        ImGui::SetNextItemWidth(sc(kInputWidth));
+        if (ImGui::SliderAngle("facing", &facing))
+            creature.setFacing(facing);
+        ImGui::SetNextItemWidth(sc(kInputWidth));
+        ImGui::InputText("name", nameBuf, nameSize);
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Set##name"))
+            creature.setName(nameBuf);
+        const cube::Vec3 pos = creature.getPosition();
+        const cube::Vec3 vel = creature.getVelocity();
+        float position[3] = {pos.x, pos.y, pos.z};
+        float velocity[3] = {vel.x, vel.y, vel.z};
+        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
+        if (ImGui::DragFloat3("position", position, kStatDragSpeed))
+            creature.teleport(position[0], position[1], position[2]);
+        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
+        if (ImGui::DragFloat3("velocity", velocity, kFineDragSpeed))
+            creature.setVelocity(velocity[0], velocity[1], velocity[2]);
+        if (ImGui::SmallButton(teleportLabel) && hero.valid())
+            hero.teleport(creature.getPosition());
+    }
+
     // Read only fields plus live editors for one creature. Callers must push a unique ID scope.
     void EntitiesTab::drawEntityDetail(const cube::Entity& entity, cube::Hero& hero)
     {
@@ -126,38 +152,15 @@ namespace exmod::menu
         if (idEditor("category", CUBE_CATALOG_ENTITY_CATEGORY, entity.getCategory(), value))
             entity.setCategory(value);
         float health = entity.getHealth();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("health", &health, kStatDragSpeed, kHealthMin, kHealthMax, "%.0f", kClampFlags))
+        if (dragFloat("health", health, kStatDragSpeed, kHealthMin, kHealthMax, "%.0f"))
             entity.setHealth(health);
         int level = entity.getLevel();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("level", &level, kIntDragSpeed, kSmallCountMin, kLevelMax, "%d", kClampFlags))
+        if (dragInt("level", level, kIntDragSpeed, kSmallCountMin, kLevelMax))
             entity.setLevel(level);
         int rank = entity.getRank();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("rank", &rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags))
+        if (dragInt("rank", rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
             entity.setRank(rank);
-        float facing = entity.getFacing();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::SliderAngle("facing", &facing))
-            entity.setFacing(facing);
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::InputText("name", m_entityName, sizeof(m_entityName));
-        ImGui::SameLine();
-        if (ImGui::SmallButton("Set##entname"))
-            entity.setName(m_entityName);
-        const cube::Vec3 pos = entity.getPosition();
-        const cube::Vec3 vel = entity.getVelocity();
-        float position[3] = {pos.x, pos.y, pos.z};
-        float velocity[3] = {vel.x, vel.y, vel.z};
-        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
-        if (ImGui::DragFloat3("position", position, kStatDragSpeed))
-            entity.teleport(position[0], position[1], position[2]);
-        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
-        if (ImGui::DragFloat3("velocity", velocity, kFineDragSpeed))
-            entity.setVelocity(velocity[0], velocity[1], velocity[2]);
-        if (ImGui::SmallButton("Teleport me here") && hero.valid())
-            hero.teleport(entity.getPosition());
+        drawTransformEditors(entity, m_entityName, sizeof(m_entityName), hero, "Teleport me here");
     }
 
     void EntitiesTab::drawNearby(cube::Hero& hero)
@@ -211,34 +214,12 @@ namespace exmod::menu
         if (idEditor("species", CUBE_CATALOG_SPECIES, pet.getType(), value))
             pet.setType(value);
         float health = pet.getHealth();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("health", &health, kStatDragSpeed, kHealthMin, kHealthMax, "%.0f", kClampFlags))
+        if (dragFloat("health", health, kStatDragSpeed, kHealthMin, kHealthMax, "%.0f"))
             pet.setHealth(health);
         int level = pet.getLevel();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("level", &level, kIntDragSpeed, kSmallCountMin, kLevelMax, "%d", kClampFlags))
+        if (dragInt("level", level, kIntDragSpeed, kSmallCountMin, kLevelMax))
             pet.setLevel(level);
-        float facing = pet.getFacing();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::SliderAngle("facing", &facing))
-            pet.setFacing(facing);
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::InputText("name", m_petName, sizeof(m_petName));
-        ImGui::SameLine();
-        if (ImGui::SmallButton("Set##petname"))
-            pet.setName(m_petName);
-        const cube::Vec3 pos = pet.getPosition();
-        const cube::Vec3 vel = pet.getVelocity();
-        float position[3] = {pos.x, pos.y, pos.z};
-        float velocity[3] = {vel.x, vel.y, vel.z};
-        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
-        if (ImGui::DragFloat3("position", position, kStatDragSpeed))
-            pet.teleport(position[0], position[1], position[2]);
-        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
-        if (ImGui::DragFloat3("velocity", velocity, kFineDragSpeed))
-            pet.setVelocity(velocity[0], velocity[1], velocity[2]);
-        if (ImGui::Button("Teleport me to pet") && hero.valid())
-            hero.teleport(pet.getPosition());
+        drawTransformEditors(pet, m_petName, sizeof(m_petName), hero, "Teleport me to pet");
     }
 
     void EntitiesTab::draw(const CubeEventArgs&)

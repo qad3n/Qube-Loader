@@ -17,21 +17,16 @@ namespace modloader::api
             return bridgeList(api, "items.inventory", out, maxCount, game::listInventory(out, maxCount), &CubeItem::address);
         }
 
-        int32_t CUBE_CALL apiItemsSetField(const CubeApi* api, uint32_t itemAddress, int32_t field, int32_t value)
+        int32_t CUBE_CALL apiItemsSetField(const CubeApi* api, uint32_t itemAddress, int32_t field, double value)
         {
-            if (!capabilityGate(api, CUBE_CAP_WRITES, "items.setField"))
-                return 0;
-            writeguard::Scope scope(api);
-            const bool ok = game::setItemField(itemAddress, field, value);
-            LOGC(Debug, kApiCategory, "'%s' items.setField(0x%08X, %d, %d) -> %s",
-                 modName(api), itemAddress, field, value, ok ? "ok" : "fail");
-            return okInt(ok);
+            return bridgeSetAddrField(api, "items.setField", &game::setItemField, itemAddress, field, value);
         }
 
         const char* CUBE_CALL apiItemsName(const CubeApi* api, int32_t type, int32_t subtype)
         {
-            static_cast<void>(api);
-            return game::itemDisplayName(type, subtype);
+            const char* name = game::itemDisplayName(type, subtype);
+            LOGC(Trace, kApiCategory, "'%s' items.name(%d, %d) -> %s", modName(api), type, subtype, name ? name : "(null)");
+            return name;
         }
 
         int32_t CUBE_CALL apiItemsInventoryOf(const CubeApi* api, uint32_t creatureAddress, CubeItem* out, int32_t maxCount)

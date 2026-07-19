@@ -120,13 +120,9 @@ namespace modloader::api
         const uint32_t caps = ownerCapabilities(api);
         if (caps == 0 || (caps & required) != 0)
             return true;
-        ModContext* ctx = reinterpret_cast<ModContext*>(const_cast<CubeApi*>(api));
-        if (ctx && (ctx->warnedCaps & required) == 0)
-        {
-            ctx->warnedCaps |= required;
+        if (ownerWarnOnce(api, required))
             LOGC(Warn, kApiCategory, "'%s' blocked from %s: capability '%s' not declared (add it to setCapabilities)",
                  modName(api), label, capabilityName(required));
-        }
         return false;
     }
 

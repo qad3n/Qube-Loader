@@ -27,6 +27,4 @@ namespace game::assets
     bool setOverride(const std::string& key, const void* data, int32_t size);
     // Remove the override for key. Returns true if one existed.
     bool removeOverride(const std::string& key);
-    // Whether an override currently exists for key (any owner).
-    bool hasOverride(const std::string& key);
 }

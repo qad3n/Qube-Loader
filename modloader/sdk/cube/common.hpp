@@ -15,20 +15,36 @@ namespace cube
 {
     namespace detail
     {
+        // Wraps the first count elements of a filled C buffer into a vector of Wrapper.
+        template <typename CObj, typename Wrapper>
+        inline std::vector<Wrapper> wrapList(const CubeApi* api, const CObj* buffer, int32_t count)
+        {
+            std::vector<Wrapper> result;
+            result.reserve(static_cast<size_t>(count < 0 ? 0 : count));
+            for (int32_t i = 0; i < count; ++i)
+                result.push_back(Wrapper(buffer[static_cast<size_t>(i)], api));
+            return result;
+        }
+
         // Fills a fixed-max C buffer via one list() call and wraps each element; shared by the
         // equipmentOf / inventoryOf / buffsOf / abilityCooldownsOf / structuresOf collection helpers.
         template <typename CObj, typename Wrapper, size_t Max>
         inline std::vector<Wrapper> fillList(const CubeApi* api, int32_t (CUBE_CALL* list)(const CubeApi*, CObj*, int32_t))
         {
-            std::vector<Wrapper> result;
             if (!api || !list)
-                return result;
+                return std::vector<Wrapper>();
             CObj buffer[Max];
-            const int32_t count = list(api, buffer, static_cast<int32_t>(Max));
-            result.reserve(static_cast<size_t>(count < 0 ? 0 : count));
-            for (int32_t i = 0; i < count; ++i)
-                result.push_back(Wrapper(buffer[static_cast<size_t>(i)], api));
-            return result;
+            return wrapList<CObj, Wrapper>(api, buffer, list(api, buffer, static_cast<int32_t>(Max)));
+        }
+
+        // Same, for a list keyed by a creature address (stockOf / an entity's own buffs).
+        template <typename CObj, typename Wrapper, size_t Max>
+        inline std::vector<Wrapper> fillListAt(const CubeApi* api, int32_t (CUBE_CALL* list)(const CubeApi*, uint32_t, CObj*, int32_t), uint32_t address)
+        {
+            if (!api || !list || !address)
+                return std::vector<Wrapper>();
+            CObj buffer[Max];
+            return wrapList<CObj, Wrapper>(api, buffer, list(api, address, buffer, static_cast<int32_t>(Max)));
         }
     }
 
@@ -134,9 +150,7 @@ namespace cube
     enum class CallConv
     {
         Thiscall = CUBE_CC_THISCALL,
-        Cdecl = CUBE_CC_CDECL,
-        Stdcall = CUBE_CC_STDCALL,
-        Fastcall = CUBE_CC_FASTCALL
+        Cdecl = CUBE_CC_CDECL
     };
 
     enum class Class
@@ -157,8 +171,7 @@ namespace cube
         Climbing = CUBE_MOVE_CLIMBING,
         Swimming = CUBE_MOVE_SWIMMING,
         Gliding = CUBE_MOVE_GLIDING,
-        Sneaking = CUBE_MOVE_SNEAKING,
-        Sitting = CUBE_MOVE_SITTING
+        Sneaking = CUBE_MOVE_SNEAKING
     };
 
     enum class Action
@@ -182,7 +195,6 @@ namespace cube
             case Movement::Swimming: return "swimming";
             case Movement::Gliding: return "gliding";
             case Movement::Sneaking: return "sneaking";
-            case Movement::Sitting: return "sitting";
             default: return "unknown";
         }
     }
@@ -243,7 +255,6 @@ namespace cube
     {
         Unknown = CUBE_ENTSTATE_UNKNOWN,
         Alive = CUBE_ENTSTATE_ALIVE,
-        Dying = CUBE_ENTSTATE_DYING,
         Dead = CUBE_ENTSTATE_DEAD
     };
 
@@ -266,7 +277,6 @@ namespace cube
         switch (state)
         {
             case EntityState::Alive: return "alive";
-            case EntityState::Dying: return "dying";
             case EntityState::Dead: return "dead";
             default: return "unknown";
         }
@@ -298,7 +308,7 @@ namespace cube
         Category = CUBE_STAT_CATEGORY,
         Rank = CUBE_STAT_RANK,
         AttackSpeed = CUBE_STAT_ATTACK_SPEED,
-        Crit = CUBE_STAT_CRIT,
+        Stealth = CUBE_STAT_STEALTH,
         Sneaking = CUBE_STAT_SNEAKING,
         BaseDamage = CUBE_STAT_BASE_DAMAGE,
         Lantern = CUBE_STAT_LANTERN

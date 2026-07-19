@@ -5,11 +5,6 @@
 
 namespace exmod
 {
-    namespace
-    {
-        constexpr float kFullResource = 1.0f;
-    }
-
     Cheats& cheats()
     {
         static Cheats g_cheats;

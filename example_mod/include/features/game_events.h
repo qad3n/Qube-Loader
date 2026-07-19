@@ -1,7 +1,6 @@
 #pragma once
-// Owns the mod's OBSERVE side: registers every game event listener on the loader's event bus and
-// records each delivered event (per event counters, a rolling log, and an optional console echo).
-// The Events tab is a pure view over this data; no event logic lives in the menu.
+// The mod's OBSERVE side: subscribes every game event and records each (counters, a rolling log, an
+// optional console echo). The Events tab is a pure view over this data.
 
 #include "cube_mod.hpp"
 

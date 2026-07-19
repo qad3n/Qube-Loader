@@ -235,10 +235,4 @@ namespace game::assets
         std::lock_guard<std::mutex> lock(g_mutex);
         return g_overrides.erase(key) != 0;
     }
-
-    bool hasOverride(const std::string& key)
-    {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        return g_overrides.find(key) != g_overrides.end();
-    }
 }

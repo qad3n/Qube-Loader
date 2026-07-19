@@ -61,17 +61,17 @@ namespace cube
         int getSellValue() const { return getValue() / kSellValueDivisor; }
         const CubeItem& raw() const { return m_data; }
         // Live edits (needs an api-bound item, i.e. from equipmentOf/inventoryOf).
-        bool setField(ItemField field, int value) const { return m_api && m_data.address && m_api->items.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
-        bool setType(int type) const { return setField(ItemField::Type, type); }
-        bool setSubtype(int subtype) const { return setField(ItemField::Subtype, subtype); }
-        bool setMaterial(int material) const { return setField(ItemField::Material, material); }
-        bool setModifier(int modifier) const { return setField(ItemField::Modifier, modifier); }
-        bool setLevel(int level) const { return setField(ItemField::Level, level); }
-        bool setUpgradeCount(int count) const { return setField(ItemField::UpgradeCount, count); }
-        bool setSeed(unsigned seed) const { return setField(ItemField::Seed, static_cast<int>(seed)); }
+        bool set(ItemField field, double value) const { return m_api && m_data.address && m_api->items.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
+        bool setType(int type) const { return set(ItemField::Type, type); }
+        bool setSubtype(int subtype) const { return set(ItemField::Subtype, subtype); }
+        bool setMaterial(int material) const { return set(ItemField::Material, material); }
+        bool setModifier(int modifier) const { return set(ItemField::Modifier, modifier); }
+        bool setLevel(int level) const { return set(ItemField::Level, level); }
+        bool setUpgradeCount(int count) const { return set(ItemField::UpgradeCount, count); }
+        bool setSeed(unsigned seed) const { return set(ItemField::Seed, seed); }
         // Stack lives in the cell before the item body (inventory items only); writing it on an
         // equipment item would corrupt the neighbouring slot, so guard on slot < 0.
-        bool setStack(int stack) const { return m_data.slot < 0 && setField(ItemField::Stack, stack); }
+        bool setStack(int stack) const { return m_data.slot < 0 && set(ItemField::Stack, stack); }
 
     private:
         static constexpr int kSellValueDivisor = 2; // the game sells items for half the buy value

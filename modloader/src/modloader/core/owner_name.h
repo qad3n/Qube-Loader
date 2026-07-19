@@ -58,4 +58,24 @@ namespace modloader
             return 0;
         return reinterpret_cast<const ModContext*>(owner)->capabilities;
     }
+
+    // Whether this owner may perform game-state writes (declared Writes, or the unrestricted 0 default).
+    inline bool ownerMayWrite(const CubeApi* owner)
+    {
+        const uint32_t caps = ownerCapabilities(owner);
+        return caps == 0 || (caps & CUBE_CAP_WRITES) != 0;
+    }
+
+    // Marks capability bit as warned for this owner and returns true only the first time, so a denied
+    // power logs one WARN per (mod, capability) instead of every call. Log-only state; a race is benign.
+    inline bool ownerWarnOnce(const CubeApi* owner, uint32_t bit)
+    {
+        if (!owner)
+            return false;
+        ModContext* ctx = reinterpret_cast<ModContext*>(const_cast<CubeApi*>(owner));
+        if ((ctx->warnedCaps & bit) != 0)
+            return false;
+        ctx->warnedCaps |= bit;
+        return true;
+    }
 }

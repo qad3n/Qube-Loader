@@ -17,14 +17,14 @@ set(IMGUI_SOURCES
   "${IMGUI_DIR}/imgui_draw.cpp"
   "${IMGUI_DIR}/imgui_tables.cpp"
   "${IMGUI_DIR}/imgui_widgets.cpp"
-  "${IMGUI_DIR}/imgui_demo.cpp"
   "${IMGUI_DIR}/backends/imgui_impl_dx9.cpp"
   "${IMGUI_DIR}/backends/imgui_impl_win32.cpp")
 
 add_library(example_mod SHARED ${EXAMPLE_SOURCES} ${IMGUI_SOURCES})
 target_include_directories(example_mod PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  "${CMAKE_SOURCE_DIR}/modloader/sdk")
+  "${CMAKE_SOURCE_DIR}/modloader/sdk"
+  "${CMAKE_SOURCE_DIR}/example_lib/include")
 # ImGui core + backends headers as SYSTEM so "imgui.h" / "imgui_impl_*.h" resolve
 # and third-party warnings stay out of our build.
 target_include_directories(example_mod SYSTEM PRIVATE "${IMGUI_DIR}" "${IMGUI_DIR}/backends")

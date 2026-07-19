@@ -34,6 +34,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiAudioGet(const CubeApi* api, CubeAudio* out)
         {
+            if (!capabilityGate(api, CUBE_CAP_OVERLAY, "audio.get"))
+                return 0;
             return bridgeGet<CubeAudio>(api, out, &game::readAudio, "audio.get", "unavailable", &CubeAudio::address);
         }
 
@@ -53,6 +55,9 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiAudioStopMusic(const CubeApi* api)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "audio.stopMusic"))
+                return 0;
+            writeguard::Scope scope(api);
             const bool ok = game::stopMusic();
             LOGC(Debug, kApiCategory, "'%s' audio.stopMusic -> %s", modName(api), ok ? "ok" : "fail");
             return okInt(ok);
@@ -60,6 +65,9 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiAudioSetMusicVolume(const CubeApi* api, float volume)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "audio.setMusicVolume"))
+                return 0;
+            writeguard::Scope scope(api);
             const bool ok = game::setMusicVolume(volume);
             LOGC(Debug, kApiCategory, "'%s' audio.setMusicVolume(%.2f) -> %s", modName(api), volume, ok ? "ok" : "fail");
             return okInt(ok);

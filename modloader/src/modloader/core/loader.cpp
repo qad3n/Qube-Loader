@@ -112,15 +112,26 @@ namespace modloader
             if (!initOk)
             {
                 LOGC(Warn, kCategory, "%s: CubeMod_Init threw; unloading (its handlers were dropped)", stem.c_str());
+                modregistry::recordFault(stem);
                 detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
             }
 
-            if (!info || !info->name)
+            // A clean null return is a deliberate decline (the CUBE_MOD boot returns null when the
+            // loader is older than the mod's ABI), not a crash, so it takes no fault strike.
+            if (!info)
             {
-                LOGC(Warn, kCategory, "%s: CubeMod_Init returned no info; unloading", stem.c_str());
-                modregistry::recordFault(stem);
+                conflict::error("mod '%s' declined to load; it is likely built against a newer ABI than v%u, so update the loader",
+                                stem.c_str(), static_cast<unsigned>(CUBE_ABI_VERSION));
+                detachOwner(&mod->context.api);
+                FreeLibrary(module);
+                return;
+            }
+
+            if (!info->name)
+            {
+                LOGC(Warn, kCategory, "%s: CubeMod_Init returned info without a name; unloading", stem.c_str());
                 detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
@@ -168,6 +179,8 @@ namespace modloader
                 return;
             }
 
+            // Log category is the stable id on every path (the collision path disambiguates as id#N),
+            // so a mod's init-time logs (keyed by stem, the id fallback) and its runtime logs agree.
             const int32_t priorSameId = countLoadedId(mod->context.id);
             if (priorSameId > 0)
             {
@@ -177,7 +190,7 @@ namespace modloader
             }
             else
             {
-                mod->context.category = info->name;
+                mod->context.category = mod->context.id;
             }
             mod->shutdown = reinterpret_cast<CubeModShutdownFn>(reinterpret_cast<void*>(GetProcAddress(module, kShutdownExport)));
 

@@ -1,6 +1,7 @@
 #include "menu/tabs/combat_tab.h"
 #include "mod_context.h"
 #include "features/health_history.h"
+#include "features/game_events.h"
 
 #include "imgui.h"
 
@@ -28,42 +29,36 @@ namespace exmod::menu
     {
         addressHeader("Creature", combat.raw().address);
         float baseDamage = combat.getBaseDamage();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("base damage", &baseDamage, kStatDragSpeed, kStatMin, kStatMax, "%.1f", kClampFlags))
+        if (dragFloat("base damage", baseDamage, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
             hero.setBaseDamage(baseDamage);
 
         ImGui::SameLine();
         ImGui::TextDisabled("(scales every attack + ability)");
 
         float power = combat.getPower();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("power", &power, kStatDragSpeed, kStatMin, kStatMax, "%.1f", kClampFlags))
+        if (dragFloat("power", power, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
             hero.setPower(power);
 
         float armor = combat.getArmor();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("armor", &armor, kStatDragSpeed, kStatMin, kStatMax, "%.1f", kClampFlags))
+        if (dragFloat("armor", armor, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
             hero.setArmor(armor);
 
         float spirit = combat.getSpirit();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("spirit", &spirit, kStatDragSpeed, kStatMin, kStatMax, "%.1f", kClampFlags))
+        if (dragFloat("spirit", spirit, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
             hero.setSpirit(spirit);
 
         int combo = combat.getCombo();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("combo", &combo, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags))
+        if (dragInt("combo", combo, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
             hero.setCombo(combo);
 
         float attackSpeed = combat.getAttackSpeed();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("attack speed", &attackSpeed, kFineDragSpeed, kAttackSpeedMin, kAttackSpeedMax, "%.2f", kClampFlags))
+        if (dragFloat("attack speed", attackSpeed, kFineDragSpeed, kAttackSpeedMin, kAttackSpeedMax, "%.2f"))
             hero.setAttackSpeed(attackSpeed);
 
+        // One stat feeds both stealth and crit chance; setStealth writes it (there is no separate crit).
         float crit = combat.getCritStat();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("crit", &crit, kFineDragSpeed, kCritMin, kCritMax, "%.2f", kClampFlags))
-            hero.setCrit(crit);
+        if (dragFloat("crit / stealth stat", crit, kFineDragSpeed, kCritMin, kCritMax, "%.2f"))
+            hero.setStealth(crit);
 
         ImGui::Text("crit chance ~%.1f%% (excludes gear bonus)", combat.getCritChancePercent());
     }
@@ -72,28 +67,25 @@ namespace exmod::menu
     {
         addressHeader("Creature", combat.raw().address);
 
+        // Occurrences are events, not state: these are session counts from the event listener, not
+        // fields on the combat snapshot. See the Events tab for the full per-event tally.
         if (beginTable("cmb_tel"))
         {
-            row("Last dmg dealt", "%.0f", combat.getLastDamageDealt());
-            row("Last dmg taken", "%.0f", combat.getLastDamageTaken());
-            row("Hits", "%u", combat.getHits());
-            row("Crits", "%u", combat.getCrits());
-            row("Times damaged", "%u", combat.getDamageTakenEvents());
+            const GameEvents& events = gameEvents();
+            row("Attacks", "%u", events.countAt(CUBE_EVENT_PLAYER_ATTACK));
+            row("Crits", "%u", events.countAt(CUBE_EVENT_PLAYER_CRIT));
+            row("Times damaged", "%u", events.countAt(CUBE_EVENT_PLAYER_DAMAGED));
+            row("Entities hit", "%u", events.countAt(CUBE_EVENT_ENTITY_DAMAGED));
             ImGui::EndTable();
         }
-
-        ImGui::TextDisabled("hits/last dmg poll any nearby creature's health drop;");
-        ImGui::TextDisabled("crit counter needs a damage detour (see crit chance in Stats)");
 
         if (hero.valid())
         {
             float cooldown = combat.getAttackCooldown();
-            ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragFloat("attack cd", &cooldown, kFineDragSpeed, kCooldownMin, kCooldownMax, "%.2f", kClampFlags))
+            if (dragFloat("attack cd", cooldown, kFineDragSpeed, kCooldownMin, kCooldownMax, "%.2f"))
                 hero.setAttackCooldown(cooldown);
             int hitStun = combat.getHitStun();
-            ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragInt("hit stun", &hitStun, kIntDragSpeed, kHitStunMin, kHitStunMax, "%d", kClampFlags))
+            if (dragInt("hit stun", hitStun, kIntDragSpeed, kHitStunMin, kHitStunMax))
                 hero.setHitStun(hitStun);
             ImGui::SeparatorText("stun state");
             const cube::Stun stun = hero.getStun();
@@ -131,13 +123,11 @@ namespace exmod::menu
                 buff.setType(type);
 
             float magnitude = buff.getMagnitude();
-            ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragFloat("magnitude", &magnitude, kFineDragSpeed, kStatMin, kStatMax, "%.2f", kClampFlags))
+            if (dragFloat("magnitude", magnitude, kFineDragSpeed, kStatMin, kStatMax, "%.2f"))
                 buff.setMagnitude(magnitude);
 
             int remaining = buff.getRemainingMs();
-            ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragInt("remaining ms", &remaining, kIntDragSpeed, kBuffDurMin, kBuffDurMax, "%d", kClampFlags))
+            if (dragInt("remaining ms", remaining, kIntDragSpeed, kBuffDurMin, kBuffDurMax))
                 buff.setRemainingMs(remaining);
 
             ImGui::Separator();
@@ -187,9 +177,8 @@ namespace exmod::menu
 
                 ImGui::TableNextColumn();
                 int remaining = cd.getRemainingMs();
-                ImGui::SetNextItemWidth(sc(kInputWidth));
-
-                if (ImGui::DragInt("ms", &remaining, kIntDragSpeed, kBuffDurMin, kBuffDurMax, "%d", kClampFlags))
+                
+        if (dragInt("ms", remaining, kIntDragSpeed, kBuffDurMin, kBuffDurMax))
                     cd.setRemaining(remaining);
 
                 ImGui::SameLine();

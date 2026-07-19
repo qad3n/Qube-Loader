@@ -24,8 +24,7 @@ typedef struct CubePlayer
     int32_t actionId; // raw action / animation id (advanced; prefer `action`)
     int32_t movement; // CubeMovement, resolved by the loader (grounded/air/climbing/swimming...)
     int32_t action; // CubeAction, resolved by the loader (idle/attacking/casting...)
-    int32_t onGround; // 1 grounded, 0 airborne (legacy; == movement==GROUNDED)
-    int32_t attacking; // 1 if attacking this frame (legacy; == action==ATTACKING)
+    int32_t onGround; // 1 grounded or sneaking, 0 otherwise (== movement in {GROUNDED, SNEAKING})
     int32_t hasState; // 1 if the action-state fields were resolved
     float mana; // class resource, normalized 0..1 (use for a bar)
     float manaPercent; // ready-to-display percentage 0..100, computed by the loader
@@ -45,8 +44,8 @@ typedef struct CubePlayer
     int32_t lantern; // 1 if the held lantern / light is on (render flag; toggle via CUBE_STAT_LANTERN)
 } CubePlayer;
 
-// Local-player combat snapshot. Stored stats are direct reads; the damage/hit
-// counters are maintained by the loader's per-frame poll (see CUBE_EVENT_PLAYER_*).
+// Local-player combat snapshot: stored Creature stats, all direct reads. Damage and hit occurrences
+// are events, not state: observe CUBE_EVENT_PLAYER_DAMAGED / PLAYER_CRIT or the IMPACT / CRIT_ROLL hooks.
 typedef struct CubeCombat
 {
     uint32_t structSize;
@@ -61,11 +60,6 @@ typedef struct CubeCombat
     float critStat; // crit attribute (0.15 crit chance per point)
     float critChancePercent; // approx crit chance %, = critStat*15 (excludes gear bonus)
     int32_t hitStun; // hit-stun / knockback timer (0..600, 0 = free to act)
-    float lastDamageTaken; // HP lost in the most recent damage tick (0 if none yet)
-    float lastDamageDealt; // approximate damage dealt to the target on the last hit
-    uint32_t hits; // running count of hits the player dealt this session
-    uint32_t crits; // running count of the local player's critical hits this session (detour-backed via CRIT_ROLL)
-    uint32_t damageTakenEvents; // running count of times the player took damage
     int32_t hasCombat; // 1 if the combat fields were resolved
 } CubeCombat;
 
@@ -92,7 +86,7 @@ typedef struct CubeWorld
     float spawnY;
     float spawnZ;
     int32_t hasSpawn;
-    uint32_t seed; // world generation seed (valid if hasSeed; R5 gated, currently 0)
+    uint32_t seed; // world generation seed (valid if hasSeed)
     int32_t hasSeed;
     // NOTE: no weather system and no biome name exist in this build (biome is computed from temp/humidity).
 } CubeWorld;
@@ -220,7 +214,6 @@ typedef enum CubeEntityState
 {
     CUBE_ENTSTATE_UNKNOWN = 0,
     CUBE_ENTSTATE_ALIVE,
-    CUBE_ENTSTATE_DYING,
     CUBE_ENTSTATE_DEAD
 } CubeEntityState;
 
@@ -240,7 +233,7 @@ typedef struct CubeEntity
     float distance; // world blocks from the local player
     int32_t hostile; // 1 if hostile (legacy; == relation==HOSTILE)
     int32_t relation; // CubeRelation, resolved by the loader
-    int32_t entityState; // CubeEntityState (alive/dying/dead)
+    int32_t entityState; // CubeEntityState (alive/dead)
     int32_t boss; // 1 if a boss-type species
     int32_t elite; // 1 if a standout enemy (derived: boss or star rank >= 3, non-player)
     int32_t rank; // star / power rank (0 = common; the monster power indicator, non-player)
@@ -268,7 +261,7 @@ typedef struct CubeCamera
     float view[16]; // 4x4 view matrix (valid if hasMatrices)
     float proj[16]; // 4x4 projection matrix (valid if hasMatrices)
     int32_t hasMatrices;
-    int32_t firstPerson; // 1 first-person, 0 third-person (valid if hasMode; R9 gated)
+    int32_t firstPerson; // 1 first-person (derived from zoom distance 0), 0 third-person (valid if hasMode)
     int32_t hasMode;
 } CubeCamera;
 

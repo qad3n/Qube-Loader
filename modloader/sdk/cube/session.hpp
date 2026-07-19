@@ -12,7 +12,6 @@ namespace cube
 
         bool valid() const { return m_valid; }
         bool refresh() { m_valid = m_api && m_api->session.get(m_api, &m_data) != 0; return m_valid; }
-        bool reload() { return refresh(); }
         GameState getState() const { return static_cast<GameState>(m_data.gameState); }
         bool isInWorld() const { return getState() == GameState::InWorld; }
         bool hasNetwork() const { return m_data.hasNetwork != 0; }
@@ -23,9 +22,9 @@ namespace cube
         unsigned getAddress() const { return m_data.address; } // GameController base (raw)
         const CubeSession& raw() const { return m_data; }
         // Live edits to the network state bytes (SP/MP + connected flag).
-        bool setField(SessionField field, int value) const { return m_api && m_api->session.setField(m_api, static_cast<int32_t>(field), value) != 0; }
-        bool setMultiplayer(bool multiplayer) const { return setField(SessionField::NetworkMode, multiplayer ? 1 : 0); }
-        bool setConnected(bool connected) const { return setField(SessionField::Connected, connected ? 1 : 0); }
+        bool set(SessionField field, int value) const { return m_api && m_api->session.setField(m_api, static_cast<int32_t>(field), value) != 0; }
+        bool setMultiplayer(bool multiplayer) const { return set(SessionField::NetworkMode, multiplayer ? 1 : 0); }
+        bool setConnected(bool connected) const { return set(SessionField::Connected, connected ? 1 : 0); }
 
     private:
         const CubeApi* m_api;
@@ -41,7 +40,6 @@ namespace cube
 
         bool valid() const { return m_valid; }
         bool refresh() { m_valid = m_api && m_api->ui.get(m_api, &m_data) != 0; return m_valid; }
-        bool reload() { return refresh(); }
         bool isInventoryOpen() const { return m_data.inventoryOpen != 0; }
         bool isCharacterOpen() const { return m_data.characterOpen != 0; }
         bool isMapOpen() const { return m_data.mapOpen != 0; }
@@ -50,11 +48,11 @@ namespace cube
         unsigned getAddress() const { return m_data.address; } // GameController base (raw)
         const CubeUi& raw() const { return m_data; }
         // Force HUD panels open/closed. Input-driven panels may re-close next frame.
-        bool setField(UiField field, bool open) const { return m_api && m_api->ui.setField(m_api, static_cast<int32_t>(field), open ? 1 : 0) != 0; }
-        bool setInventoryOpen(bool open) const { return setField(UiField::Inventory, open); }
-        bool setCharacterOpen(bool open) const { return setField(UiField::Character, open); }
-        bool setMapOpen(bool open) const { return setField(UiField::Map, open); }
-        bool setObjectiveOpen(bool open) const { return setField(UiField::Objective, open); }
+        bool set(UiField field, bool open) const { return m_api && m_api->ui.setField(m_api, static_cast<int32_t>(field), open ? 1 : 0) != 0; }
+        bool setInventoryOpen(bool open) const { return set(UiField::Inventory, open); }
+        bool setCharacterOpen(bool open) const { return set(UiField::Character, open); }
+        bool setMapOpen(bool open) const { return set(UiField::Map, open); }
+        bool setObjectiveOpen(bool open) const { return set(UiField::Objective, open); }
 
     private:
         const CubeApi* m_api;

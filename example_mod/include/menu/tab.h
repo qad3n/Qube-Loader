@@ -3,6 +3,7 @@
 // dropdowns) and layout/clamp constants. The Menu owns one instance of each and dispatches draw().
 
 #include "cube_sdk.h"
+#include "mod_context.h"
 
 #include "imgui.h"
 
@@ -22,8 +23,8 @@ namespace exmod::menu
     constexpr float kStatDragSpeed = 1.0f;
     // Shared clamp bounds so live edits cannot set impossible/crashing values. Every
     // editor passes kClampFlags (ImGuiSliderFlags_AlwaysClamp) so typed input clamps too.
+    // The 0..1 resource ceiling is exmod::kFullResource (mod_context.h), shared with the cheats feature.
     constexpr float kResourceMin = 0.0f; // floor for 0..1 resource sliders
-    constexpr float kFullResource = 1.0f; // ceiling for 0..1 resource sliders / full value
     constexpr float kHealthMin = 0.0f;
     constexpr float kHealthMax = 1000000.0f;
     constexpr float kStatMin = 0.0f;
@@ -58,6 +59,10 @@ namespace exmod::menu
         // Edits an opaque game id as a named dropdown (when the catalog has names) or a
         // clamped numeric field (when it does not). Returns true and fills outId on a change.
         static bool idEditor(const char* label, CubeCatalog catalog, int currentId, int& outId);
+        // Fixed-width (kInputWidth) clamped drag editors: the SetNextItemWidth + Drag + AlwaysClamp
+        // idiom repeated across every editor tab, in one call returning true on change.
+        static bool dragFloat(const char* label, float& value, float speed, float min, float max, const char* fmt = "%.2f");
+        static bool dragInt(const char* label, int& value, float speed, int min, int max);
         static void emitLog(CubeLogLevel level, const char* message);
     };
 

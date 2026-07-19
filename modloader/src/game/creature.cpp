@@ -148,8 +148,8 @@ namespace game
                 return field::setU8(obj, off::kEntityRankOff, b);
             case CUBE_STAT_ATTACK_SPEED:
                 return field::setF32(obj, off::kPlayerAttackSpeedOff, f);
-            case CUBE_STAT_CRIT:
-                // Same field as stealth (+0x1190); it feeds crit chance.
+            case CUBE_STAT_STEALTH:
+                // The +0x1190 stealth stat also feeds crit chance (0.15 per point).
                 return field::setF32(obj, off::kPlayerStealthOff, f);
             case CUBE_STAT_BASE_DAMAGE:
                 return field::setF32(obj, off::kPlayerBaseDamageOff, f);

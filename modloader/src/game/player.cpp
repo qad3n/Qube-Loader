@@ -54,7 +54,6 @@ namespace game
                 out.actionId = static_cast<int32_t>(action);
                 mem::read(base + off::kPlayerActionElapsedOff, out.actionElapsedMs);
                 out.action = resolveAction(base, action, combat);
-                out.attacking = combat ? 1 : 0;
                 out.knockedDown = (action == off::kActionKnockdown) ? 1 : 0;
                 any = true;
             }

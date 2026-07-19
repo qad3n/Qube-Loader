@@ -98,20 +98,18 @@ namespace exmod::menu
         if (resXChanged || resYChanged)
             disp.setResolution(resolutionX, resolutionY);
         int renderDistance = disp.getRenderDistance();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("render distance", &renderDistance, kIntDragSpeed, kRenderDistMin, kRenderDistMax, "%d", kClampFlags))
+        if (dragInt("render distance", renderDistance, kIntDragSpeed, kRenderDistMin, kRenderDistMax))
             disp.setRenderDistance(renderDistance);
         int soundVolume = disp.getSoundVolume();
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::SliderInt("sound volume", &soundVolume, 0, kMaxVolume, "%d", kClampFlags))
+        if (ImGui::SliderInt("sound volume", &soundVolume, 0, kMaxVolume))
             disp.setSoundVolume(soundVolume);
         int musicVolume = disp.getMusicVolume();
         ImGui::SetNextItemWidth(sc(kInputWidth));
         if (ImGui::SliderInt("music volume", &musicVolume, 0, kMaxVolume, "%d", kClampFlags))
             disp.setMusicVolume(musicVolume);
         int minTimeStep = disp.getMinTimeStep();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("min timestep", &minTimeStep, kIntDragSpeed, kTimeStepMin, kTimeStepMax, "%d", kClampFlags))
+        if (dragInt("min timestep", minTimeStep, kIntDragSpeed, kTimeStepMin, kTimeStepMax))
             disp.setMinTimeStep(minTimeStep);
     }
 

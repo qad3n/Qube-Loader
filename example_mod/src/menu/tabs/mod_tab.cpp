@@ -9,6 +9,7 @@
 #include "imgui.h"
 
 #include <cstdio>
+#include <cstring>
 
 namespace exmod::menu
 {
@@ -42,6 +43,7 @@ namespace exmod::menu
             {CUBE_CAP_RAW_HOOKS, "RawHooks"},
             {CUBE_CAP_WRITES, "Writes"},
             {CUBE_CAP_OVERLAY, "Overlay"},
+            {CUBE_CAP_ASSETS, "Assets"},
         };
 
         // Formats the declared capability bitset as "RawMem | Writes | ..." (or the unrestricted note)
@@ -101,6 +103,7 @@ namespace exmod::menu
             char capsText[96];
             formatCapabilities(cube::mod().capabilities(), capsText, sizeof(capsText));
             row("Capabilities", "%s", capsText);
+            row("Priority", "%d", cube::mod().priority());
             row("Environment", "%s", cube::mod().isClient() ? "client" : "server");
             row("Loader ABI", "%u", g_api->abiVersion);
             row("SDK ABI", "%d", CUBE_ABI_VERSION);
@@ -289,31 +292,71 @@ namespace exmod::menu
 
     void ModTab::drawServices()
     {
-        // Inter-mod ecosystem (ABI 22): example_mod publishes "example.ping", resolves it at READY, and
-        // exchanges a directed message. It targets its OWN id here (one DLL); with a second mod the
-        // provider/consumer split is identical. See features/services_demo.cpp.
+        // mod.services(): example_mod depends on the headless example_lib, resolves its service at READY,
+        // and sends it directed messages. It also publishes a marker service of its own so the
+        // register/unregister + query cycle is visible. See features/services_demo.cpp + example_lib.
         ServicesDemo& demo = servicesDemo();
-        ImGui::TextDisabled("mod.services(): register / query / onMessage / sendMessage");
+        ImGui::TextDisabled("cross-mod: query + sendMessage against example_lib");
         if (beginTable("mod_services"))
         {
-            row("service resolved (onReady)", "%s", yesNo(demo.serviceResolved()));
-            row("ping(21) via query", "%d", demo.lastPingResult());
-            row("messages received", "%u", demo.messagesReceived());
-            row("last payload -> reply", "%d -> %d", demo.lastPayload(), demo.lastReply());
+            row("example_lib resolved (onReady)", "%s", yesNo(demo.libResolved()));
+            row("ping(21) via its service", "%d", demo.lastPing());
             ImGui::EndTable();
         }
 
-        ImGui::SeparatorText("send a directed message to self");
+        ImGui::SeparatorText("send a directed message to example_lib");
         ImGui::SetNextItemWidth(sc(kInputWidth));
         ImGui::InputInt("payload", &m_pingValue);
-        if (ImGui::Button("Send self ping"))
+        if (ImGui::Button("Send ping"))
         {
-            m_pingResult = demo.sendSelfPing(m_pingValue);
-            emitLog(CUBE_LOG_INFO, "example_mod: sendMessage(self) returned a reply");
+            m_pingResult = demo.sendLibPing(m_pingValue);
+            emitLog(CUBE_LOG_INFO, "example_mod: pinged example_lib");
         }
         ImGui::SameLine();
         ImGui::Text("reply: %d", m_pingResult);
-        ImGui::TextDisabled("the handler replies payload + 1; sendMessage returns that value");
+        ImGui::TextDisabled("example_lib replies payload + 1; sendMessage returns that value");
+
+        ImGui::SeparatorText("this mod's own service (register / unregister / query)");
+        bool registered = demo.selfServiceRegistered();
+        if (ImGui::Checkbox("publish example.consumer", &registered))
+            demo.setSelfServiceRegistered(registered);
+        ImGui::SameLine();
+        ImGui::Text("query resolves: %s", yesNo(demo.selfServiceRegistered()));
+    }
+
+    void ModTab::drawAssets()
+    {
+        // mod.assets(): register this mod's bytes for a game asset addressed by its filename key. The demo
+        // key matches no real asset, so it never replaces game art; a real override passes a live key
+        // (e.g. "aim.png") with valid bytes. Gated on the Assets capability + a compatible game build.
+        cube::Assets assets(g_api);
+        ImGui::TextDisabled("mod.assets(): set / has / remove an override by filename key");
+        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
+        ImGui::InputText("key", m_assetKey, sizeof(m_assetKey));
+        ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
+        ImGui::InputText("bytes", m_assetBytes, sizeof(m_assetBytes));
+
+        if (ImGui::Button("Set override"))
+        {
+            const bool ok = assets.set(m_assetKey, m_assetBytes, static_cast<int>(std::strlen(m_assetBytes)));
+            emitLog(ok ? CUBE_LOG_INFO : CUBE_LOG_WARN,
+                    ok ? "example_mod: asset override set" : "example_mod: asset override failed (capability or build)");
+        }
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!assets.has(m_assetKey));
+        if (ImGui::Button("Remove override"))
+        {
+            assets.remove(m_assetKey);
+            emitLog(CUBE_LOG_INFO, "example_mod: asset override removed");
+        }
+        ImGui::EndDisabled();
+
+        if (beginTable("mod_assets"))
+        {
+            row("override exists (has)", "%s", yesNo(assets.has(m_assetKey)));
+            ImGui::EndTable();
+        }
+        ImGui::TextDisabled("demo key matches no real asset; a live override uses a real key + file bytes");
     }
 
     void ModTab::drawLocale()
@@ -376,6 +419,11 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Locale"))
         {
             drawLocale();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Assets"))
+        {
+            drawAssets();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

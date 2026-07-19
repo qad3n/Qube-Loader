@@ -75,17 +75,14 @@ namespace exmod::menu
         if (item.getSlot() < 0) // inventory items carry a stack count; equipment is always 1
         {
             int stack = item.getStack();
-            ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragInt("stack", &stack, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags))
+            if (dragInt("stack", stack, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
                 item.setStack(stack);
         }
         int level = item.getLevel();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("level", &level, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags))
+        if (dragInt("level", level, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
             item.setLevel(level);
         int upgrades = item.getUpgradeCount();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("upgrades", &upgrades, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags))
+        if (dragInt("upgrades", upgrades, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
             item.setUpgradeCount(upgrades);
         int seed = static_cast<int>(item.getSeed());
         ImGui::SetNextItemWidth(sc(kInputWidth));
