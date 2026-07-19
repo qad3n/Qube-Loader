@@ -14,7 +14,10 @@ typedef enum CubeEnvironment
 } CubeEnvironment;
 
 // Declared powers a mod uses (CubeModInfo::capabilities bitset). 0 = undeclared = unrestricted (the
-// loader gates a mod only once it declares a non-zero set); see api::fill capability stubbing.
+// loader gates a mod only once it declares a non-zero set). Enforced at call time: the bridge denies
+// (logs + returns failure) any call whose capability the mod did not declare (see bridge.h
+// capabilityGate). Overlay gates the camera/display/ui reads plus input capture; the matching setters
+// are gated as Writes instead. audio playback is intentionally ungated.
 typedef enum CubeModCapability
 {
     CUBE_CAP_NONE = 0,

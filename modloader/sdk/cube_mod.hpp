@@ -16,5 +16,6 @@
 #include "cube/logger.hpp"
 #include "cube/config.hpp"
 #include "cube/storage.hpp"
+#include "cube/locale.hpp"
 #include "cube/events.hpp"
 #include "cube/mod.hpp"

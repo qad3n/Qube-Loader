@@ -19,6 +19,8 @@ namespace modloader::api
         {
             if (!out || size == 0)
                 return 0;
+            if (!capabilityGate(api, CUBE_CAP_RAW_MEM, "mem.read"))
+                return 0;
             const bool ok = mem::readBytes(static_cast<uintptr_t>(address), out, size);
             if (ok && size >= sizeof(uint32_t))
                 LOGC(Trace, kApiCategory, "'%s' mem.read(0x%08X, %u) -> ok [0x%08X ...]",
@@ -31,6 +33,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiMemReadable(const CubeApi* api, uint32_t address, uint32_t size)
         {
+            if (!capabilityGate(api, CUBE_CAP_RAW_MEM, "mem.readable"))
+                return 0;
             const void* src = reinterpret_cast<const void*>(static_cast<uintptr_t>(address));
             const bool ok = mem::readable(src, size);
             LOGC(Trace, kApiCategory, "'%s' mem.readable(0x%08X, %u) -> %d", modName(api), address, size, ok);
@@ -47,6 +51,8 @@ namespace modloader::api
         int32_t CUBE_CALL apiMemWrite(const CubeApi* api, uint32_t address, const void* src, uint32_t size)
         {
             if (!src || size == 0)
+                return 0;
+            if (!capabilityGate(api, CUBE_CAP_RAW_MEM, "mem.write"))
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = mem::writeRaw(static_cast<uintptr_t>(address), src, size);

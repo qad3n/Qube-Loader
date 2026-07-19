@@ -33,6 +33,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiStatusClearStun(const CubeApi* api, uint32_t address)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "status.clearStun"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::clearStun(address);
             LOGC(Debug, kApiCategory, "'%s' status.clearStun(0x%08X) -> %s", modName(api), address, ok ? "ok" : "fail");

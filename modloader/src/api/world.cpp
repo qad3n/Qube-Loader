@@ -19,6 +19,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiWorldSetTime(const CubeApi* api, int32_t ms)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "world.setTime"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setWorldTime(ms);
             LOGC(Debug, kApiCategory, "'%s' world.setTime(%d) -> %s", modName(api), ms, ok ? "ok" : "fail");
@@ -32,6 +34,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiWorldSetSeed(const CubeApi* api, uint32_t seed)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "world.setSeed"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setWorldSeed(seed);
             LOGC(Debug, kApiCategory, "'%s' world.setSeed(0x%08X) -> %s", modName(api), seed, ok ? "ok" : "fail");
@@ -40,6 +44,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiWorldSetSpawn(const CubeApi* api, float x, float y, float z)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "world.setSpawn"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setWorldSpawn(x, y, z);
             LOGC(Debug, kApiCategory, "'%s' world.setSpawn(%.1f, %.1f, %.1f) -> %s",

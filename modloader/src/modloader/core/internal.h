@@ -30,7 +30,6 @@ namespace modloader
         std::string name;
         std::string version;                 // copied for dependency version compares (deps::resolve)
         uint32_t requiredAbi = 0;            // ABI the mod declared it was built against (0 = unspecified)
-        uint32_t capabilities = 0;          // CubeModCapability bitset (0 = unrestricted)
         std::vector<Dep> deps;
     };
 

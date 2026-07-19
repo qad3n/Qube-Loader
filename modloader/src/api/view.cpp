@@ -10,6 +10,8 @@ namespace modloader::api
     {
         int32_t CUBE_CALL apiCameraGet(const CubeApi* api, CubeCamera* out)
         {
+            if (!capabilityGate(api, CUBE_CAP_OVERLAY, "camera.get"))
+                return 0;
             return bridgeGet<CubeCamera>(api, out, &game::readCamera, "camera.get", "unavailable", &CubeCamera::address);
         }
 
@@ -20,6 +22,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiDisplayGet(const CubeApi* api, CubeDisplay* out)
         {
+            if (!capabilityGate(api, CUBE_CAP_OVERLAY, "display.get"))
+                return 0;
             return bridgeGet<CubeDisplay>(api, out, &game::readDisplay, "display.get", "unavailable", &CubeDisplay::address);
         }
 

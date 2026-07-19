@@ -91,11 +91,51 @@ namespace modloader::api
         return count;
     }
 
-    // Setter reducers, one per argument-shape so the log format matches.
+    // Maps a single CubeModCapability bit to its name for the "capability not declared" log line.
+    inline const char* capabilityName(uint32_t bit)
+    {
+        switch (bit)
+        {
+            case CUBE_CAP_RAW_MEM:
+                return "RawMem";
+            case CUBE_CAP_RAW_HOOKS:
+                return "RawHooks";
+            case CUBE_CAP_WRITES:
+                return "Writes";
+            case CUBE_CAP_OVERLAY:
+                return "Overlay";
+            default:
+                return "?";
+        }
+    }
+
+    // Call-time capability gate. A mod that declares no capabilities (0) is unrestricted (the trusted
+    // default); otherwise a call whose `required` bit is absent is denied (returns false, caller
+    // returns its failure value). Denials log one WARN per (mod, capability) via ModContext.warnedCaps
+    // so a per-frame denied call cannot flood the log.
+    inline bool capabilityGate(const CubeApi* api, uint32_t required, const char* label)
+    {
+        const uint32_t caps = ownerCapabilities(api);
+        if (caps == 0 || (caps & required) != 0)
+            return true;
+        ModContext* ctx = reinterpret_cast<ModContext*>(const_cast<CubeApi*>(api));
+        if (ctx && (ctx->warnedCaps & required) == 0)
+        {
+            ctx->warnedCaps |= required;
+            LOGC(Warn, kApiCategory, "'%s' blocked from %s: capability '%s' not declared (add it to setCapabilities)",
+                 modName(api), label, capabilityName(required));
+        }
+        return false;
+    }
+
+    // Setter reducers, one per argument-shape so the log format matches. Every game-state write is
+    // gated on the Writes capability here, so a mod that declares capabilities but not Writes is denied.
     inline int32_t bridgeSetAddrField(const CubeApi* api, const char* label,
                                       bool (*set)(uint32_t, int32_t, double),
                                       uint32_t address, int32_t field, double value)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(address, field, value);
         LOGC(Debug, kApiCategory, "'%s' %s(0x%08X, %d, %.3f) -> %s",
@@ -105,6 +145,8 @@ namespace modloader::api
 
     inline int32_t bridgeSetIndexed(const CubeApi* api, const char* label, bool (*set)(int32_t, double), int32_t field, double value)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(field, value);
         LOGC(Debug, kApiCategory, "'%s' %s(%d, %.3f) -> %s",
@@ -114,6 +156,8 @@ namespace modloader::api
 
     inline int32_t bridgeSetPair(const CubeApi* api, const char* label, bool (*set)(int32_t, int32_t), int32_t first, int32_t second)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(first, second);
         LOGC(Debug, kApiCategory, "'%s' %s(%d, %d) -> %s",
@@ -123,6 +167,8 @@ namespace modloader::api
 
     inline int32_t bridgeSetVec3(const CubeApi* api, const char* label, bool (*set)(float, float, float), float x, float y, float z)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(x, y, z);
         LOGC(Debug, kApiCategory, "'%s' %s(%.1f, %.1f, %.1f) -> %s",
@@ -132,6 +178,8 @@ namespace modloader::api
 
     inline int32_t bridgeSetAddrVec3(const CubeApi* api, const char* label, bool (*set)(uint32_t, float, float, float), uint32_t address, float x, float y, float z)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(address, x, y, z);
         LOGC(Debug, kApiCategory, "'%s' %s(0x%08X, %.1f, %.1f, %.1f) -> %s",
@@ -141,6 +189,8 @@ namespace modloader::api
 
     inline int32_t bridgeSetName(const CubeApi* api, const char* label, bool (*set)(const char*), const char* name)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(name);
         LOGC(Debug, kApiCategory, "'%s' %s(%s) -> %s",
@@ -150,6 +200,8 @@ namespace modloader::api
 
     inline int32_t bridgeSetAddrName(const CubeApi* api, const char* label, bool (*set)(uint32_t, const char*), uint32_t address, const char* name)
     {
+        if (!capabilityGate(api, CUBE_CAP_WRITES, label))
+            return 0;
         writeguard::Scope scope(api);
         const bool ok = set(address, name);
         LOGC(Debug, kApiCategory, "'%s' %s(0x%08X, %s) -> %s",
@@ -175,4 +227,5 @@ namespace modloader::api
     void fillConfig(CubeApi& api);
     void fillStorage(CubeApi& api);
     void fillServices(CubeApi& api);
+    void fillLocale(CubeApi& api);
 }

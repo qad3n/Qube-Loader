@@ -308,8 +308,8 @@ typedef struct CubeHooksApi
     uint32_t (CUBE_CALL* builtinTarget)(const struct CubeApi* api, int32_t hook);
 } CubeHooksApi;
 
-// Per-mod user-editable settings, persisted to <dllDir>/config/<mod-id>.ini (keyed by mod id, resolved
-// loader-side - no id argument). Each getter takes a fallback returned when the key is missing/malformed.
+// Per-mod user-editable settings, persisted to <dllDir>/config/<stem>.ini (keyed by the mod's DLL
+// stem, resolved loader-side - no key argument). Each getter takes a fallback returned when the key is missing/malformed.
 typedef struct CubeConfigApi
 {
     int32_t (CUBE_CALL* getInt)(const struct CubeApi* api, const char* key, int32_t fallback);
@@ -323,8 +323,8 @@ typedef struct CubeConfigApi
     int32_t (CUBE_CALL* setString)(const struct CubeApi* api, const char* key, const char* value);
 } CubeConfigApi;
 
-// Per-mod save data: opaque binary blobs under <dllDir>/data/<mod-id>/ (keyed by mod id, resolved
-// loader-side). Distinct from config (that is user-editable text); this is mod-owned, binary-safe state.
+// Per-mod save data: opaque binary blobs under <dllDir>/data/<stem>/ (keyed by the mod's DLL stem,
+// resolved loader-side). Distinct from config (that is user-editable text); this is mod-owned, binary-safe state.
 typedef struct CubeStorageApi
 {
     // Namespace subsequent get/put/... under a scope subdirectory (e.g. world seed / character). "" or NULL = the unscoped root. Returns 1.
@@ -361,4 +361,19 @@ typedef struct CubeServicesApi
     // handler's CubeMessageArgs.result, or -1 if the target id is unknown or has no message handler.
     int32_t (CUBE_CALL* sendMessage)(const struct CubeApi* api, const char* targetModId, uint32_t msgId, void* payload, uint32_t payloadSize);
 } CubeServicesApi;
+
+// Per-mod localization: translate keys against the mod's own locale files at
+// <dllDir>/lang/<stem>/<locale>.ini (flat key=value, keyed by the mod's DLL stem like config/storage).
+// A missing key falls back to the caller's fallback, then to the key text. The active locale defaults
+// to the loader's (env CUBE_MOD_LOCALE, else "en") and can be overridden per mod via setLocale.
+typedef struct CubeLocaleApi
+{
+    // Copies the translation of key (or fallback, or key if fallback is NULL) into out (always
+    // null-terminated within size); returns the string length.
+    int32_t (CUBE_CALL* translate)(const struct CubeApi* api, const char* key, const char* fallback, char* out, int32_t size);
+    // Sets this mod's active locale (which <locale>.ini subsequent translate calls read). Returns 1.
+    int32_t (CUBE_CALL* setLocale)(const struct CubeApi* api, const char* locale);
+    // Copies this mod's active locale into out (always null-terminated); returns the string length.
+    int32_t (CUBE_CALL* getLocale)(const struct CubeApi* api, char* out, int32_t size);
+} CubeLocaleApi;
 

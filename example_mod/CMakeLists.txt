@@ -51,6 +51,13 @@ set_target_properties(example_mod PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/mods"
   RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/mods"
   LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/mods")
+# Ship this mod's locale files where the loader looks: <build>/lang/<stem>/. The loader roots locales
+# at <dllDir>/lang and keys per-mod by DLL stem (example_mod), so translate() finds them at runtime.
+add_custom_command(TARGET example_mod POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/lang/example_mod"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/lang" "${CMAKE_BINARY_DIR}/lang/example_mod"
+  COMMENT "Copying example_mod locale files to build/lang/example_mod")
+
 # d3d9: ImGui DX9 backend. dwmapi/imm32: ImGui Win32 backend.
 target_link_libraries(example_mod PRIVATE d3d9 dwmapi imm32)
 if(NOT MSVC)

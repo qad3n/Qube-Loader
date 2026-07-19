@@ -134,7 +134,7 @@ namespace modloader
             if (info->structSize >= offsetof(CubeModInfo, requiredAbi) + sizeof(info->requiredAbi))
                 mod->requiredAbi = info->requiredAbi;
             if (info->structSize >= offsetof(CubeModInfo, capabilities) + sizeof(info->capabilities))
-                mod->capabilities = info->capabilities;
+                mod->context.capabilities = info->capabilities;
             if (info->structSize >= offsetof(CubeModInfo, deps) + sizeof(const CubeModDep*) && info->deps)
             {
                 for (const CubeModDep* d = info->deps; d->id; ++d)
