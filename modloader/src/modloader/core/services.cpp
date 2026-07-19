@@ -23,7 +23,7 @@ namespace modloader::services
         struct Service
         {
             const CubeApi* owner;
-            uint32_t token;
+            uint32_t token = 0; // stamped by OwnerRegistry::add
             std::string name;
             uint32_t version;
             void* impl;
@@ -32,7 +32,7 @@ namespace modloader::services
         struct MessageSub
         {
             const CubeApi* owner;
-            uint32_t token;
+            uint32_t token = 0; // stamped by OwnerRegistry::add
             CubeMessageFn fn;
             void* user;
         };
@@ -63,7 +63,6 @@ namespace modloader::services
 
         Service service;
         service.owner = owner;
-        service.token = 0;
         service.name = wanted;
         service.version = version;
         service.impl = impl;
@@ -116,7 +115,6 @@ namespace modloader::services
             return 0;
         MessageSub sub;
         sub.owner = owner;
-        sub.token = 0;
         sub.fn = fn;
         sub.user = user;
         const uint32_t token = g_messages.add(sub);

@@ -5,11 +5,12 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define CUBE_ABI_VERSION 24
+#define CUBE_ABI_VERSION 25
 // Oldest mod ABI this loader still accepts. Held FIXED as CUBE_ABI_VERSION grows (growth is
 // additive-only), so a mod built against any ABI in [CUBE_MIN_ABI_VERSION, CUBE_ABI_VERSION] keeps
-// loading. Only raise it if a non-additive break makes older mods genuinely incompatible.
-#define CUBE_MIN_ABI_VERSION 20
+// loading. Raised to 25 because that revision removed struct fields and renumbered enums, so older
+// mods are genuinely layout-incompatible; only a non-additive break should move it again.
+#define CUBE_MIN_ABI_VERSION 25
 #define CUBE_LOG_BUFFER 1024
 #define CUBE_CONFIG_STRING_MAX 256
 // Locale strings can be full sentences, so this is larger than the config value cap.

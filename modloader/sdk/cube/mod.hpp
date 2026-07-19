@@ -460,8 +460,15 @@ namespace cube
             // Reject a loader OLDER than what this mod was built against: it would be missing sub-apis
             // or struct fields the mod expects. A newer loader is fine because ABI growth is additive
             // (appended members keep existing offsets), so the loader still serves this mod's prefix.
-            if (!api || api->abiVersion < CUBE_ABI_VERSION)
+            if (!api)
                 return nullptr;
+            if (api->abiVersion < CUBE_ABI_VERSION)
+            {
+                // log sits at a fixed offset behind the version header, so it is callable on any loader.
+                cubeLogf(api, CUBE_LOG_ERROR, "%s: built against ABI v%u but the loader serves v%u; update the loader",
+                         name, static_cast<unsigned>(CUBE_ABI_VERSION), static_cast<unsigned>(api->abiVersion));
+                return nullptr;
+            }
             mod().bind(api);
             info().structSize = sizeof(CubeModInfo);
             info().name = name;

@@ -28,6 +28,8 @@ namespace game::gamehooks
         using modloader::ownerName;
         using modloader::ownerPriority;
         using modloader::ownerOrder;
+        using modloader::ownerMayWrite;
+        using modloader::ownerWarnOnce;
 
         struct HookSub
         {
@@ -188,6 +190,21 @@ namespace game::gamehooks
                 {
                     sub.fn(&call);
                 });
+
+                // A mod that declared capabilities but not Writes may observe a built-in hook yet not
+                // change its outcome; revert any cancel/override it attempted (mutating combat is a write).
+                if (!ownerMayWrite(sub.owner) &&
+                    (call.cancel != cancel || call.overrideReturn != prevOverride ||
+                     call.returnI != prevReturnI || call.returnF != prevReturnF))
+                {
+                    call.cancel = cancel;
+                    call.overrideReturn = prevOverride;
+                    call.returnI = prevReturnI;
+                    call.returnF = prevReturnF;
+                    if (ownerWarnOnce(sub.owner, CUBE_CAP_WRITES))
+                        LOGC(Warn, kCategory, "'%s' tried to alter %s but lacks the Writes capability; ignored (add it to setCapabilities)",
+                             ownerName(sub.owner), subject);
+                }
                 cancel |= call.cancel;
 
                 const bool assertedReturn = call.overrideReturn && (!prevOverride || call.returnI != prevReturnI || call.returnF != prevReturnF);

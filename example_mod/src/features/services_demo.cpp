@@ -1,21 +1,14 @@
 #include "features/services_demo.h"
 #include "mod_context.h"
+#include "example_lib_api.h"
 
 namespace exmod
 {
     namespace
     {
-        constexpr char kServiceName[] = "example.ping";
-        constexpr char kSelfId[] = "cube_mod.example"; // this mod's manifest id (see example_mod.cpp)
-        constexpr unsigned kPingMsg = 1;
-
-        // The published service implementation (the contract's ping()): doubles its argument.
-        int CUBE_CALL pingImpl(int value)
-        {
-            return value * 2;
-        }
-
-        PingService g_ping = { &pingImpl };
+        constexpr char kSelfService[] = "example.consumer";
+        constexpr int kPingProbe = 21; // pinged at READY to prove the round-trip
+        int g_selfMarker = 0; // the self service impl pointer (its presence is the whole contract)
     }
 
     ServicesDemo& servicesDemo()
@@ -27,43 +20,41 @@ namespace exmod
     void ServicesDemo::install(cube::Mod& mod)
     {
         m_mod = &mod;
-
-        // Publish a shared service any other mod can resolve by name at its onReady.
-        mod.services().registerService(kServiceName, 1, &g_ping);
-
-        // Receive directed messages addressed to this mod's id: reply with payload + 1 so the sender
-        // sees a concrete round-trip value.
-        mod.services().onMessage([this](cube::Message& msg)
-        {
-            if (msg.id() != kPingMsg || msg.size() < sizeof(int))
-                return;
-            m_lastPayload = *static_cast<const int*>(msg.payload());
-            m_lastReply = m_lastPayload + 1;
-            ++m_received;
-            msg.reply(m_lastReply);
-            cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: message %u from '%s' payload=%d -> reply %d",
-                     msg.id(), msg.sender(), m_lastPayload, m_lastReply);
-        });
+        mod.services().registerService(kSelfService, 1, &g_selfMarker);
 
         // Resolve peers only at READY (every mod has loaded + passed dependency resolution by then).
         mod.eventListener.onReady([this]
         {
-            PingService* svc = m_mod->services().query<PingService>(kServiceName, 1);
-            m_resolved = svc != nullptr;
+            exlib::PingService* svc = m_mod->services().query<exlib::PingService>(exlib::kServiceName, exlib::kServiceVersion);
+            m_libResolved = svc != nullptr;
             if (svc && svc->ping)
             {
-                m_lastPing = svc->ping(21);
-                cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: resolved '%s' at READY; ping(21) -> %d",
-                         kServiceName, m_lastPing);
+                m_lastPing = svc->ping(kPingProbe);
+                cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: resolved example_lib; ping(%d) -> %d", kPingProbe, m_lastPing);
             }
         });
     }
 
-    int ServicesDemo::sendSelfPing(int value)
+    int ServicesDemo::sendLibPing(int value)
     {
         if (!m_mod)
             return -1;
         int payload = value;
-        return m_mod->services().sendMessage(kSelfId, kPingMsg, &payload, sizeof(payload));
+        return m_mod->services().sendMessage(exlib::kModId, exlib::kPingMessage, &payload, sizeof(payload));
+    }
+
+    void ServicesDemo::setSelfServiceRegistered(bool registered)
+    {
+        if (!m_mod)
+            return;
+        if (registered)
+            m_mod->services().registerService(kSelfService, 1, &g_selfMarker);
+        else
+            m_mod->services().unregisterService(kSelfService);
+    }
+
+    bool ServicesDemo::selfServiceRegistered() const
+    {
+        return m_mod && m_mod->services().query(kSelfService, 1) != nullptr;
     }
 }

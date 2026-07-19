@@ -45,4 +45,6 @@ endif()
 
 # modloader builds both cube_mod.dll and the inject.exe injector (part of it).
 add_subdirectory(modloader)
+# example_lib is a headless service provider; example_mod depends on it (and includes its contract header).
+add_subdirectory(example_lib)
 add_subdirectory(example_mod)

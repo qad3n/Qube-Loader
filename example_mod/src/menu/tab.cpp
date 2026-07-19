@@ -88,6 +88,18 @@ namespace exmod::menu
         return changed;
     }
 
+    bool Tab::dragFloat(const char* label, float& value, float speed, float min, float max, const char* fmt)
+    {
+        ImGui::SetNextItemWidth(sc(kInputWidth));
+        return ImGui::DragFloat(label, &value, speed, min, max, fmt, kClampFlags);
+    }
+
+    bool Tab::dragInt(const char* label, int& value, float speed, int min, int max)
+    {
+        ImGui::SetNextItemWidth(sc(kInputWidth));
+        return ImGui::DragInt(label, &value, speed, min, max, "%d", kClampFlags);
+    }
+
     void Tab::emitLog(CubeLogLevel level, const char* message)
     {
         exmod::logLine(level, message);

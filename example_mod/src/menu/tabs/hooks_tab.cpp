@@ -11,7 +11,7 @@ namespace exmod::menu
 
         constexpr float kHookScaleMin = 0.0f;
         constexpr float kHookScaleMax = 100.0f;
-        const char* const kCallConvNames[] = {"thiscall", "cdecl", "stdcall", "fastcall"};
+        const char* const kCallConvNames[] = {"thiscall", "cdecl"};
 
         // Detach and reattach checkbox for one built in hook (shows EventHook::remove(Hook) plus adding it back).
         void attachToggle(GameHooks& hooks, cube::Hook hook, const char* id)

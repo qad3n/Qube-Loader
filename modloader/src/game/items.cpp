@@ -415,8 +415,11 @@ namespace game
 
     // Writes one item field. Rejects or clamps edits that make the item unrenderable (an invalid
     // type or weapon subtype produces a "?" item that welds to the cursor and crashes on draw).
-    bool setItemField(uint32_t itemAddress, int32_t fieldId, int32_t value)
+    bool setItemField(uint32_t itemAddress, int32_t fieldId, double raw)
     {
+        // Every item field is integral; the ABI passes a double for a uniform setter width. Bounded
+        // fields use the int32 view; seed keeps the full unsigned range straight from the double.
+        const int32_t value = static_cast<int32_t>(raw);
         const uintptr_t addr = static_cast<uintptr_t>(itemAddress);
         if (!addr || !mem::readable(reinterpret_cast<const void*>(addr), off::kItemStructSize))
             return false;
@@ -466,7 +469,7 @@ namespace game
                 return mem::write<int32_t>(addr + off::kItemUpgradeCountOff,
                     clampInt(value, off::kItemUpgradeMin, maxUpgradesFor(curType, curSubtype)));
             // Seed only feeds stat-roll variance (consumed modulo), so any value is safe.
-            case CUBE_ITEM_FIELD_SEED: return mem::write<uint32_t>(addr + off::kItemSeedOff, static_cast<uint32_t>(value));
+            case CUBE_ITEM_FIELD_SEED: return mem::write<uint32_t>(addr + off::kItemSeedOff, static_cast<uint32_t>(raw));
             // Inventory stack count sits in the cell, immediately before the item body.
             case CUBE_ITEM_FIELD_STACK:
                 return mem::write<int32_t>(addr - off::kInventoryCellItemOff,

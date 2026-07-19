@@ -47,14 +47,14 @@ namespace cube
         // This creature's active status effects (the status list is generic per creature).
         std::vector<class Buff> buffs() const;
         // Live edits to this creature (validated as a Creature by the loader).
-        bool setStat(PlayerStat stat, double value) const { return m_api && m_data.address && m_api->entities.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0; }
-        bool setHealth(float health) const { return setStat(PlayerStat::Health, health); }
-        bool setLevel(int level) const { return setStat(PlayerStat::Level, level); }
-        bool setType(int type) const { return setStat(PlayerStat::Type, type); }
-        bool setFacing(float radians) const { return setStat(PlayerStat::Facing, radians); }
-        bool setVelocity(float x, float y, float z) const { return setStat(PlayerStat::VelX, x) && setStat(PlayerStat::VelY, y) && setStat(PlayerStat::VelZ, z); }
-        bool setCategory(int category) const { return setStat(PlayerStat::Category, category); }
-        bool setRank(int rank) const { return setStat(PlayerStat::Rank, rank); }
+        bool set(PlayerStat stat, double value) const { return m_api && m_data.address && m_api->entities.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0; }
+        bool setHealth(float health) const { return set(PlayerStat::Health, health); }
+        bool setLevel(int level) const { return set(PlayerStat::Level, level); }
+        bool setType(int type) const { return set(PlayerStat::Type, type); }
+        bool setFacing(float radians) const { return set(PlayerStat::Facing, radians); }
+        bool setVelocity(float x, float y, float z) const { return set(PlayerStat::VelX, x) && set(PlayerStat::VelY, y) && set(PlayerStat::VelZ, z); }
+        bool setCategory(int category) const { return set(PlayerStat::Category, category); }
+        bool setRank(int rank) const { return set(PlayerStat::Rank, rank); }
         bool setName(const char* name) const { return m_api && m_data.address && m_api->entities.setName(m_api, m_data.address, name) != 0; }
         bool teleport(float x, float y, float z) const { return m_api && m_data.address && m_api->entities.teleport(m_api, m_data.address, x, y, z) != 0; }
         bool teleport(const Vec3& to) const { return teleport(to.x, to.y, to.z); }
@@ -67,16 +67,12 @@ namespace cube
     // Nearby entities, usable with any CubeApi* (what Mod::entities() calls). Tree walk is in the loader.
     inline std::vector<Entity> entitiesOf(const CubeApi* api)
     {
-        std::vector<Entity> result;
         if (!api)
-            return result;
+            return std::vector<Entity>();
         // Heap buffer: CUBE_ENTITIES_MAX CubeEntity on the stack would risk a stack overflow.
         std::vector<CubeEntity> buffer(CUBE_ENTITIES_MAX);
         const int32_t count = api->entities.list(api, buffer.data(), CUBE_ENTITIES_MAX);
-        result.reserve(static_cast<size_t>(count));
-        for (int32_t i = 0; i < count; ++i)
-            result.push_back(Entity(buffer[static_cast<size_t>(i)], api));
-        return result;
+        return detail::wrapList<CubeEntity, Entity>(api, buffer.data(), count);
     }
 
     inline bool targetOf(const CubeApi* api, Entity& out)
@@ -117,15 +113,7 @@ namespace cube
     // The inventory / stock of any creature by address (e.g. a merchant's wares).
     inline std::vector<Item> stockOf(const CubeApi* api, unsigned creatureAddress)
     {
-        std::vector<Item> result;
-        if (!api || !creatureAddress)
-            return result;
-        CubeItem buffer[CUBE_INVENTORY_MAX];
-        const int32_t count = api->items.inventoryOf(api, creatureAddress, buffer, CUBE_INVENTORY_MAX);
-        result.reserve(static_cast<size_t>(count));
-        for (int32_t i = 0; i < count; ++i)
-            result.push_back(Item(buffer[i], api));
-        return result;
+        return detail::fillListAt<CubeItem, Item, CUBE_INVENTORY_MAX>(api, api ? api->items.inventoryOf : nullptr, creatureAddress);
     }
 
     inline std::vector<Item> Entity::stock() const { return stockOf(m_api, m_data.address); }
@@ -188,10 +176,10 @@ namespace cube
         int getRemainingMs() const { return m_data.remainingMs; }
         const CubeBuff& raw() const { return m_data; }
         // Live edits to this effect node.
-        bool setField(BuffField field, double value) const { return m_api && m_data.address && m_api->status.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
-        bool setType(int type) const { return setField(BuffField::Type, type); }
-        bool setMagnitude(float magnitude) const { return setField(BuffField::Magnitude, magnitude); }
-        bool setRemainingMs(int ms) const { return setField(BuffField::Duration, ms); }
+        bool set(BuffField field, double value) const { return m_api && m_data.address && m_api->status.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
+        bool setType(int type) const { return set(BuffField::Type, type); }
+        bool setMagnitude(float magnitude) const { return set(BuffField::Magnitude, magnitude); }
+        bool setRemainingMs(int ms) const { return set(BuffField::Duration, ms); }
 
     private:
         CubeBuff m_data = {};
@@ -206,14 +194,6 @@ namespace cube
     // An entity's own status effects, read through the generic per-creature status list.
     inline std::vector<Buff> Entity::buffs() const
     {
-        std::vector<Buff> result;
-        if (!m_api || !m_data.address)
-            return result;
-        CubeBuff buffer[CUBE_BUFFS_MAX];
-        const int32_t count = m_api->entities.effects(m_api, m_data.address, buffer, CUBE_BUFFS_MAX);
-        result.reserve(static_cast<size_t>(count));
-        for (int32_t i = 0; i < count; ++i)
-            result.push_back(Buff(buffer[i], m_api));
-        return result;
+        return detail::fillListAt<CubeBuff, Buff, CUBE_BUFFS_MAX>(m_api, m_api ? m_api->entities.effects : nullptr, m_data.address);
     }
 }

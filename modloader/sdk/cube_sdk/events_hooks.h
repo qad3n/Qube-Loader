@@ -1,5 +1,6 @@
 #pragma once
 // Event + hook core value types (CubeEventArgs/Fn, CubeHook, CubeCallConv, CubeHookCall).
+// The generic raw-hook pool supports __thiscall and __cdecl; other conventions use installRawDetour.
 
 #include "cube_sdk/enums.h"
 
@@ -55,9 +56,7 @@ typedef enum CubeHook
 typedef enum CubeCallConv
 {
     CUBE_CC_THISCALL = 0, // __thiscall: `this` in ECX, remaining args on the stack
-    CUBE_CC_CDECL, // __cdecl: all args on the stack, caller cleans
-    CUBE_CC_STDCALL, // __stdcall: all args on the stack, callee cleans
-    CUBE_CC_FASTCALL // __fastcall: first two args in ECX/EDX, rest on the stack
+    CUBE_CC_CDECL // __cdecl: all args on the stack, caller cleans
 } CubeCallConv;
 
 // Mutable view of one intercepted call; which arg slots and return field are live is documented per CubeHook.

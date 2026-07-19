@@ -12,7 +12,6 @@ namespace cube
 
         bool valid() const { return m_valid; }
         bool refresh() { m_valid = m_api && m_api->camera.get(m_api, &m_data) != 0; return m_valid; }
-        bool reload() { return refresh(); }
         float getDistance() const { return m_data.distance; }
         float getPitch() const { return m_data.pitch; }
         float getYaw() const { return m_data.yaw; }
@@ -43,7 +42,6 @@ namespace cube
 
         bool valid() const { return m_valid; }
         bool refresh() { m_valid = m_api && m_api->display.get(m_api, &m_data) != 0; return m_valid; }
-        bool reload() { return refresh(); }
         int getWidth() const { return m_data.width; }
         int getHeight() const { return m_data.height; }
         bool isFullscreen() const { return m_data.fullscreen != 0; }
@@ -83,7 +81,6 @@ namespace cube
 
         bool valid() const { return m_valid; }
         bool refresh() { m_valid = m_api && m_api->audio.get(m_api, &m_data) != 0; return m_valid; }
-        bool reload() { return refresh(); }
         int getMusicVolumeConfig() const { return m_data.musicVolumeConfig; }
         int getSoundVolumeConfig() const { return m_data.soundVolumeConfig; }
         bool hasMusicState() const { return m_data.hasMusicState != 0; }

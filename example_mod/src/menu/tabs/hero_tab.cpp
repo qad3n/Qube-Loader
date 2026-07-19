@@ -27,8 +27,7 @@ namespace exmod::menu
         }
         ImGui::SeparatorText("set live");
         float health = hero.getHealth();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragFloat("health##set", &health, kHealthDragSpeed, kHealthMin, kHealthMax, "%.0f", kClampFlags))
+        if (dragFloat("health##set", health, kHealthDragSpeed, kHealthMin, kHealthMax, "%.0f"))
             hero.setHealth(health);
         float mana = hero.getMana();
         ImGui::SetNextItemWidth(sc(kInputWidth));
@@ -142,7 +141,7 @@ namespace exmod::menu
         bool lantern = hero.hasLantern();
         if (ImGui::Checkbox("lantern", &lantern))
             hero.setLantern(lantern);
-        ImGui::TextDisabled("stealth reduces enemy detection; lantern is the held light (were swapped before)");
+        ImGui::TextDisabled("stealth reduces enemy detection; lantern is the held light");
         ImGui::TextDisabled("speed = |velocity| (no move speed stat exists in this build)");
     }
 
@@ -166,8 +165,7 @@ namespace exmod::menu
         if (idEditor("type / race", CUBE_CATALOG_SPECIES, hero.getType(), value))
             hero.setType(value);
         int spec = hero.getSpec();
-        ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::DragInt("spec", &spec, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags))
+        if (dragInt("spec", spec, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
             hero.setSpec(spec);
         ImGui::SetNextItemWidth(sc(kInputWidth));
         ImGui::InputText("name##edit", m_name, sizeof(m_name));

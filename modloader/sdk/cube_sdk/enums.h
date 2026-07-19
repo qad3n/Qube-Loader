@@ -16,8 +16,9 @@ typedef enum CubeEnvironment
 // Declared powers a mod uses (CubeModInfo::capabilities bitset). 0 = undeclared = unrestricted (the
 // loader gates a mod only once it declares a non-zero set). Enforced at call time: the bridge denies
 // (logs + returns failure) any call whose capability the mod did not declare (see bridge.h
-// capabilityGate). Overlay gates the camera/display/ui reads plus input capture; the matching setters
-// are gated as Writes instead. audio playback is intentionally ungated.
+// capabilityGate). Overlay gates the camera/display/audio/ui reads plus input capture; Writes gates
+// every game-state setter, plus audio.stopMusic/setMusicVolume and a built-in hook handler that tries
+// to cancel or override a result. Sound playback (audio.playSound) is intentionally ungated.
 typedef enum CubeModCapability
 {
     CUBE_CAP_NONE = 0,
@@ -154,8 +155,7 @@ typedef enum CubeMovement
     CUBE_MOVE_CLIMBING,
     CUBE_MOVE_SWIMMING,
     CUBE_MOVE_GLIDING,
-    CUBE_MOVE_SNEAKING,
-    CUBE_MOVE_SITTING
+    CUBE_MOVE_SNEAKING
 } CubeMovement;
 
 // Current action / animation intent, resolved by the loader (see hero.getAction()).
@@ -196,7 +196,7 @@ typedef enum CubePlayerStat
     CUBE_STAT_CATEGORY, // entity category byte (monster/player/npc/hostile)
     CUBE_STAT_RANK, // entity star/power rank byte
     CUBE_STAT_ATTACK_SPEED, // attack-timescale float (higher = faster)
-    CUBE_STAT_CRIT, // crit attribute float (0.15 crit chance per point)
+    CUBE_STAT_STEALTH, // stealth stat float 0..1 (reduces detection; also feeds crit at 0.15 per point)
     CUBE_STAT_SNEAKING, // 1 = enable stealth (write the stealth stat), 0 = disable it
     CUBE_STAT_BASE_DAMAGE, // base attack-damage input float (scales every attack/ability)
     CUBE_STAT_LANTERN // 1 = turn the held lantern/light on, 0 = off

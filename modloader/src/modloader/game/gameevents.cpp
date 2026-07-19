@@ -40,9 +40,8 @@ namespace modloader::gameevents
             bool valid = false;
             bool hadArea = false;
             bool inWorld = false;
-            int32_t attacking = 0;
+            int32_t action = 0;
             int32_t lastActionId = -1;
-            int32_t onGround = 1;
             int32_t alive = 1;
             int32_t movement = 0;
             uint32_t target = 0;
@@ -72,6 +71,23 @@ namespace modloader::gameevents
         };
 
         PrevGameState g_prev; // render thread only
+
+        // Jump/land are the grounded-family <-> airborne-family edge only. Swimming and Climbing are
+        // deliberately in neither family, so entering water or a climb is a MOVEMENT_CHANGED, not a jump.
+        bool isGroundedFamily(int32_t movement)
+        {
+            return movement == CUBE_MOVE_GROUNDED || movement == CUBE_MOVE_SNEAKING;
+        }
+
+        bool isAirborneFamily(int32_t movement)
+        {
+            return movement == CUBE_MOVE_AIRBORNE || movement == CUBE_MOVE_GLIDING;
+        }
+
+        bool isAttackAction(int32_t action)
+        {
+            return action == CUBE_ACTION_ATTACKING || action == CUBE_ACTION_CASTING;
+        }
 
         // Build a CubeEventArgs carrying the event's real payload (subject/param/param2/amount) and emit it.
         void emitEvent(CubeEvent event, uint32_t subject, int32_t param, int32_t param2 = 0, float amount = 0.0f)
@@ -359,17 +375,18 @@ namespace modloader::gameevents
                 {
                     // PLAYER_ATTACK is detected on the game thread by the attack watcher (it catches a
                     // sub-frame shot/ability action pulse the frame poll misses). Only fall back to the
-                    // frame-poll edge if the watcher could not arm its detour.
-                    if (!game::attackwatch::active() && !g_prev.attacking && player.attacking)
+                    // frame-poll edge (a rising edge into an attack/cast action) if the watcher could not
+                    // arm its detour.
+                    if (!game::attackwatch::active() && !isAttackAction(g_prev.action) && isAttackAction(player.action))
                     {
                         // param = action id, param2 = the selected target at the edge (0 if none)
                         emitEvent(CUBE_EVENT_PLAYER_ATTACK, player.address, player.actionId, static_cast<int32_t>(player.target));
                     }
-                    if (g_prev.onGround && !player.onGround && !rolling)
+                    if (isGroundedFamily(g_prev.movement) && isAirborneFamily(player.movement) && !rolling)
                     {
                         emitEvent(CUBE_EVENT_PLAYER_JUMP, player.address, 0, 0, player.velZ);
                     }
-                    if (!g_prev.onGround && player.onGround && !rolling)
+                    if (isAirborneFamily(g_prev.movement) && isGroundedFamily(player.movement) && !rolling)
                     {
                         emitEvent(CUBE_EVENT_PLAYER_LAND, player.address, 0, 0, player.velZ);
                     }
@@ -439,13 +456,12 @@ namespace modloader::gameevents
                 // classification) so a live test run confirms which ids each weapon actually uses.
                 if (player.actionId != g_prev.lastActionId)
                 {
-                    LOGC(Debug, kActionCategory, "action %d -> %d (attacking=%d action=%d elapsed=%dms)",
-                        g_prev.lastActionId, player.actionId, player.attacking, player.action, player.actionElapsedMs);
+                    LOGC(Debug, kActionCategory, "action %d -> %d (resolved=%d elapsed=%dms)",
+                        g_prev.lastActionId, player.actionId, player.action, player.actionElapsedMs);
                     g_prev.lastActionId = player.actionId;
                 }
 
-                g_prev.attacking = player.attacking;
-                g_prev.onGround = player.onGround;
+                g_prev.action = player.action;
                 g_prev.level = player.level;
                 g_prev.alive = player.alive;
                 g_prev.movement = player.movement;

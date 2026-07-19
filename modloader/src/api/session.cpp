@@ -9,7 +9,7 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiSessionGet(const CubeApi* api, CubeSession* out)
         {
-            return bridgeGet<CubeSession>(api, out, &game::readSession, "session.get", "unavailable");
+            return bridgeGet<CubeSession>(api, out, &game::readSession, "session.get", "unavailable", &CubeSession::address);
         }
 
         int32_t CUBE_CALL apiSessionSetField(const CubeApi* api, int32_t field, int32_t value)
@@ -21,7 +21,7 @@ namespace modloader::api
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "ui.get"))
                 return 0;
-            return bridgeGet<CubeUi>(api, out, &game::readUi, "ui.get", "unavailable");
+            return bridgeGet<CubeUi>(api, out, &game::readUi, "ui.get", "unavailable", &CubeUi::address);
         }
 
         int32_t CUBE_CALL apiUiSetField(const CubeApi* api, int32_t field, int32_t open)

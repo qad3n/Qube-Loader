@@ -3,6 +3,7 @@
     "clangd.arguments": [
         "--background-index",
         "--header-insertion=never",
-        "--completion-style=detailed"
+        "--completion-style=detailed",
+        "--query-driver=/usr/bin/i686-w64-mingw32-*"
     ]
 }

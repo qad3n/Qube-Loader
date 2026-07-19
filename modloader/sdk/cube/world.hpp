@@ -17,7 +17,6 @@ namespace cube
 
         bool valid() const { return m_valid; }
         bool refresh() { m_valid = m_api && m_api->world.get(m_api, &m_data) != 0; return m_valid; }
-        bool reload() { return refresh(); }
         int getZoneX() const { return m_data.zoneX; }
         int getZoneY() const { return m_data.zoneY; }
         int getRegionX() const { return m_data.regionX; }
@@ -67,9 +66,9 @@ namespace cube
         Vec3 getPosition() const { return Vec3{m_data.x, m_data.y, m_data.z}; }
         const CubeStructure& raw() const { return m_data; }
         // Live edits to this structure record.
-        bool setField(StructField field, double value) const { return m_api && m_data.address && m_api->world.setStructure(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
-        bool setType(int type) const { return setField(StructField::Type, type); }
-        bool setPosition(float x, float y, float z) const { return setField(StructField::PosX, x) && setField(StructField::PosY, y) && setField(StructField::PosZ, z); }
+        bool set(StructField field, double value) const { return m_api && m_data.address && m_api->world.setStructure(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
+        bool setType(int type) const { return set(StructField::Type, type); }
+        bool setPosition(float x, float y, float z) const { return set(StructField::PosX, x) && set(StructField::PosY, y) && set(StructField::PosZ, z); }
         bool setPosition(const Vec3& to) const { return setPosition(to.x, to.y, to.z); }
 
     private:

@@ -41,8 +41,6 @@ namespace game::diag
                     return "gliding";
                 case CUBE_MOVE_SNEAKING:
                     return "sneaking";
-                case CUBE_MOVE_SITTING:
-                    return "sitting";
                 default:
                     return "unknown";
             }

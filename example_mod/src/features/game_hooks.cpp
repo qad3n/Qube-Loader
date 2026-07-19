@@ -1,4 +1,5 @@
 #include "features/game_hooks.h"
+#include "mod_context.h"
 
 #include <atomic>
 #include <cstdio>
@@ -10,7 +11,6 @@ namespace exmod
     {
 
         constexpr int kImpactDamageArg = 0; // argi[0] of the impact hook is the damage amount
-        constexpr int kHexRadix = 16; // raw hook addresses are typed as hexadecimal
 
         // Hand written detour for the rawDetour showcase. A no arg __thiscall is __fastcall(ecx, edx)
         // on mingw; edx is the unused second register slot. It just forwards to the trampoline and

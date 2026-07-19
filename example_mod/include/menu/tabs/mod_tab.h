@@ -10,6 +10,8 @@ namespace exmod::menu
     constexpr int kConfigInputSize = 128;
     constexpr int kNoteInputSize = 256;
     constexpr int kScopeInputSize = 32;
+    constexpr int kAssetKeyInputSize = 64;
+    constexpr int kAssetBytesInputSize = 64;
 
     class ModTab : public Tab
     {
@@ -30,8 +32,9 @@ namespace exmod::menu
         void drawMemory();
         void drawLogging();
         void drawPersist();
-        void drawServices(); // inter-mod services + messaging demo (ABI 22)
-        void drawLocale(); // per-mod localization demo (ABI 23)
+        void drawServices(); // inter-mod services + messaging demo
+        void drawLocale(); // per-mod localization demo
+        void drawAssets(); // asset-override demo (set / has / remove)
         void reloadNote(); // pull the storage note for the active scope into m_note
 
         LogState m_log;
@@ -40,8 +43,10 @@ namespace exmod::menu
         bool m_greetOnLoad = true;
         char m_note[kNoteInputSize] = "";  // storage() blob demo (a persistent free-text note)
         char m_scope[kScopeInputSize] = ""; // storage().setScope demo (namespace the note per save)
-        int m_pingValue = 21; // services demo: payload sent by the self-ping button
-        int m_pingResult = 0; // last self-ping reply
+        int m_pingValue = 21; // services demo: payload sent to example_lib
+        int m_pingResult = 0; // last ping reply from example_lib
+        char m_assetKey[kAssetKeyInputSize] = "example_mod_demo.cub"; // assets demo: override key
+        char m_assetBytes[kAssetBytesInputSize] = "cube"; // assets demo: override payload
     };
 
 }

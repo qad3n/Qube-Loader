@@ -44,13 +44,7 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiWorldSetSpawn(const CubeApi* api, float x, float y, float z)
         {
-            if (!capabilityGate(api, CUBE_CAP_WRITES, "world.setSpawn"))
-                return 0;
-            writeguard::Scope scope(api);
-            const bool ok = game::setWorldSpawn(x, y, z);
-            LOGC(Debug, kApiCategory, "'%s' world.setSpawn(%.1f, %.1f, %.1f) -> %s",
-                 modName(api), x, y, z, ok ? "ok" : "fail");
-            return okInt(ok);
+            return bridgeSetVec3(api, "world.setSpawn", &game::setWorldSpawn, x, y, z);
         }
 
         int32_t CUBE_CALL apiWorldSetStructure(const CubeApi* api, uint32_t address, int32_t field, double value)

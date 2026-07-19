@@ -1,8 +1,6 @@
 #pragma once
-// Owns the mod's INTERCEPT side: installs the built in impact/crit/max HP game function hooks and
-// exposes their toggles + counters. The Hooks tab binds widgets to settings() and drives detach/
-// reattach, raw and rawDetour installs through here; every interception handler (which runs on the
-// game thread) lives here, not in the menu.
+// The mod's INTERCEPT side: installs the built-in impact/crit/maxHP hooks and owns every interception
+// handler (all run on the game thread). The Hooks tab is a pure view over settings() and counters.
 
 #include "cube_mod.hpp"
 
@@ -31,16 +29,14 @@ namespace exmod
             float maxHpScale = kDefaultMaxHpScale;
         };
 
-        // Raw hook installer inputs. The menu binds widgets to these; the parse + install logic lives
-        // here (installRawFromInput), so the menu never touches an address or calling convention.
+        // Raw-hook installer inputs; the menu binds to these and the parse/install lives here.
         struct RawInput
         {
-            char address[kRawAddressLen] = ""; // seeded at install() from the loader's built in crit target
-            int conv = 0; // index into the menu's convention dropdown (maps to cube::CallConv)
+            char address[kRawAddressLen] = ""; // seeded at install() from the loader's built-in crit target
+            int conv = 0; // index into the convention dropdown (maps to cube::CallConv)
             int argCount = 0;
         };
 
-        // Register the built in interception handlers (impact / crit / max HP) once at init.
         void install();
 
         Settings& settings() { return m_settings; }
@@ -51,27 +47,23 @@ namespace exmod
         unsigned rawCalls() const { return m_rawCalls.load(); }
         unsigned rawDetourCalls() const;
 
-        // Last intercepted impact, captured via the HookCall inspection API (addresses + args only,
-        // no game offsets, those belong to the loader). hasLastImpact() is false until one fires.
+        // Last intercepted impact (addresses + args from the HookCall; no offsets). False until one fires.
         bool hasLastImpact() const { return m_lastImpactValid.load(); }
         unsigned lastImpactSelf() const { return m_lastImpactSelf.load(); }
         unsigned lastImpactTarget() const { return m_lastImpactTarget.load(); }
         int lastImpactDamage() const { return m_lastImpactDamage.load(); }
 
-        // Detach / reattach a built in hook (EventListener/EventHook removal showcase).
+        // Detach / reattach a built-in hook (the EventHook removal showcase).
         bool builtinAttached(cube::Hook hook) const;
         void setBuiltinAttached(cube::Hook hook, bool attached);
 
-        // Raw hook (generic pool). The menu binds to rawInput() and calls these; parsing the hex
-        // address + convention happens here, not in the menu. Auto manages the built in crit hook when
-        // the target is the crit roll address.
+        // Raw hook (generic pool). Auto-borrows the built-in crit hook when the target is the crit address.
         RawInput& rawInput() { return m_rawInput; }
         bool installRawFromInput();
         void removeRawFromInput();
         bool rawInstalled() const { return m_rawInstalled; }
 
-        // rawDetour: install a hand written detour on the crit roll function (float/odd arity escape
-        // hatch). Borrows the crit slot from the built in crit hook while installed.
+        // Hand-written detour on the crit function (the float/odd-arity escape hatch), borrowing the crit slot.
         bool installRawDetour();
         void removeRawDetour();
         bool rawDetourInstalled() const { return m_rawDetourInstalled; }

@@ -50,7 +50,8 @@ typedef struct CubeItemsApi
     // Fills the local player's inventory items (non-empty cells) into out; returns count.
     int32_t (CUBE_CALL* inventory)(const struct CubeApi* api, CubeItem* out, int32_t maxCount);
     // Writes one CubeItemField of the item at itemAddress (from CubeItem.address); guarded. 1 on success.
-    int32_t (CUBE_CALL* setField)(const struct CubeApi* api, uint32_t itemAddress, int32_t field, int32_t value);
+    // value is double so every field setter shares one width (the loader casts per field).
+    int32_t (CUBE_CALL* setField)(const struct CubeApi* api, uint32_t itemAddress, int32_t field, double value);
     // Resolves an item (type, subtype) to its display name (the full item directory). Never null.
     const char* (CUBE_CALL* name)(const struct CubeApi* api, int32_t type, int32_t subtype);
     // Fills the inventory of ANY creature at address (e.g. a merchant's stock) into out; returns count.

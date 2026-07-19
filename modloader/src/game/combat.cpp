@@ -23,25 +23,21 @@ namespace game
             bool knockedDown;
         };
 
-        // pollCombat writes on the render thread; readCombat may read from a game-thread hook,
-        // so the copied-out scalars are atomic. tracked[]/trackedCount are render-thread-only.
+        // Render-thread-only edge-detection state: last frame's player HP plus the nearby-creature
+        // set, diffed each frame to emit PLAYER_DAMAGED / ENTITY_* edges. The only cross-thread combat
+        // signal is g_critPending below (game-thread noteCrit).
         struct CombatStore
         {
             bool valid = false;
-            std::atomic<float> health{0.0f};
-            std::atomic<float> lastDamageTaken{0.0f};
-            std::atomic<float> lastDamageDealt{0.0f};
-            std::atomic<uint32_t> hits{0};
-            std::atomic<uint32_t> crits{0};
-            std::atomic<uint32_t> damageTakenEvents{0};
+            float health = 0.0f;
             TrackedEntity tracked[CUBE_ENTITIES_MAX];
             int32_t trackedCount = 0;
         };
 
         CombatStore g_store;
 
-        // Crit rolls from the CRIT_ROLL detour (game thread), folded into g_store.crits by
-        // pollCombat (render thread). Atomic exchange bridges the two threads.
+        // Crit rolls recorded by the CRIT_ROLL detour (game thread), drained by pollCombat (render
+        // thread) into this frame's PLAYER_CRIT edge. Atomic exchange bridges the two threads.
         std::atomic<uint32_t> g_critPending{0};
 
         int32_t previousIndexOf(uint32_t address)
@@ -75,14 +71,9 @@ namespace game
     {
         CombatEdges edges = {0.0f, false};
         edgeCount = 0;
-        // Fold crit rolls recorded since last frame (always, so the counter never drifts);
-        // a nonzero delta is this frame's PLAYER_CRIT edge.
-        const uint32_t newCrits = g_critPending.exchange(0, std::memory_order_relaxed);
-        if (newCrits)
-        {
-            g_store.crits.fetch_add(newCrits, std::memory_order_relaxed);
+        // Drain crit rolls recorded since last frame; a nonzero count is this frame's PLAYER_CRIT edge.
+        if (g_critPending.exchange(0, std::memory_order_relaxed))
             edges.crit = true;
-        }
         if (!playerValid)
         {
             g_store.valid = false;
@@ -91,15 +82,10 @@ namespace game
         }
 
         const bool hadPrev = g_store.valid;
-        const float prevHealth = g_store.health.load(std::memory_order_relaxed);
+        const float prevHealth = g_store.health;
 
         if (hadPrev && player.health < prevHealth)
-        {
-            const float taken = prevHealth - player.health;
-            g_store.lastDamageTaken.store(taken, std::memory_order_relaxed);
-            g_store.damageTakenEvents.fetch_add(1, std::memory_order_relaxed);
-            edges.damageTaken = taken;
-        }
+            edges.damageTaken = prevHealth - player.health;
 
         // One entity-map walk feeds hit detection + spawn/death edges (a hit = any nearby
         // creature losing health). Static, not a ~125KB stack array (overflow = uncatchable, no SEH).
@@ -126,13 +112,10 @@ namespace game
                 }
 
                 const TrackedEntity& was = g_store.tracked[prev];
-                if (health < was.health)
+                if (health < was.health && edgesOut && edgeCount < maxEdges)
                 {
                     const float dealt = was.health - health;
-                    g_store.lastDamageDealt.store(dealt, std::memory_order_relaxed);
-                    g_store.hits.fetch_add(1, std::memory_order_relaxed);
-                    if (edgesOut && edgeCount < maxEdges)
-                        edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Damaged, dealt, health, category, type};
+                    edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Damaged, dealt, health, category, type};
                 }
 
                 if (was.health > kDeadHealth && health <= kDeadHealth && edgesOut && edgeCount < maxEdges)
@@ -164,7 +147,7 @@ namespace game
             g_store.tracked[i].knockedDown = entities[i].knockedDown != 0;
         }
 
-        g_store.health.store(player.health, std::memory_order_relaxed);
+        g_store.health = player.health;
         g_store.valid = true;
         return edges;
     }
@@ -187,11 +170,6 @@ namespace game
         field::f32(obj, off::kPlayerStealthOff, out.critStat); // +0x1190 stealth stat also feeds crit
         out.critChancePercent = out.critStat * off::kCritChancePerPoint * off::kPercentScale;
         field::i32(obj, off::kPlayerHitStunOff, out.hitStun);
-        out.lastDamageTaken = g_store.lastDamageTaken.load(std::memory_order_relaxed);
-        out.lastDamageDealt = g_store.lastDamageDealt.load(std::memory_order_relaxed);
-        out.hits = g_store.hits.load(std::memory_order_relaxed);
-        out.crits = g_store.crits.load(std::memory_order_relaxed);
-        out.damageTakenEvents = g_store.damageTakenEvents.load(std::memory_order_relaxed);
         out.hasCombat = 1;
 
         return true;

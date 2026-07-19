@@ -9,7 +9,7 @@ namespace modloader
     struct ModContext
     {
         CubeApi api;
-        std::string category;    // log label (display name, disambiguated on id collision)
+        std::string category;    // log label (stable id, disambiguated as id#N on collision)
         std::string id;          // stable machine id (manifest id, or DLL stem fallback)
         std::string stem;        // DLL filename stem; the enable/disable + fault-strike registry key
         int32_t priority = 0; // mod-declared dispatch priority; higher runs last in every reduce

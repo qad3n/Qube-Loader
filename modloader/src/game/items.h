@@ -21,7 +21,7 @@ namespace game
     // Zeroes every live ability cooldown; returns the number cleared.
     int32_t clearAbilityCooldowns();
     // Writes one CubeItemField of the item at itemAddress (equipment or inventory).
-    bool setItemField(uint32_t itemAddress, int32_t fieldId, int32_t value);
+    bool setItemField(uint32_t itemAddress, int32_t fieldId, double value);
     // Sets skill rank [index] (0..kSkillRankCount-1) on the local player.
     bool setSkillRank(int32_t index, int32_t value);
     // Resolves an item (type, subtype) to its display name via the extracted item-name registry.
