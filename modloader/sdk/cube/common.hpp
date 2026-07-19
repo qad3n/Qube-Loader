@@ -214,7 +214,8 @@ namespace cube
         RawMem = CUBE_CAP_RAW_MEM,
         RawHooks = CUBE_CAP_RAW_HOOKS,
         Writes = CUBE_CAP_WRITES,
-        Overlay = CUBE_CAP_OVERLAY
+        Overlay = CUBE_CAP_OVERLAY,
+        Assets = CUBE_CAP_ASSETS
     };
 
     inline unsigned operator|(Capability a, Capability b)

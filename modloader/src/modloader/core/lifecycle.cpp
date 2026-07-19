@@ -12,6 +12,7 @@
 #include "game/signature.h"
 #include "game/selection.h"
 #include "game/pickup.h"
+#include "game/assets.h"
 #include "hooks/render_dispatch.h"
 #include "hooks/d3d9_hook.h"
 #include "hooks/dinput.h"
@@ -54,6 +55,7 @@ namespace modloader
                 game::gamehooks::armCritCounter();
                 game::selection::install();
                 game::pickup::install();
+                game::assets::install();
             }
             else
                 LOGC(Warn, kCategory, "game-function hooks skipped (Cube.exe build mismatch): attack/crit sampling, R-select and E-pickup capture are OFF; overlay and reads still work");
@@ -68,6 +70,7 @@ namespace modloader
         // after remove()); each remove no-ops if its install never ran.
         void removeModHooks()
         {
+            game::assets::remove();
             game::pickup::remove();
             game::selection::remove();
             hooks::dinput::remove();
@@ -180,6 +183,7 @@ namespace modloader
 
         LOGC(Debug, kCategory, "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
         LOGC(Info, kCategory, "%zu mod(s) loaded and started", g_mods.size());
+        reportVersions();
 
         return g_mods.size();
     }

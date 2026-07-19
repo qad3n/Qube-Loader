@@ -377,3 +377,19 @@ typedef struct CubeLocaleApi
     int32_t (CUBE_CALL* getLocale)(const struct CubeApi* api, char* out, int32_t size);
 } CubeLocaleApi;
 
+// Asset override: a mod supplies its own bytes for a game asset addressed by its original filename key
+// (e.g. "alga.cub", "aim.png"). The loader detours the game's blob read and returns the mod's data,
+// re-encoding it to match the per-database storage format so the game's own decode reconstructs it. The
+// mod always supplies decoded plaintext (a raw .cub, a real .png); the loader owns the encoding. Gated
+// on the Assets capability. Requires a compatible Cube.exe build (the detour is skipped otherwise).
+typedef struct CubeAssetsApi
+{
+    // Register (or replace) this mod's override for key with size bytes copied from data. Returns 1 on
+    // success, 0 on bad args or when asset injection is unavailable (incompatible build).
+    int32_t (CUBE_CALL* registerAsset)(const struct CubeApi* api, const char* key, const void* data, int32_t size);
+    // Withdraw this mod's override for key. Returns 1 if one existed. (Also dropped automatically on unload.)
+    int32_t (CUBE_CALL* unregisterAsset)(const struct CubeApi* api, const char* key);
+    // 1 if this mod currently overrides key.
+    int32_t (CUBE_CALL* hasAsset)(const struct CubeApi* api, const char* key);
+} CubeAssetsApi;
+

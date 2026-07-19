@@ -32,7 +32,10 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
     // mod.dependsOn("other.mod.id", "1.0") to require another mod be present (and in range) first.
     mod.setId("cube_mod.example");
     mod.setCapabilities(cube::Capability::RawMem | cube::Capability::Writes |
-                        cube::Capability::RawHooks | cube::Capability::Overlay);
+                        cube::Capability::RawHooks | cube::Capability::Overlay |
+                        cube::Capability::Assets);
+    // Optional home/version URL (ABI 24): reported in the offline load banner, never fetched.
+    mod.setUpdateUrl("https://github.com/cube-world-mods/example_mod");
 
     mod.log.info("example_mod: init; menu on INSERT/DELETE, listening for game events");
 
@@ -72,4 +75,18 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
     // Localization demo (ABI 23): translate keys against lang/example_mod/<locale>.ini and switch the
     // active locale live (see the Mod > Locale tab). Logs a translated greeting at load.
     exmod::localeDemo().install(mod);
+
+    // Asset override demo (ABI 24): exercise the assets API round-trip (capability gate + registration +
+    // ownership). This uses a demo key that matches no real asset, so it never replaces game art; a real
+    // override would pass a live key (e.g. "aim.png") with valid file bytes. Runs at READY, when the
+    // asset detour is installed and available() is meaningful.
+    eventListener.onReady([]
+    {
+        cube::Assets assets(exmod::g_api);
+        const unsigned char demoBlob[] = {'c', 'u', 'b', 'e'};
+        const bool registered = assets.set("example_mod_demo.cub", demoBlob, sizeof(demoBlob));
+        exmod::logLine(CUBE_LOG_INFO, registered
+            ? "example_mod: asset override registered (demo key example_mod_demo.cub)"
+            : "example_mod: asset override unavailable (incompatible build or missing capability)");
+    });
 }

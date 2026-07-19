@@ -22,6 +22,24 @@ namespace off
     constexpr uintptr_t kSqliteXLog = 0x007666c4;
     constexpr uintptr_t kSqlitePLogArg = 0x007666c8;
 
+    // Asset injection (data1-4.db blob stores, schema blobs(key TEXT, value BLOB); key = filename).
+    // db::loadBlobByKey is the shared read choke-point: __thiscall(Database* this, std::string* key,
+    // void** outBlob, size_t* outSize), runs "SELECT value FROM blobs WHERE key = ?", allocates outBlob
+    // via operator new and returns 1 on a row. For encoded DBs the caller then runs blob_deobfuscate
+    // (a keyed reverse-shuffle + byte-complement over the returned bytes); data1 .cub is stored raw.
+    // Names from source/cube/RENAMES.tsv (attribution.tsv MISlabels these via caller-dominance; trust
+    // RENAMES). Detoured to override a blob by key; the loader re-encodes non-.cub data so the game's
+    // own decode reconstructs the mod's plaintext.
+    constexpr uintptr_t kDbLoadBlobByKey = 0x00449810; // read choke-point (detour target)
+    constexpr uintptr_t kOperatorNew = 0x0068d652;     // operator new wrapper: void* __cdecl(size_t)
+    constexpr uintptr_t kBlobShuffleKey = 0x006ffa68;  // .rdata: 44 int32 key table for the shuffle
+    constexpr int32_t kBlobShuffleKeyCount = 44;       // 0x2c entries, indexed by i % count
+    // MSVC 2012 std::string (the key arg) layout: inline buffer OR heap pointer at +0, size @+0x10,
+    // capacity @+0x14; SSO while capacity < 16 (buffer holds the chars), else +0 is the heap pointer.
+    constexpr uintptr_t kStdStringSizeOff = 0x10;
+    constexpr uintptr_t kStdStringCapOff = 0x14;
+    constexpr uint32_t kStdStringSsoCap = 16;
+
     // Local player: [kLocalPlayerPtr] -> GameController*; GC + kLocalPlayerChain -> Creature*.
     // A 0 field offset means the field is not located and is skipped.
     constexpr uintptr_t kNoChain = 0xFFFFFFFF;

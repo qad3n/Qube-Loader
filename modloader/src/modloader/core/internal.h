@@ -29,6 +29,7 @@ namespace modloader
         CubeModShutdownFn shutdown = nullptr;
         std::string name;
         std::string version;                 // copied for dependency version compares (deps::resolve)
+        std::string updateUrl;               // optional home/version URL (ABI 24), reported in the banner
         uint32_t requiredAbi = 0;            // ABI the mod declared it was built against (0 = unspecified)
         std::vector<Dep> deps;
     };
@@ -53,4 +54,7 @@ namespace modloader
 
     // Compatibility report (report.cpp): log what each mod attached to and warn on shared hooks.
     void reportCompatibility();
+
+    // Version report (report.cpp): one user-facing Info line per loaded mod (version, id, update URL).
+    void reportVersions();
 }

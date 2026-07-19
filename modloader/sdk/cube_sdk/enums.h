@@ -24,7 +24,8 @@ typedef enum CubeModCapability
     CUBE_CAP_RAW_MEM = 1 << 0,   // mem.read/readable/write over arbitrary addresses
     CUBE_CAP_RAW_HOOKS = 1 << 1, // hooks.onRaw / rawDetour on user addresses
     CUBE_CAP_WRITES = 1 << 2,    // guarded game-state writes (setStat/setField)
-    CUBE_CAP_OVERLAY = 1 << 3    // render/input surfaces (camera/display/ui/input)
+    CUBE_CAP_OVERLAY = 1 << 3,   // render/input surfaces (camera/display/ui/input)
+    CUBE_CAP_ASSETS = 1 << 4     // asset overrides (assets.registerAsset)
 } CubeModCapability;
 
 typedef enum CubeLogLevel

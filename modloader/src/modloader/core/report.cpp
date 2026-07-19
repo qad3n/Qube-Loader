@@ -46,6 +46,21 @@ namespace modloader
 
     }
 
+    // User-facing version report (Info): one line per loaded mod with its version, id, and optional
+    // update URL. Offline and network-free; the URL is shown, never fetched, unless the user opts in.
+    void reportVersions()
+    {
+        for (const std::unique_ptr<LoadedMod>& mod : loadedMods())
+        {
+            const std::string version = mod->version.empty() ? "?" : mod->version;
+            if (mod->updateUrl.empty())
+                LOGC(Info, kCategory, "  mod: %s v%s (%s)", mod->name.c_str(), version.c_str(), mod->context.id.c_str());
+            else
+                LOGC(Info, kCategory, "  mod: %s v%s (%s) <%s>", mod->name.c_str(), version.c_str(),
+                     mod->context.id.c_str(), mod->updateUrl.c_str());
+        }
+    }
+
     // Intercept hooks shared by >1 mod are loud (last-writer-wins); shared observe events are informational.
     void reportCompatibility()
     {

@@ -17,6 +17,7 @@
 #include "cube/storage.hpp"
 #include "cube/services.hpp"
 #include "cube/locale.hpp"
+#include "cube/assets.hpp"
 #include "cube/events.hpp"
 
 namespace cube
@@ -55,6 +56,9 @@ namespace cube
         // Inter-mod ecosystem: publish/resolve a named shared service and message another mod by its id.
         // Resolve peers at eventListener().onReady() (every mod has loaded by then).
         Services services() const { return Services(m_api, const_cast<Mod*>(this)); }
+        // Asset overrides: replace a game asset (texture/model/...) by its filename key. Requires the
+        // Assets capability and a compatible game build.
+        Assets assets() const { return Assets(m_api); }
         // The most recently picked-up item (E key). present()==false until the first pickup.
         // Item.getStack() is the count picked up; the item base address is 0 (transient staging copy).
         Item lastPickup() const
@@ -141,6 +145,11 @@ namespace cube
         // Declare the powers this mod uses (OR Capability flags). Leave unset for unrestricted access.
         void setCapabilities(unsigned capabilities) { m_capabilities = capabilities; }
         unsigned capabilities() const { return m_capabilities; }
+
+        // Declare an optional home/version URL. The loader only reports it in the load banner; it does
+        // no network access unless the user opts in to update checking.
+        void setUpdateUrl(const char* url) { m_updateUrl = url; }
+        const char* updateUrl() const { return m_updateUrl; }
 
         // Declare a dependency on another mod by id. A hard dep refuses to load this mod when unmet.
         void dependsOn(const char* id, const char* minVersion = nullptr, bool hard = true)
@@ -343,6 +352,7 @@ namespace cube
         int m_priority = 0;
         const char* m_id = nullptr;
         unsigned m_capabilities = 0;
+        const char* m_updateUrl = nullptr;
         std::vector<CubeModDep> m_deps;
         bool m_depsTerminated = false;
         std::vector<std::function<void(EventArgs*)>> m_handlers[CUBE_EVENT_COUNT];
@@ -466,6 +476,7 @@ namespace cube
             info().id = mod().id();
             info().capabilities = mod().capabilities();
             info().deps = mod().depsData();
+            info().updateUrl = mod().updateUrl();
             return &info();
         }
 

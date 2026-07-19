@@ -3,6 +3,8 @@
 #include "modloader/core/events.h"
 #include "modloader/core/services.h"
 #include "modloader/core/conflict.h"
+#include "modloader/core/modassets.h"
+#include "modloader/core/owner_name.h"
 #include "game/gamehooks/gamehooks.h"
 #include "api/api.h"
 #include "api/context.h"
@@ -59,6 +61,7 @@ namespace modloader
         modloader::events::unsubscribeOwner(api);
         game::gamehooks::unsubscribeOwner(api);
         services::unregisterOwner(api);
+        modassets::dropOwner(ownerStem(api));
     }
 
     namespace
@@ -146,6 +149,8 @@ namespace modloader
                     mod->deps.push_back(dep);
                 }
             }
+            if (info->structSize >= offsetof(CubeModInfo, updateUrl) + sizeof(info->updateUrl) && info->updateUrl)
+                mod->updateUrl = info->updateUrl;
             mod->version = info->version ? info->version : "";
             mod->context.id = (declaredId && declaredId[0]) ? declaredId : stem;
 

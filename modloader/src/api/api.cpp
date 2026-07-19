@@ -55,6 +55,7 @@ namespace modloader::api
                 spanOf("storage", api.storage),
                 spanOf("services", api.services),
                 spanOf("locale", api.locale),
+                spanOf("assets", api.assets),
             };
             const std::size_t subCount = sizeof(spans) / sizeof(spans[0]);
 
@@ -112,6 +113,7 @@ namespace modloader::api
         fillStorage(api);
         fillServices(api);
         fillLocale(api);
+        fillAssets(api);
         return validate(api) == 0;
     }
 }

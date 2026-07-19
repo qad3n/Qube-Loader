@@ -104,6 +104,8 @@ namespace modloader::api
                 return "Writes";
             case CUBE_CAP_OVERLAY:
                 return "Overlay";
+            case CUBE_CAP_ASSETS:
+                return "Assets";
             default:
                 return "?";
         }
@@ -228,4 +230,5 @@ namespace modloader::api
     void fillStorage(CubeApi& api);
     void fillServices(CubeApi& api);
     void fillLocale(CubeApi& api);
+    void fillAssets(CubeApi& api);
 }

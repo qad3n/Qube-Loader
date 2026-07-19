@@ -36,6 +36,8 @@ typedef struct CubeApi
     CubeServicesApi services; // shared-service registry + directed inter-mod messaging (by manifest id)
     // --- appended in ABI 23 (localization) ---
     CubeLocaleApi locale; // per-mod string translation (<dllDir>/lang/<stem>/<locale>.ini)
+    // --- appended in ABI 24 (asset overrides) ---
+    CubeAssetsApi assets; // client only: override a game asset blob by filename key (detour-backed)
 } CubeApi;
 
 // One declared dependency on another mod (CubeModInfo::deps, a null-terminated array). The loader
@@ -61,6 +63,8 @@ typedef struct CubeModInfo
     uint32_t requiredAbi;   // ABI the mod was built against (CUBE_MOD sets it automatically); 0 = unspecified
     uint32_t capabilities;  // CubeModCapability bitset; 0 = unrestricted
     const CubeModDep* deps; // null-terminated dependency array; NULL = none
+    // --- appended in ABI 24; structSize-gated like the ABI 20 fields above ---
+    const char* updateUrl;  // optional home/version URL, reported in the load banner; NULL = none
 } CubeModInfo;
 
 // Required export: called once when the mod is loaded. Return a static CubeModInfo.
