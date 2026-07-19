@@ -1,19 +1,23 @@
-# CWAML - Cube World Alpha Mod Loader
+# Cube World Alpha Mod Loader (CWAML)
 
-CWAML is a mod loader for the 2013 alpha build of Cube World. It is an injectable
-32-bit DLL that hooks the game, loads your mods from a `mods/` folder, and hands each
-one a versioned C/C++ API for reading live game state, listening for events, and
-intercepting game functions. The goal is simple: mods stay tiny and the loader does
-the heavy lifting, so you never touch a memory offset or a raw pointer to write one.
+CWAML is a mod loader for the 2013 alpha build of Cube World. Inject the 32-bit DLL, drop
+your mods into a `mods/` folder, and each one gets a clean C/C++ API instead of raw memory.
+
+With that API a mod can:
+
+- **read** live game state (player, world, entities, items, camera, ...)
+- **listen** for events (level up, took damage, entity spawned, ...)
+- **intercept** game functions to change, cancel, or override them
+- use **loader services**: config, save data, a manifest with dependencies, inter-mod
+  messaging, localization, and asset overrides
 
 The loader also runs a color-coded logger, captures the game's own debug output, and
-installs a crash handler, so development is workable even without a debugger attached.
+installs a crash handler, so you can develop without a debugger attached.
 
 ## Status and expectations (read this first)
 
-This is an early proof of concept and a free-time hobby project. I am not a
-professional; this is something I build for fun and for the alpha community, so please
-set expectations accordingly:
+This is an early proof of concept and a free-time hobby project, built for fun and for the
+alpha community. Set expectations accordingly:
 
 - Documentation is limited. This README plus the header comments in `modloader/sdk/`
   are the current reference. Beyond that, read the source. Proper docs will come later.
@@ -68,19 +72,18 @@ mods            your DLLs, #include "cube_mod.hpp" only, zero addresses
 
 ## Roadmap
 
-- Grow API coverage. More reads, writes, events, and built-in hooks for corners of the
-  game not yet surfaced. This is the bulk of ongoing work that will take up most of my time.
-- Loader services mods actually need: a per-mod config and save-data API, a mod manifest
-  with a stable id, dependency resolution and load order, ABI gating at load time, and
-  an enable/disable registry so a bad mod can be toggled off instead of deleted.
-- A Lua scripting tier so mods can be written without a C++ compiler (maybe).
-- Server-side support (`Server.exe`), building on the client/server seam already in the
-  API.
+What is implemented today is covered under "Loader services" and the feature examples
+below. Still ahead:
+
+- grow API coverage: more reads, writes, events, and built-in hooks for parts of the game
+  not yet surfaced (the bulk of ongoing work)
+- a Lua scripting tier, so mods can be written without a C++ compiler (maybe)
+- server-side support (`Server.exe`), building on the client/server seam already in the API
 
 ## Structure
 
 ```
-CMakeLists.txt        umbrella build (add_subdirectory modloader + example_mod)
+CMakeLists.txt        umbrella build (add_subdirectory modloader + example_lib + example_mod)
 build.sh  build.bat   build on Linux (mingw) / Windows (MSVC)
 run.sh                build, launch Cube.exe under Wine, inject, tail the log (Linux)
 cmake/                mingw cross toolchain (Linux only)
@@ -93,14 +96,16 @@ modloader/            the loader DLL (cube_mod.dll) and its injector
   src/hooks/          D3D9 + MinHook detour + render dispatch
   src/modloader/      mod loading, event bus, per-frame event polling
   src/api/            the CubeApi bridge (one file per domain)
-  sdk/                the public mod SDK you compile against
+  sdk/                the public mod SDK you compile against (split per domain internally)
     cube_sdk.h        the raw versioned C ABI
     cube_mod.hpp      the ergonomic C++ layer (this is what a mod includes)
-  injector/           inject.exe, a standalone LoadLibrary injector
+  injector/inject.cpp inject.exe, a standalone LoadLibrary injector (built by modloader)
   include/minhook/    MinHook inline-hook engine (git submodule, loader only)
 
 example_mod/          a full example mod: an ImGui menu exercising the whole API
   include/imgui/      Dear ImGui (git submodule, this mod only)
+example_lib/          a minimal headless companion mod: publishes an inter-mod service that
+                      example_mod depends on, resolves, and messages. The smallest mod template.
 ```
 
 ## Your first mod
@@ -230,6 +235,96 @@ They validate the page first and return a safe fallback instead of crashing:
 int hp = mod.read<int>(address); // 0 if the address is unmapped
 bool wrote = mod.write<int>(address, 100); // false if blocked or unmapped
 unsigned live = mod.rebase(0x00525a30); // static address -> live address
+```
+
+## Loader services
+
+Beyond reading and hooking the game, the loader hands each mod a set of services so it
+never hand-rolls file I/O, versioning, or inter-mod plumbing. All are reached through `mod`.
+
+### Manifest: identity, capabilities, dependencies
+
+Declare who your mod is and what it needs. The loader keys per-mod state on the id, denies
+any power you did not declare, and refuses to start a mod whose dependency is missing or
+out of range:
+
+```cpp
+CUBE_MOD("My Mod", "1.2.0", "you")
+{
+    mod.setId("you.mymod");                 // stable id (keys config/storage/services)
+    mod.setCapabilities(cube::Capability::Writes | cube::Capability::Overlay);
+    mod.dependsOn("you.otherlib", "1.0.0"); // require another mod loads first
+    mod.setPriority(10);                    // higher dispatches last in every reduce
+    mod.setUpdateUrl("https://example.com/mymod"); // shown in the load banner (offline)
+}
+```
+
+A mod that declares no capabilities is unrestricted (the trusted default); once it declares
+any, every undeclared power is denied and logged. A mod that faults repeatedly is
+auto-disabled in the registry so it stops crash-looping the game.
+
+### Per-mod config and save storage
+
+`mod.config()` is user-editable settings (an ini file); `mod.storage()` is mod-owned binary
+save data. Both persist across restarts and are scoped to your mod:
+
+```cpp
+bool greet = mod.config().getBool("greet_on_load", true);
+mod.config().setInt("log_level", 2);
+
+int launches = mod.storage().getValue<int>("launches", 0) + 1;
+mod.storage().putValue<int>("launches", launches);
+mod.storage().setScope("world_1234");       // optional: namespace by save / world / character
+```
+
+### Inter-mod services and messaging
+
+One mod publishes a service others resolve by name; mods send directed messages by mod id.
+Consumers resolve at `onReady`, when every mod has loaded and dependencies are settled:
+
+```cpp
+// provider
+mod.services().registerService("mymod.api", 1, &myVtable);
+mod.services().onMessage([](cube::Message& m) { m.reply(m.id() + 1); });
+
+// consumer
+mod.eventListener().onReady([&]
+{
+    MyApi* api = mod.services().query<MyApi>("mymod.api", 1);
+    int payload = 41;
+    int reply = mod.services().sendMessage("you.mymod", 1, &payload, sizeof(payload));
+});
+```
+
+### Lifecycle events
+
+Beyond init and shutdown, react to load completion and world residency:
+
+```cpp
+mod.eventListener().onReady([&]{ /* all mods loaded + deps resolved */ });
+mod.eventListener().onWorldEnter([&]{ /* entered a world from the title/menu */ });
+mod.eventListener().onWorldExit([&]{ /* returned to the title/menu */ });
+```
+
+### Localization
+
+Translate UI strings against per-mod `lang/<locale>.ini` files, with a live locale switch;
+a missing key falls back to the supplied default:
+
+```cpp
+std::string title = mod.locale().translate("menu_title", "Menu");
+mod.locale().setLocale("de");
+```
+
+### Asset overrides
+
+Replace a game asset by its original filename key (requires the Assets capability and a
+compatible game build). The loader re-encodes your bytes into the game's storage format:
+
+```cpp
+mod.assets().set("aim.png", pngBytes, pngSize);
+bool has = mod.assets().has("aim.png");
+mod.assets().remove("aim.png");
 ```
 
 ## Build
