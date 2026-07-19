@@ -19,6 +19,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiItemsSetField(const CubeApi* api, uint32_t itemAddress, int32_t field, int32_t value)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "items.setField"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setItemField(itemAddress, field, value);
             LOGC(Debug, kApiCategory, "'%s' items.setField(0x%08X, %d, %d) -> %s",
@@ -66,6 +68,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiSkillsClearCooldowns(const CubeApi* api)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "skills.clearCooldowns"))
+                return 0;
             writeguard::Scope scope(api);
             const int32_t cleared = game::clearAbilityCooldowns();
             LOGC(Debug, kApiCategory, "'%s' skills.clearCooldowns -> %d", modName(api), cleared);

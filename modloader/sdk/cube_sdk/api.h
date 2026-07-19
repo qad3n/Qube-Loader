@@ -30,10 +30,12 @@ typedef struct CubeApi
     CubePickupApi pickup; // client only: last-picked-up item (E key), detour-backed
     CubeHooksApi hooks; // game-function interception (cancel/modify/override), separate from events
     // --- appended in ABI 21 (persistence); older mods never read past here, so growth stays additive ---
-    CubeConfigApi config; // per-mod user-editable settings (<dllDir>/config/<mod-id>.ini)
-    CubeStorageApi storage; // per-mod binary save data (<dllDir>/data/<mod-id>/)
+    CubeConfigApi config; // per-mod user-editable settings (<dllDir>/config/<stem>.ini)
+    CubeStorageApi storage; // per-mod binary save data (<dllDir>/data/<stem>/)
     // --- appended in ABI 22 (ecosystem) ---
     CubeServicesApi services; // shared-service registry + directed inter-mod messaging (by manifest id)
+    // --- appended in ABI 23 (localization) ---
+    CubeLocaleApi locale; // per-mod string translation (<dllDir>/lang/<stem>/<locale>.ini)
 } CubeApi;
 
 // One declared dependency on another mod (CubeModInfo::deps, a null-terminated array). The loader

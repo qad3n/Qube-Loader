@@ -14,6 +14,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiPlayerAddXp(const CubeApi* api, int32_t amount)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "player.addXp"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::addPlayerXp(amount);
             LOGC(Debug, kApiCategory, "'%s' player.addXp(%d) -> %s", modName(api), amount, ok ? "ok" : "fail");
@@ -27,6 +29,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiPlayerSetStat(const CubeApi* api, int32_t stat, double value)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "player.setStat"))
+                return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setPlayerStat(stat, value);
             LOGC(Debug, kApiCategory, "'%s' player.setStat(%d, %.3f) -> %s", modName(api), stat, value, ok ? "ok" : "fail");

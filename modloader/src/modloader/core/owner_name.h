@@ -49,4 +49,13 @@ namespace modloader
             return 0;
         return reinterpret_cast<const ModContext*>(owner)->dispatchOrder;
     }
+
+    // Declared CubeModCapability bitset (0 = undeclared = unrestricted, and 0 for the loader's
+    // internal sentinel owners). The bridge gates undeclared calls against this at call time.
+    inline uint32_t ownerCapabilities(const CubeApi* owner)
+    {
+        if (!owner)
+            return 0;
+        return reinterpret_cast<const ModContext*>(owner)->capabilities;
+    }
 }

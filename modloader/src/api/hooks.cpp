@@ -30,6 +30,8 @@ namespace modloader::api
         {
             if (!api || !fn)
                 return 0;
+            if (!capabilityGate(api, CUBE_CAP_RAW_HOOKS, "eventHook.raw"))
+                return 0;
             const int32_t ok = game::gamehooks::installRaw(api, address, cc, argCount, fn, user);
             LOGC(Debug, kApiCategory, "'%s' eventHook.raw(0x%08X, cc %d, %d args) -> %s", modName(api),
                  address, static_cast<int>(cc), argCount, ok ? "ok" : "fail");
@@ -41,6 +43,8 @@ namespace modloader::api
         {
             if (!api)
                 return 0;
+            if (!capabilityGate(api, CUBE_CAP_RAW_HOOKS, "eventHook.rawDetour"))
+                return 0;
             const int32_t ok = game::gamehooks::installRawDetour(api, address, detour, trampoline);
             LOGC(Debug, kApiCategory, "'%s' eventHook.rawDetour(0x%08X) -> %s", modName(api), address,
                  ok ? "ok" : "fail");
@@ -50,6 +54,8 @@ namespace modloader::api
         int32_t CUBE_CALL apiHooksRemoveRaw(const CubeApi* api, uint32_t address)
         {
             if (!api)
+                return 0;
+            if (!capabilityGate(api, CUBE_CAP_RAW_HOOKS, "eventHook.removeRaw"))
                 return 0;
             const int32_t ok = game::gamehooks::removeRaw(api, address);
             LOGC(Debug, kApiCategory, "'%s' eventHook.removeRaw(0x%08X) -> %s", modName(api), address,

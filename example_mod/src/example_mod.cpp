@@ -6,6 +6,7 @@
 #include "features/game_hooks.h"
 #include "features/health_history.h"
 #include "features/services_demo.h"
+#include "features/locale_demo.h"
 
 namespace exmod
 {
@@ -67,4 +68,8 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
     // Inter-mod ecosystem demo (ABI 22): publish a service, resolve it at onReady, exchange a directed
     // message. Self-targeted here (one DLL), but the round-trip is identical across two mods.
     exmod::servicesDemo().install(mod);
+
+    // Localization demo (ABI 23): translate keys against lang/example_mod/<locale>.ini and switch the
+    // active locale live (see the Mod > Locale tab). Logs a translated greeting at load.
+    exmod::localeDemo().install(mod);
 }

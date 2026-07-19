@@ -19,6 +19,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiUiGet(const CubeApi* api, CubeUi* out)
         {
+            if (!capabilityGate(api, CUBE_CAP_OVERLAY, "ui.get"))
+                return 0;
             return bridgeGet<CubeUi>(api, out, &game::readUi, "ui.get", "unavailable");
         }
 

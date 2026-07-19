@@ -8,6 +8,8 @@ namespace modloader::api
     {
         int32_t CUBE_CALL apiInputSetBlocked(const CubeApi* api, int32_t blocked)
         {
+            if (!capabilityGate(api, CUBE_CAP_OVERLAY, "input.setBlocked"))
+                return 0;
             hooks::input_block::setBlocked(blocked != 0);
             LOGC(Debug, kApiCategory, "'%s' input.setBlocked(%d)", modName(api), blocked);
             return 1;

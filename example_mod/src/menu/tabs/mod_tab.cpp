@@ -3,6 +3,7 @@
 #include "overlay.h"
 #include "features/memory_probe.h"
 #include "features/services_demo.h"
+#include "features/locale_demo.h"
 
 #include "cube_mod.hpp"
 #include "imgui.h"
@@ -29,6 +30,40 @@ namespace exmod::menu
         // storage() keys: mod-owned binary save data (the launch counter and a free-text note blob).
         constexpr char kLaunchesKey[] = "launches";
         constexpr char kNoteKey[] = "note";
+
+        struct CapabilityName
+        {
+            unsigned bit;
+            const char* name;
+        };
+
+        constexpr CapabilityName kCapabilityNames[] = {
+            {CUBE_CAP_RAW_MEM, "RawMem"},
+            {CUBE_CAP_RAW_HOOKS, "RawHooks"},
+            {CUBE_CAP_WRITES, "Writes"},
+            {CUBE_CAP_OVERLAY, "Overlay"},
+        };
+
+        // Formats the declared capability bitset as "RawMem | Writes | ..." (or the unrestricted note)
+        // so the Info tab documents what the loader gates this mod against.
+        void formatCapabilities(unsigned caps, char* out, int size)
+        {
+            if (caps == 0)
+            {
+                std::snprintf(out, size, "(none declared - unrestricted)");
+                return;
+            }
+            int written = 0;
+            for (const CapabilityName& entry : kCapabilityNames)
+            {
+                if ((caps & entry.bit) == 0)
+                    continue;
+                const int n = std::snprintf(out + written, size - written, "%s%s", written ? " | " : "", entry.name);
+                if (n < 0 || n >= size - written)
+                    break;
+                written += n;
+            }
+        }
 
     }
 
@@ -63,7 +98,9 @@ namespace exmod::menu
         {
             const char* modId = cube::mod().id();
             row("Mod id", "%s", (modId && modId[0]) ? modId : "(stem fallback)");
-            row("Capabilities", "0x%X", cube::mod().capabilities());
+            char capsText[96];
+            formatCapabilities(cube::mod().capabilities(), capsText, sizeof(capsText));
+            row("Capabilities", "%s", capsText);
             row("Environment", "%s", cube::mod().isClient() ? "client" : "server");
             row("Loader ABI", "%u", g_api->abiVersion);
             row("SDK ABI", "%d", CUBE_ABI_VERSION);
@@ -279,6 +316,34 @@ namespace exmod::menu
         ImGui::TextDisabled("the handler replies payload + 1; sendMessage returns that value");
     }
 
+    void ModTab::drawLocale()
+    {
+        // Localization (ABI 23): translate keys against lang/<stem>/<locale>.ini, switch the active
+        // locale live, and fall back to the key when a translation is missing. See features/locale_demo.cpp.
+        LocaleDemo& demo = localeDemo();
+        ImGui::TextDisabled("mod.locale(): translate / setLocale / getLocale");
+        if (beginTable("mod_locale"))
+        {
+            row("active locale", "%s", demo.locale().c_str());
+            row("greeting", "%s", demo.translate("greeting").c_str());
+            row("menu_title", "%s", demo.translate("menu_title").c_str());
+            row("missing_key", "%s", demo.translate("missing_key").c_str());
+            ImGui::EndTable();
+        }
+        ImGui::TextDisabled("missing_key has no translation, so it falls back to the key text");
+
+        ImGui::SeparatorText("switch locale (lang/example_mod/<locale>.ini)");
+        if (ImGui::Button("en"))
+            demo.setLocale("en");
+        ImGui::SameLine();
+        if (ImGui::Button("de"))
+            demo.setLocale("de");
+        ImGui::SameLine();
+        if (ImGui::Button("fr (no file)"))
+            demo.setLocale("fr");
+        ImGui::TextDisabled("example_mod ships en + de; fr has no file, so every key falls back");
+    }
+
     void ModTab::draw(const CubeEventArgs& frame)
     {
         if (!ImGui::BeginTabBar("##modtabs"))
@@ -306,6 +371,11 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Services"))
         {
             drawServices();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Locale"))
+        {
+            drawLocale();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

@@ -1,7 +1,7 @@
 #pragma once
-// Events tab (OBSERVE side): a pure view over exmod::GameEvents. Live log, per event counters,
-// console toggles and the event catalog. All recording/state lives in GameEvents; this tab only
-// renders it and flips the per event console toggles.
+// Events tab (OBSERVE side): a pure view over exmod::GameEvents. Live log, per event counters, and
+// console toggles. All recording/state lives in GameEvents; this tab only renders it and flips the
+// per event console toggles.
 
 #include "menu/tab.h"
 

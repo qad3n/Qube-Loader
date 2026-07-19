@@ -26,7 +26,6 @@ namespace exmod
         // Read API for the Events tab (indexed by CubeEvent value).
         unsigned countAt(int index) const;
         const char* nameAt(int index) const;
-        const char* noteAt(int index) const;
         bool& consoleEnabled(int index);
 
         int logLineCount() const { return m_count; }

@@ -76,17 +76,6 @@ namespace exmod::menu
             }
             ImGui::EndTabItem();
         }
-
-        if (ImGui::BeginTabItem("Catalog"))
-        {
-            if (beginTable("ev_cat"))
-            {
-                for (int i = 0; i < CUBE_EVENT_COUNT; ++i)
-                    row(events.nameAt(i), "%s", events.noteAt(i));
-                ImGui::EndTable();
-            }
-            ImGui::EndTabItem();
-        }
         ImGui::EndTabBar();
     }
 }

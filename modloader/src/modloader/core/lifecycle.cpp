@@ -3,6 +3,7 @@
 #include "modloader/core/modregistry.h"
 #include "modloader/core/modconfig.h"
 #include "modloader/core/modstorage.h"
+#include "modloader/core/modlocale.h"
 #include "modloader/core/events.h"
 #include "modloader/core/services.h"
 #include "modloader/game/gameevents.h"
@@ -128,9 +129,11 @@ namespace modloader
         // Load the enable/disable + fault-strike registry so scan() can skip disabled mods.
         modregistry::load(dllDir);
 
-        // Root the per-mod config + storage stores before scan(): a mod may read either in its init.
+        // Root the per-mod config + storage + locale stores before scan(): a mod may read any of them
+        // (a setting, save data, or a translated startup string) in its init.
         modconfig::init(dllDir);
         modstorage::init(dllDir);
+        modlocale::init(dllDir);
 
         scan(modsDir);
 

@@ -31,6 +31,7 @@ namespace exmod::menu
         void drawLogging();
         void drawPersist();
         void drawServices(); // inter-mod services + messaging demo (ABI 22)
+        void drawLocale(); // per-mod localization demo (ABI 23)
         void reloadNote(); // pull the storage note for the active scope into m_note
 
         LogState m_log;

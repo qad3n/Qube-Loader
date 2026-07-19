@@ -16,6 +16,7 @@
 #include "cube/config.hpp"
 #include "cube/storage.hpp"
 #include "cube/services.hpp"
+#include "cube/locale.hpp"
 #include "cube/events.hpp"
 
 namespace cube
@@ -49,6 +50,8 @@ namespace cube
         // unlike the manifest id), so a mod's own files stay put regardless of the id it declares.
         Config config() const { return Config(m_api); }
         Storage storage() const { return Storage(m_api); }
+        // Per-mod localization: translate keys against this mod's <dllDir>/lang/<stem>/<locale>.ini.
+        Locale locale() const { return Locale(m_api); }
         // Inter-mod ecosystem: publish/resolve a named shared service and message another mod by its id.
         // Resolve peers at eventListener().onReady() (every mod has loaded by then).
         Services services() const { return Services(m_api, const_cast<Mod*>(this)); }
