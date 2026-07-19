@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Build the mod, launch Cube.exe under Wine, inject cube_mod.dll, tail its log.
-# Overridable: GAME_DIR, GAME_EXE, WINE, WINEPREFIX, WINEDEBUG, plus CUBE_MOD_* env vars.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -56,14 +54,6 @@ done
 
 echo "run: injected. tailing $LOG_FILE (Ctrl-C to stop and close the game)"
 
-# The mod colors its own console, but under Wine the injected game's console is
-# an AllocConsole buffer we cannot see here; run.sh shows the plain log file
-# instead. Colorize that tail per segment to match the mod console: timestamp
-# grey; level tag AND category by severity (error=red, warn=yellow, info=blue,
-# debug/trace=grey); message white for normal logs but the level color for
-# warnings/errors so they stand out. Uses sed (portable, no gawk dependency);
-# each level's line matches exactly one rule. Disable with NO_COLOR=1 or a
-# non-terminal stdout. Lines that do not match are passed through untouched.
 colorize()
 {
     local g=$'\033[90m' r=$'\033[91m' y=$'\033[93m' b=$'\033[94m' w=$'\033[97m' x=$'\033[0m'
@@ -75,9 +65,6 @@ colorize()
         -e "s/^(\[[^]]*\]) (\[TRACE\]) (\[[^]]*\]): (.*)$/${g}\1${x} ${g}\2${x} ${g}\3:${x} ${w}\4${x}/"
 }
 
-# Tail in the background so we can stop it the moment the game exits. Without
-# this the script would tail forever and require a manual Ctrl-C after quitting
-# the game. When the game process is gone, kill the tail and let cleanup run.
 if [ -n "${NO_COLOR:-}" ] || [ ! -t 1 ]; then
     tail -F "$LOG_FILE" &
 else
