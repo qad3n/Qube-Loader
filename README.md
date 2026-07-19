@@ -85,7 +85,7 @@ below. Still ahead:
 ```
 CMakeLists.txt        umbrella build (add_subdirectory modloader + example_lib + example_mod)
 build.sh  build.bat   build on Linux (mingw) / Windows (MSVC)
-run.sh                build, launch Cube.exe under Wine, inject, tail the log (Linux)
+run.sh    run.bat     build, launch Cube.exe, inject early, tail the log (Linux Wine / Windows)
 cmake/                mingw cross toolchain (Linux only)
 cube_mod.ini.sample   sample loader config
 
@@ -350,10 +350,20 @@ If you configure with CMake directly on Windows, pass `-A Win32` so the target i
 
 ## Run
 
-On Linux, `./run.sh` builds, launches `Cube.exe` under Wine, injects the DLL, and tails
-the live log. Override the game location with `GAME_DIR` / `GAME_EXE`.
+Use the run script. It builds, launches `Cube.exe`, injects the loader the moment the
+game starts, and tails the live log:
 
-To inject manually into a running game (either platform):
+- Linux (Wine): `./run.sh`
+- Windows: `run.bat` (double-click, or run from a Developer Command Prompt)
+
+**Inject at startup, not mid game.** The loader must hook the game as it launches. The run
+script handles this for you, so it is the recommended way to play. Injecting by hand into a
+game that is already loaded into a world can misbehave or crash.
+
+Override the game location with `GAME_DIR` / `GAME_EXE`.
+
+If you must inject manually, do it right after launching the game, before loading a world
+(either platform):
 
 ```
 inject.exe Cube.exe path\to\cube_mod.dll
