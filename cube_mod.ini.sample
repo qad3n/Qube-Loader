@@ -3,6 +3,9 @@
 # diagnostics; info shows only user-facing menu/hotkey output and game captures.
 log_level = debug
 # log_dir =
+# console: 1 (default) shows a log console window; 0 keeps the log to the file only. The console is
+# created as a non-activating tool window (out of the alt-tab list) so it cannot steal focus from or
+# block alt-tab into an exclusive-fullscreen game. File logging is always on regardless.
 console = 1
 color = 1
 # color_mode: detect|ansi|win32|none. detect auto-picks; force ansi or win32 if
@@ -12,3 +15,7 @@ capture_game_log = 1
 # fault_isolation: 1 keeps the game alive when a mod callback faults (disables that
 # mod); 0 lets the crash handler take the process down instead.
 fault_isolation = 1
+# overlay: 1 (default) installs the D3D9 overlay + input hooks. Set 0 for safe mode: mods
+# still load and game-function hooks still fire, but the overlay, its probe device, and
+# render-driven events are off. Use this if the overlay misbehaves on a given machine.
+overlay = 1

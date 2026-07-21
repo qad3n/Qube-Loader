@@ -1,5 +1,6 @@
 #include "hooks/render_dispatch.h"
 #include "core/log.h"
+#include "util/guard.h"
 
 #include <windows.h>
 #include <mutex>
@@ -11,6 +12,7 @@ namespace hooks::render
     {
         constexpr char kCategory[] = "render";
         constexpr DWORD kDrainMs = 32; // let an in-flight frame finish before a removed callback is freed
+        constexpr int kMaxRenderFaults = 3; // after this many render faults, stop drawing for the session
 
         struct Entry
         {
@@ -22,6 +24,12 @@ namespace hooks::render
         std::vector<Entry> g_subscribers;
         Token g_nextToken = 0;
 
+        // Render thread only: fault-isolation bookkeeping. The loader's own per-frame scaffolding
+        // (gameevents polling) runs here without a mod owner; a CPU fault in it would otherwise crash
+        // the game. Mod event handlers are already owner-isolated inside events::emit.
+        int g_renderFaults = 0;
+        bool g_renderDisarmed = false;
+
         std::vector<Entry> snapshot()
         {
             std::lock_guard<std::mutex> lock(g_mutex);
@@ -30,11 +38,20 @@ namespace hooks::render
 
         void dispatchRender(IDirect3DDevice9* device)
         {
+            if (g_renderDisarmed)
+                return; // a repeated render fault disarmed drawing; WndProc/reset stay active
             const std::vector<Entry> entries = snapshot();
             for (const Entry& entry : entries)
             {
-                if (entry.callbacks.onRender)
-                    entry.callbacks.onRender(device);
+                if (!entry.callbacks.onRender)
+                    continue;
+                const bool ok = guard::tryRunLoader("render dispatch", [&]() { entry.callbacks.onRender(device); });
+                if (!ok && ++g_renderFaults >= kMaxRenderFaults)
+                {
+                    g_renderDisarmed = true;
+                    LOGC(Warn, kCategory, "render fault #%d -> overlay render disarmed for this session", g_renderFaults);
+                    return;
+                }
             }
         }
 
@@ -44,7 +61,7 @@ namespace hooks::render
             for (const Entry& entry : entries)
             {
                 if (entry.callbacks.onDeviceReset)
-                    entry.callbacks.onDeviceReset(preReset);
+                    guard::tryRunLoader("device reset dispatch", [&]() { entry.callbacks.onDeviceReset(preReset); });
             }
         }
 
@@ -54,7 +71,14 @@ namespace hooks::render
             bool swallow = false;
             for (const Entry& entry : entries)
             {
-                if (entry.callbacks.onWndProc && entry.callbacks.onWndProc(hwnd, msg, wParam, lParam))
+                if (!entry.callbacks.onWndProc)
+                    continue;
+                bool entrySwallow = false;
+                guard::tryRunLoader("wndproc dispatch", [&]()
+                {
+                    entrySwallow = entry.callbacks.onWndProc(hwnd, msg, wParam, lParam);
+                });
+                if (entrySwallow)
                     swallow = true;
             }
             return swallow;

@@ -2,6 +2,7 @@
 #include "hooks/detour.h"
 #include "hooks/window.h"
 #include "core/log.h"
+#include "core/mem.h"
 #include "util/fmt.h"
 
 #include <atomic>
@@ -62,6 +63,11 @@ namespace hooks::d3d9
             if (g_active.load())
             {
                 ensureWindowHook(device);
+                // The game only calls EndScene mid-frame on a valid device, so drawing here is safe in
+                // windowed AND exclusive fullscreen (this is what every injected overlay does). Device
+                // loss is handled where it belongs, in hkReset; a bad draw is caught by the render
+                // dispatch's fault isolation, never a crash. No TestCooperativeLevel gate: it reports
+                // spuriously under some fullscreen/wrapper setups and would wrongly hide the overlay.
                 if (g_cb.onRender != nullptr)
                     g_cb.onRender(device);
             }
@@ -116,6 +122,17 @@ namespace hooks::d3d9
                 return false;
             }
 
+            // Log the adapter/driver before creating the device: this identifies the GPU and, crucially,
+            // any d3d9 wrapper (DXVK / dgVoodoo / overlay) that changes the device layout, which is the
+            // environment detail that explains an overlay problem on a given machine.
+            D3DADAPTER_IDENTIFIER9 adapter = {};
+            if (SUCCEEDED(d3d->GetAdapterIdentifier(D3DADAPTER_DEFAULT, 0, &adapter)))
+                LOGC(Info, kCategory, "D3D9 adapter: %s | driver %s %u.%u.%u.%u | vendor 0x%04X device 0x%04X",
+                     adapter.Description, adapter.Driver,
+                     HIWORD(adapter.DriverVersion.HighPart), LOWORD(adapter.DriverVersion.HighPart),
+                     HIWORD(adapter.DriverVersion.LowPart), LOWORD(adapter.DriverVersion.LowPart),
+                     static_cast<unsigned>(adapter.VendorId), static_cast<unsigned>(adapter.DeviceId));
+
             D3DPRESENT_PARAMETERS pp = {};
             pp.Windowed = TRUE;
             pp.SwapEffect = D3DSWAPEFFECT_DISCARD;
@@ -126,7 +143,21 @@ namespace hooks::d3d9
                                                  D3DCREATE_SOFTWARE_VERTEXPROCESSING, &pp, &probeDev);
             if (SUCCEEDED(hr) && probeDev != nullptr)
             {
-                g_vtable = *reinterpret_cast<void***>(probeDev);
+                void** vtable = *reinterpret_cast<void***>(probeDev);
+                g_vtable = vtable;
+                // Capture the EndScene/Reset addresses WHILE the probe device is alive. Some d3d9
+                // wrappers (DXVK / dgVoodoo / injected overlays) heap-allocate a per-device vtable and
+                // free it on Release, so reading a slot after Release dereferences freed memory (observed
+                // AV reading slot 42). Guard the read too, in case the vtable is shorter than the
+                // standard layout - a nonstandard d3d9 then disables the overlay instead of crashing.
+                const size_t needed = sizeof(void*) * (slotIndex(Slot::EndScene) + 1);
+                if (vtable != nullptr && mem::readable(vtable, needed))
+                {
+                    g_endSceneTarget = vtable[slotIndex(Slot::EndScene)];
+                    g_resetTarget = vtable[slotIndex(Slot::Reset)];
+                }
+                else
+                    LOGC(Error, kCategory, "device vtable unreadable (nonstandard d3d9 wrapper?); overlay disabled");
                 probeDev->Release();
             }
             else
@@ -136,7 +167,7 @@ namespace hooks::d3d9
             DestroyWindow(probeWnd);
             UnregisterClassA(kProbeClass, self);
 
-            return g_vtable != nullptr;
+            return g_endSceneTarget != nullptr && g_resetTarget != nullptr;
         }
 
     }
@@ -152,13 +183,12 @@ namespace hooks::d3d9
             LOGC(Error, kCategory, "could not obtain the D3D9 device vtable");
             return false;
         }
-        LOGC(Debug, kCategory, "device vtable acquired at 0x%X", fmt::ptr(g_vtable));
+        LOGC(Debug, kCategory, "device vtable acquired at 0x%X (EndScene 0x%X, Reset 0x%X)",
+             fmt::ptr(g_vtable), fmt::ptr(g_endSceneTarget), fmt::ptr(g_resetTarget));
 
-        // The probe device shares its vtable with the game's, so inline-hooking these addresses
-        // intercepts the game's device too.
-        g_endSceneTarget = g_vtable[slotIndex(Slot::EndScene)];
-        g_resetTarget = g_vtable[slotIndex(Slot::Reset)];
-
+        // g_endSceneTarget / g_resetTarget were captured in acquireVtable while the probe device was
+        // alive. The probe shares these function addresses with the game's device, so inline-hooking
+        // them intercepts the game too.
         const bool endSceneOk = detour::create(g_endSceneTarget, reinterpret_cast<void*>(&hkEndScene),
                                                reinterpret_cast<void**>(&g_origEndScene));
         const bool resetOk = detour::create(g_resetTarget, reinterpret_cast<void*>(&hkReset),

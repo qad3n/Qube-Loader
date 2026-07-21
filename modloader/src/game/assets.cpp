@@ -141,7 +141,10 @@ namespace game::assets
             {
                 uint32_t result = 0;
                 bool handled = false;
-                guard::tryRun("asset override", [&]()
+                // Isolate a CPU fault in the override path (this runs on the game's asset-streaming
+                // thread at load). On a fault handled stays false and we fall through to the original
+                // read below - the game loads the vanilla blob and keeps running.
+                guard::tryRunLoader("asset override", [&]()
                 {
                     handled = tryOverride(keyStr, outBlob, outSize, result);
                 });

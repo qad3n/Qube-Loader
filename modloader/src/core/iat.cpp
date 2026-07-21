@@ -43,7 +43,7 @@ namespace iat
         return real;
     }
 
-    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement, void*** outSlot)
+    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement, void*** outSlot, bool warnOnMiss)
     {
         HMODULE mod = GetModuleHandleA(nullptr);
         BYTE* base = reinterpret_cast<BYTE*>(mod);
@@ -94,7 +94,11 @@ namespace iat
             }
         }
 
-        LOGC(Warn, kCategory, "%s!%s: HOOK FAILED, %s (target 0x%08X)", dllName, funcName, dllFound ? "no IAT slot holds the target" : "dll not in exe import table", fmt::ptr(target));
+        const char* reason = dllFound ? "no IAT slot holds the target" : "dll not in exe import table";
+        if (warnOnMiss)
+            LOGC(Warn, kCategory, "%s!%s: HOOK FAILED, %s (target 0x%08X)", dllName, funcName, reason, fmt::ptr(target));
+        else
+            LOGC(Debug, kCategory, "%s!%s: not imported by the exe, optional hook skipped (%s)", dllName, funcName, reason);
         return nullptr;
     }
 }

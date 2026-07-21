@@ -43,7 +43,7 @@ namespace modloader
         // overrides, or opens its overlay). The observation reservations (attack/crit) stay pass-through
         // until a mod hooks them; selection/pickup capture is read-only; the input/DI freeze is inert
         // until a mod calls input.setBlocked. With no mod loaded none of these are installed at all.
-        void installModHooks()
+        void installModHooks(bool overlayEnabled)
         {
             // Game-function detours target hard addresses from one Cube.exe build; on a mismatched
             // binary they would corrupt code. Verify the build once (before any patch) and skip them
@@ -60,10 +60,14 @@ namespace modloader
             else
                 LOGC(Warn, kCategory, "game-function hooks skipped (Cube.exe build mismatch): attack/crit sampling, R-select and E-pickup capture are OFF; overlay and reads still work");
 
-            // The input freeze (user32 IAT by import name) and DI suspend (system-DLL vtable) are
-            // build-independent, so they stay on to keep overlay input working on any binary.
-            hooks::input_block::install();
-            hooks::dinput::install();
+            // The input freeze (user32 IAT by import name) and DI suspend (system-DLL vtable) drive the
+            // overlay's input handoff. In safe mode (overlay off) there is no overlay to feed, so skip
+            // them too and leave the game's own input untouched.
+            if (overlayEnabled)
+            {
+                hooks::input_block::install();
+                hooks::dinput::install();
+            }
         }
 
         // Reverse of installModHooks. Detour removals must precede MinHook shutdown (done by the caller
@@ -117,7 +121,7 @@ namespace modloader
         }
     }
 
-    std::size_t install(const std::string& dllDir)
+    std::size_t install(const std::string& dllDir, bool overlayEnabled)
     {
         const std::string modsDir = paths::join(dllDir, kModsDirName);
         LOGC(Debug, kCategory, "scanning for mods in %s", modsDir.c_str());
@@ -162,7 +166,7 @@ namespace modloader
         reportCompatibility();
 
         // Arm the loader's game hooks (all pass-through until a mod acts) now that a mod is present.
-        installModHooks();
+        installModHooks(overlayEnabled);
 
         // Attribute and detect contended game-memory writes across mods for the whole session.
         writeguard::install();
@@ -175,13 +179,19 @@ namespace modloader
         // a mod to resolve another mod's registered service. Same thread/drain discipline as STARTUP.
         gameevents::emitLifecycle(CUBE_EVENT_READY);
 
-        hooks::d3d9::Callbacks callbacks;
-        callbacks.onRender = &gameevents::onFrame;
-        callbacks.onDeviceReset = &gameevents::onDeviceReset;
-        callbacks.onWndProc = &gameevents::onWndProc;
-        g_renderToken = hooks::render::subscribe(callbacks);
-
-        LOGC(Debug, kCategory, "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
+        // Arm the render dispatch (lazily installs the D3D9 hook + probe device on first subscribe).
+        // Safe mode skips this entirely: no overlay, no probe device, no render-driven events.
+        if (overlayEnabled)
+        {
+            hooks::d3d9::Callbacks callbacks;
+            callbacks.onRender = &gameevents::onFrame;
+            callbacks.onDeviceReset = &gameevents::onDeviceReset;
+            callbacks.onWndProc = &gameevents::onWndProc;
+            g_renderToken = hooks::render::subscribe(callbacks);
+            LOGC(Debug, kCategory, "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
+        }
+        else
+            LOGC(Warn, kCategory, "safe mode: overlay disabled by config; D3D9 + input hooks not installed (mods still loaded, render-driven events off)");
         LOGC(Info, kCategory, "%zu mod(s) loaded and started", g_mods.size());
         reportVersions();
 

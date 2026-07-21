@@ -13,8 +13,6 @@
 
 #include "imgui.h"
 
-#include <cfloat>
-
 namespace exmod::menu
 {
     namespace
@@ -27,6 +25,13 @@ namespace exmod::menu
         constexpr float kMinWindowHeight = 320.0f;
         constexpr float kSidebarWidth = 108.0f;
         constexpr int kMainTabCount = 10;
+        constexpr float kMaxWindowFraction = 0.9f; // cap the menu to 90% of the screen at any resolution
+        constexpr float kUnboundedSize = 100000.0f; // fallback max before DisplaySize is known
+
+        float minf(float a, float b)
+        {
+            return a < b ? a : b;
+        }
 
         // The whole menu: a main tab sidebar plus the active tab's content. Owns one instance of every
         // tab and dispatches draw() to the selected one. Pure view: no game state, no logic (the
@@ -52,6 +57,7 @@ namespace exmod::menu
             Tab* const m_tabs[kMainTabCount] = {&m_hero, &m_combat, &m_items, &m_world, &m_entities,
                                                 &m_view, &m_session, &m_events, &m_hooks, &m_mod};
             int m_active = 0;
+            ImVec2 m_lastDisplay = {0.0f, 0.0f}; // re-fit the window when the resolution changes
         };
 
         void Menu::drawSidebar()
@@ -67,9 +73,28 @@ namespace exmod::menu
 
         void Menu::draw(const CubeEventArgs& frame)
         {
+            // Fit any resolution / aspect ratio: DisplaySize tracks the live backbuffer each frame, so
+            // cap the max size to the screen and the min size so a small screen with a large DPI/scale
+            // can never force the window bigger than the display.
+            const ImVec2 disp = ImGui::GetIO().DisplaySize;
+            const bool haveDisp = disp.x > 0.0f && disp.y > 0.0f;
+            const float maxW = haveDisp ? disp.x : kUnboundedSize;
+            const float maxH = haveDisp ? disp.y : kUnboundedSize;
+            const float minW = minf(Tab::sc(kMinWindowWidth), maxW * kMaxWindowFraction);
+            const float minH = minf(Tab::sc(kMinWindowHeight), maxH * kMaxWindowFraction);
             ImGui::SetNextWindowSize(ImVec2(Tab::sc(kWindowWidth), Tab::sc(kWindowHeight)), ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSizeConstraints(ImVec2(Tab::sc(kMinWindowWidth), Tab::sc(kMinWindowHeight)),
-                                                ImVec2(FLT_MAX, FLT_MAX));
+            ImGui::SetNextWindowSizeConstraints(ImVec2(minW, minH), ImVec2(maxW, maxH));
+
+            // On a resolution change (device reset) re-center into the new bounds so a downscale can
+            // never leave the window stranded off-screen.
+            if (haveDisp && (disp.x != m_lastDisplay.x || disp.y != m_lastDisplay.y))
+            {
+                m_lastDisplay = disp;
+                const float w = minf(Tab::sc(kWindowWidth), disp.x);
+                const float h = minf(Tab::sc(kWindowHeight), disp.y);
+                ImGui::SetNextWindowPos(ImVec2((disp.x - w) * 0.5f, (disp.y - h) * 0.5f), ImGuiCond_Always);
+            }
+
             if (ImGui::Begin(kWindowTitle))
             {
                 drawSidebar();

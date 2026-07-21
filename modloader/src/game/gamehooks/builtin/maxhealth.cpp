@@ -31,7 +31,7 @@ namespace game::gamehooks
             call.argCount = 0;
             call.returnF = real;
 
-            guard::tryRun("maxhealth dispatch", [&]() { dispatchBuiltin(CUBE_HOOK_MAX_HEALTH, call); });
+            guard::tryRunLoader("maxhealth dispatch", [&]() { dispatchBuiltin(CUBE_HOOK_MAX_HEALTH, call); });
             return call.returnF;
         }
 

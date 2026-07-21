@@ -4,6 +4,13 @@
         "--background-index",
         "--header-insertion=never",
         "--completion-style=detailed",
-        "--query-driver=/usr/bin/i686-w64-mingw32-*"
+        "--query-driver=/usr/bin/i686-w64-mingw32-*",
+        "--compile-commands-dir=/home/admin/Projects/cube_world/mod/build"
+    ],
+    "clangd.fallbackFlags": [
+        "--target=i686-w64-mingw32",
+        "-std=gnu++17",
+        "-Imodloader/src",
+        "-Imodloader/sdk"
     ]
 }

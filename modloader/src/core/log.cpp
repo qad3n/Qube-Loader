@@ -290,6 +290,18 @@ namespace logger
             {
                 static_cast<void>(AllocConsole()); // may already be attached; the freopen below is the real guard
                 SetConsoleTitleA(kConsoleTitle);
+                // Keep the console visible but make it a non-activating TOOL window: this drops it from
+                // the alt-tab/taskbar list and stops it ever taking foreground, so it cannot minimize an
+                // exclusive-fullscreen game (device lost) nor block alt-tab back into it. The game window
+                // stays the sole foreground/alt-tab target and recovers its device cleanly.
+                if (HWND con = GetConsoleWindow())
+                {
+                    LONG_PTR ex = GetWindowLongPtrA(con, GWL_EXSTYLE);
+                    ex = (ex | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW) & ~static_cast<LONG_PTR>(WS_EX_APPWINDOW);
+                    ShowWindow(con, SW_HIDE); // hide so the tool-window/taskbar style change takes effect
+                    SetWindowLongPtrA(con, GWL_EXSTYLE, ex);
+                    ShowWindow(con, SW_SHOWNOACTIVATE);
+                }
                 if (freopen(kConsoleDevice, "w", stdout) != nullptr)
                     g_console = stdout;
                 static_cast<void>(freopen(kConsoleDevice, "w", stderr));
