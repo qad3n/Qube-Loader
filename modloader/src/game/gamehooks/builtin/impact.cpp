@@ -45,7 +45,7 @@ namespace game::gamehooks
                 call.argCount = 3;
 
                 int32_t cancel = 0;
-                guard::tryRun("impact dispatch", [&]() { cancel = dispatchBuiltin(CUBE_HOOK_IMPACT, call); });
+                guard::tryRunLoader("impact dispatch", [&]() { cancel = dispatchBuiltin(CUBE_HOOK_IMPACT, call); });
                 // cancel negates the hit entirely (no HP loss, stun, or knockback).
                 if (!cancel && g_impactOrig)
                 {
@@ -62,7 +62,7 @@ namespace game::gamehooks
             // cached local player, so the wrong one is a cheap no-op.
             if (ranOriginal)
             {
-                guard::tryRun("attackwatch", [&]()
+                guard::tryRunLoader("attackwatch", [&]()
                 {
                     attackwatch::onBehaviorTick(reinterpret_cast<uint32_t>(victim));
                     attackwatch::onBehaviorTick(reinterpret_cast<uint32_t>(self));

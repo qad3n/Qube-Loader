@@ -12,18 +12,97 @@
 #include "util/guard.h"
 
 #include <windows.h>
+#include <psapi.h>
+#include <cctype>
 #include <cstddef>
+#include <cstring>
 #include <string>
 
 namespace
 {
 
     constexpr char kLoadBanner[] = "=====================================================";
+    constexpr char kEnvCategory[] = "env";
     constexpr int kEjectKey = VK_END;
     constexpr int kPollIntervalMs = 32;
     constexpr SHORT kKeyDownMask = static_cast<SHORT>(0x8000);
+    constexpr int kMaxModules = 1024;
+
+    // Substrings (lowercased) of module names that hook or replace d3d9: a proxy d3d9, translation
+    // layers, and in-game overlays. These change the device vtable and are the usual cause of an
+    // overlay crash or no-show on a given machine, so a support log should name any that are present.
+    const char* const kInterposerModules[] = {
+        "dxvk", "d3d9on12", "dgvoodoo", "reshade", "rtss", "gameoverlayrenderer", "discord",
+        "nvspcap", "specialk", "fraps", "bandicam", "obs-hook", "amdxx", "gfsdk"
+    };
 
     HMODULE g_self = nullptr;
+
+    void toLower(char* s)
+    {
+        for (; *s; ++s)
+            *s = static_cast<char>(tolower(static_cast<unsigned char>(*s)));
+    }
+
+    // Reports which d3d9.dll is loaded (a copy in the game folder rather than the system one is a
+    // proxy/wrapper) and lists any injected wrappers/overlays. This is the environment detail that
+    // actually explains a d3d overlay crash; OS build is kept because fullscreen/DWM behavior varies
+    // by Windows version. No user or machine names. Info level so it is always in the log.
+    void logEnvironment()
+    {
+        typedef LONG(WINAPI* RtlGetVersionFn)(LPOSVERSIONINFOEXW);
+        OSVERSIONINFOEXW osv = {};
+        osv.dwOSVersionInfoSize = sizeof(osv);
+        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+        RtlGetVersionFn rtlGetVersion = ntdll ? reinterpret_cast<RtlGetVersionFn>(reinterpret_cast<void*>(GetProcAddress(ntdll, "RtlGetVersion"))) : nullptr;
+        if (rtlGetVersion)
+            rtlGetVersion(&osv);
+        LOGC(Info, kEnvCategory, "OS Windows %lu.%lu build %lu",
+             static_cast<unsigned long>(osv.dwMajorVersion), static_cast<unsigned long>(osv.dwMinorVersion),
+             static_cast<unsigned long>(osv.dwBuildNumber));
+
+        // Which d3d9.dll: a local copy (game folder) instead of the system one is a wrapper/proxy.
+        HMODULE d3d9 = GetModuleHandleA("d3d9.dll");
+        if (d3d9 == nullptr)
+            LOGC(Info, kEnvCategory, "d3d9.dll not loaded yet");
+        else
+        {
+            char path[MAX_PATH] = {};
+            char sysDir[MAX_PATH] = {};
+            GetModuleFileNameA(d3d9, path, MAX_PATH);
+            const UINT sysLen = GetSystemDirectoryA(sysDir, MAX_PATH);
+            const bool isSystem = sysLen > 0 && _strnicmp(path, sysDir, sysLen) == 0;
+            LOGC(Info, kEnvCategory, "d3d9.dll: %s (%s)", path, isSystem ? "system" : "LOCAL COPY - wrapper/proxy in game folder");
+        }
+
+        // Injected d3d wrappers / overlays present in the process.
+        HMODULE mods[kMaxModules];
+        DWORD needed = 0;
+        std::string hits;
+        if (EnumProcessModules(GetCurrentProcess(), mods, sizeof(mods), &needed))
+        {
+            const int count = static_cast<int>((needed < sizeof(mods) ? needed : sizeof(mods)) / sizeof(HMODULE));
+            for (int i = 0; i < count; ++i)
+            {
+                char name[MAX_PATH] = {};
+                if (GetModuleBaseNameA(GetCurrentProcess(), mods[i], name, sizeof(name)) == 0)
+                    continue;
+                char lower[MAX_PATH];
+                lstrcpynA(lower, name, sizeof(lower));
+                toLower(lower);
+                for (const char* needle : kInterposerModules)
+                {
+                    if (std::strstr(lower, needle) == nullptr)
+                        continue;
+                    if (!hits.empty())
+                        hits += ", ";
+                    hits += name;
+                    break;
+                }
+            }
+        }
+        LOGC(Info, kEnvCategory, "d3d wrappers/overlays injected: %s", hits.empty() ? "none detected" : hits.c_str());
+    }
 
     void reportLoadStatus(bool gamelogEnabled, bool gamelogOk, std::size_t modCount)
     {
@@ -79,6 +158,7 @@ namespace
 
         LOGD("cube_mod attached (thread 0x%X)", static_cast<unsigned>(GetCurrentThreadId()));
         config::dump(cfg);
+        logEnvironment();
 
         crash::install(cfg.logDir);
         // Arm mod-fault isolation ahead of the unhandled-exception filter, so a CPU fault in a mod
@@ -103,7 +183,7 @@ namespace
             // capture, attack/crit sampling) ONLY when at least one mod is present, and every one is a
             // transparent pass-through until a mod's own callback acts - so with no mods the game runs
             // exactly as vanilla. See modloader/core/lifecycle.cpp (installModHooks).
-            const std::size_t modCount = modloader::install(dir);
+            const std::size_t modCount = modloader::install(dir, cfg.overlay);
 
             // With no mods loaded, no mod callback will ever run, so mod-fault isolation has nothing to
             // guard. Drop its vectored exception handler now so a mod-less loader leaves zero footprint

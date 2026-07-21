@@ -35,6 +35,7 @@ namespace exmod::overlay
         LARGE_INTEGER g_lastBuild = {};
 
         ImGuiStyle g_baseStyle; // style snapshot at scale 1.0 (render thread only)
+        HWND g_hwnd = nullptr; // render thread only: cached for DPI re-query on device reset
         float g_dpiScale = 1.0f;
         float g_uiScale = 1.0f;
         bool g_styleDirty = true;
@@ -93,12 +94,20 @@ namespace exmod::overlay
             return true;
         }
 
-        // Rederives style + font scale from DPI * user scale. Must run outside a
-        // NewFrame/EndFrame pair; reapplies from the scale-1.0 snapshot so it never compounds.
+        // Rederives style + font scale from DPI * user scale. Must run outside a NewFrame/EndFrame
+        // pair; reapplies from the scale-1.0 snapshot so it never compounds. The monitor DPI is
+        // re-queried here (render thread) so a resolution/monitor change flagged by a device reset or
+        // WM_DPICHANGED is reflected; a cross-thread WM_DPICHANGED only sets the dirty flag.
+        // FontGlobalScale scales the default bitmap font (no TTF shipped).
         void applyScaleIfDirty()
         {
             if (!g_styleDirty)
                 return;
+            if (g_hwnd != nullptr)
+            {
+                const float dpi = ImGui_ImplWin32_GetDpiScaleForHwnd(g_hwnd);
+                g_dpiScale = dpi > 0.0f ? dpi : 1.0f;
+            }
             const float eff = g_dpiScale * g_uiScale;
             ImGuiStyle& style = ImGui::GetStyle();
             style = g_baseStyle;
@@ -142,6 +151,7 @@ namespace exmod::overlay
 
             ImGui::StyleColorsDark(); // plain default look (no extra theming/rounding)
             g_baseStyle = ImGui::GetStyle(); // snapshot at scale 1.0
+            g_hwnd = hwnd; // cached so a device reset can re-query DPI without event args
             g_dpiScale = ImGui_ImplWin32_GetDpiScaleForHwnd(hwnd);
             if (g_dpiScale <= 0.0f)
                 g_dpiScale = 1.0f;
@@ -191,7 +201,10 @@ namespace exmod::overlay
         {
             if (g_initFailed.load())
                 return;
-            if (!initImGui(static_cast<IDirect3DDevice9*>(args->device), static_cast<HWND>(args->hwnd)))
+            // First EndScene: the game is mid-frame with a valid device, so this is the right time to
+            // init ImGui (windowed or exclusive fullscreen). A real init failure latches g_initFailed.
+            IDirect3DDevice9* device = static_cast<IDirect3DDevice9*>(args->device);
+            if (!initImGui(device, static_cast<HWND>(args->hwnd)))
             {
                 g_initFailed.store(true);
                 setInputBlocked(false); // never leave the game frozen with no menu to close
@@ -233,9 +246,20 @@ namespace exmod::overlay
         if (!g_ready)
             return;
         if (args->preReset)
+        {
             ImGui_ImplDX9_InvalidateDeviceObjects();
+        }
         else
+        {
             ImGui_ImplDX9_CreateDeviceObjects();
+            // Resolution/monitor may have changed; re-fit style + DPI on the next visible frame. The
+            // menu itself re-clamps to the new DisplaySize (it tracks the live client rect each frame).
+            g_styleDirty = true;
+            RECT rc = {};
+            if (g_hwnd != nullptr && GetClientRect(g_hwnd, &rc))
+                cubeLogf(g_api, CUBE_LOG_DEBUG, "example_mod: display %dx%d (menu re-fits)",
+                         static_cast<int>(rc.right - rc.left), static_cast<int>(rc.bottom - rc.top));
+        }
     }
 
     void CUBE_CALL onWndProc(CubeEventArgs* args)
@@ -244,6 +268,11 @@ namespace exmod::overlay
         const UINT msg = args->msg;
         const WPARAM wParam = args->wParam;
         const LPARAM lParam = args->lParam;
+
+        // Monitor/DPI changed (dragged to another display): flag a re-fit; the render thread re-queries
+        // the DPI in applyScaleIfDirty, so no cross-thread write here.
+        if (msg == WM_DPICHANGED)
+            g_styleDirty = true;
 
         if ((msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) &&
             (wParam == VK_INSERT || wParam == VK_DELETE) && (lParam & kKeyRepeatMask) == 0 &&

@@ -18,6 +18,10 @@ namespace config
         bool captureGameLog = true;
         // Isolate CPU faults in mod callbacks (disable the mod, not crash the game). See core/faultguard.
         bool faultIsolation = true;
+        // Safe-mode escape hatch: when false the loader skips the D3D9 overlay + input hooks entirely
+        // (mods still load; render-driven events and the overlay are off). For users hitting overlay
+        // trouble on a given machine. Game-function hooks (events/writes) are unaffected.
+        bool overlay = true;
         // ini/env values that failed to parse; reported once by dump() after the logger is up.
         std::vector<std::string> rejected;
     };

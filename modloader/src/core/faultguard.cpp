@@ -87,14 +87,22 @@ namespace faultguard
 
         // Runs on the faulting thread after longjmp; no dispatch lock held here, so recording the
         // quarantine cannot deadlock. Unsubscribe/free is deferred to teardown; the mod is skipped meanwhile.
-        void onFault(const CubeApi* owner, uint32_t code, uint32_t addr)
+        void onFault(const CubeApi* owner, uint32_t code, uint32_t addr, const char* what)
         {
+            if (!owner)
+            {
+                // Loader's own game-thread detour (no mod to disable): recover and log so it is never a
+                // silent crash; the caller applies its safe fallback (e.g. the vanilla result).
+                LOGC(Error, kCategory, "loader detour '%s' faulted (%s @0x%08X) - recovered; the game continues",
+                     what ? what : "?", core::exceptionName(code), static_cast<unsigned>(addr));
+                return;
+            }
+
             addQuarantine(owner);
             LOGC(Error, kCategory, "mod '%s' faulted (%s @0x%08X) - disabling it; the game continues",
                  ownerName(owner), core::exceptionName(code), static_cast<unsigned>(addr));
             // Persist a strike so a mod that faults every launch is auto-disabled instead of crash-looping.
-            if (owner)
-                modloader::modregistry::recordFault(ownerStem(owner));
+            modloader::modregistry::recordFault(ownerStem(owner));
         }
 
         LONG CALLBACK vectoredHandler(EXCEPTION_POINTERS* ep)
@@ -189,7 +197,7 @@ namespace faultguard
         // Recovered from a CPU fault via longjmp from vectoredHandler. Pop the frame BEFORE handling
         // so that a (very unlikely) fault inside onFault escalates instead of looping on this frame.
         g_top = frame.prev;
-        onFault(frame.owner, frame.faultCode, frame.faultAddr);
+        onFault(frame.owner, frame.faultCode, frame.faultAddr, what);
         return false;
     }
 

@@ -54,7 +54,7 @@ namespace game::gamehooks::rawpool
 
             const uint32_t address = s.address;
             bool cancel = false;
-            guard::tryRun("raw hook dispatch", [&]() { cancel = dispatchRaw(address, call) != 0; });
+            guard::tryRunLoader("raw hook dispatch", [&]() { cancel = dispatchRaw(address, call) != 0; });
 
             for (int32_t i = 0; i < CUBE_HOOK_ARG_MAX; ++i)
             {

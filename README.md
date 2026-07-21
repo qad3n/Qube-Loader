@@ -110,6 +110,19 @@ example_lib/          a minimal headless companion mod: publishes an inter-mod s
 
 ## Your first mod
 
+Clone with submodules first. The loader vendors MinHook and the example mod vendors ImGui as
+git submodules, so a plain `git clone` leaves them empty and the build fails:
+
+```
+git clone --recurse-submodules https://github.com/qad3n/CWAML
+```
+
+(`--recursive` is an older alias for the same thing.) Already cloned without them? Pull them in:
+
+```
+git submodule update --init --recursive
+```
+
 1. Create a folder for your mod with its own `CMakeLists.txt` that builds a 32-bit
    shared library and adds `modloader/sdk` to its include path. The example mod is a
    working template; copy its `CMakeLists.txt` and drop the ImGui parts if you do not

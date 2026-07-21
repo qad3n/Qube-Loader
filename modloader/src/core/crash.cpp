@@ -2,6 +2,7 @@
 #include "core/log.h"
 #include "core/mem.h"
 #include "core/paths.h"
+#include "core/iat.h"
 #include "core/exception_name.h"
 #include "util/fmt.h"
 #include "game/offsets.h"
@@ -20,6 +21,8 @@ namespace crash
     {
         constexpr char kCategory[] = "crash";
         constexpr char kDbgHelp[] = "dbghelp.dll";
+        constexpr char kKernel32[] = "kernel32.dll";
+        constexpr char kSetUefProc[] = "SetUnhandledExceptionFilter";
         constexpr char kMiniDumpProc[] = "MiniDumpWriteDump";
         constexpr char kMinidumpFileName[] = "cube_mod_crash.dmp";
         constexpr int kMaxModules = 512;
@@ -31,9 +34,15 @@ namespace crash
 
         using PfnMiniDumpWriteDump = BOOL(WINAPI*)(HANDLE, DWORD, HANDLE, MINIDUMP_TYPE, PMINIDUMP_EXCEPTION_INFORMATION, PMINIDUMP_USER_STREAM_INFORMATION, PMINIDUMP_CALLBACK_INFORMATION);
 
+        using PfnSetUef = LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI*)(LPTOP_LEVEL_EXCEPTION_FILTER);
+
         std::string g_dumpDir;
         LPTOP_LEVEL_EXCEPTION_FILTER g_prev = nullptr;
         std::atomic<bool> g_inFilter{false};
+
+        // IAT guard so the game (or CRT) cannot displace our top-level filter after we install it.
+        void** g_uefSlot = nullptr;
+        PfnSetUef g_uefOrig = nullptr;
 
         struct ModuleHit
         {
@@ -186,12 +195,39 @@ namespace crash
             return EXCEPTION_CONTINUE_SEARCH;
         }
 
+        // Intercepts the game's/CRT's own SetUnhandledExceptionFilter so it never displaces ours. We
+        // keep our filter as the OS top-level handler and record the caller's filter as our chain
+        // target (our filter calls g_prev after logging). Returns the prior chained filter, matching
+        // the API contract the caller expects. This is why a real crash now always reaches our dump.
+        LPTOP_LEVEL_EXCEPTION_FILTER WINAPI hkSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER next)
+        {
+            LPTOP_LEVEL_EXCEPTION_FILTER priorChain = g_prev;
+            g_prev = next;
+            LOGC(Debug, kCategory, "intercepted SetUnhandledExceptionFilter(0x%08X); kept our top-level filter", fmt::ptr(reinterpret_cast<void*>(next)));
+            return priorChain;
+        }
+
+        void installUefGuard()
+        {
+            void* real = iat::resolveImport(GetModuleHandleA(kKernel32), kKernel32, kSetUefProc);
+            if (!real)
+                return; // not importable here; our filter still wins as the last installer
+
+            g_uefOrig = reinterpret_cast<PfnSetUef>(iat::patchIatSlot(kKernel32, kSetUefProc, real,
+                                                                      reinterpret_cast<void*>(&hkSetUnhandledExceptionFilter), &g_uefSlot, false));
+            if (g_uefSlot)
+                LOGC(Debug, kCategory, "SetUnhandledExceptionFilter IAT-guarded (the game cannot displace our crash filter)");
+            else
+                LOGC(Debug, kCategory, "game does not import SetUnhandledExceptionFilter; re-install guard skipped (our crash filter is still installed and active)");
+        }
+
     }
 
     void install(const std::string& dumpDir)
     {
         g_dumpDir = dumpDir;
         g_prev = SetUnhandledExceptionFilter(filter);
+        installUefGuard();
 
         LOGC(Debug, kCategory, "handler armed | dumps -> %s", dumpDir.c_str());
         LOGC(Debug, kCategory, "filter 0x%08X installed, previous 0x%08X", fmt::ptr(reinterpret_cast<void*>(&filter)), fmt::ptr(reinterpret_cast<void*>(g_prev)));
@@ -199,6 +235,12 @@ namespace crash
 
     void remove()
     {
+        if (g_uefSlot && g_uefOrig)
+        {
+            iat::writeSlot(g_uefSlot, reinterpret_cast<void*>(g_uefOrig));
+            g_uefSlot = nullptr;
+            g_uefOrig = nullptr;
+        }
         SetUnhandledExceptionFilter(g_prev);
         g_prev = nullptr;
     }

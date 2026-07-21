@@ -34,7 +34,7 @@ namespace game::gamehooks
                 call.argCount = 0;
                 call.returnI = real ? 1 : 0;
 
-                guard::tryRun("crit dispatch", [&]() { dispatchBuiltin(CUBE_HOOK_CRIT_ROLL, call); });
+                guard::tryRunLoader("crit dispatch", [&]() { dispatchBuiltin(CUBE_HOOK_CRIT_ROLL, call); });
                 if (call.overrideReturn)
                     result = call.returnI ? 1 : 0;
             }

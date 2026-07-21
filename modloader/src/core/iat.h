@@ -14,5 +14,7 @@ namespace iat
 
     // Patch the main EXE IAT slot for dllName!funcName holding `target`, replacing it with
     // `replacement`. Returns the original pointer (== target) + slot via outSlot, null on failure.
-    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement, void*** outSlot);
+    // warnOnMiss=false downgrades the "not in IAT" miss to DEBUG, for optional hooks where the game
+    // simply not importing the function is expected and benign (e.g. the crash-filter re-install guard).
+    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement, void*** outSlot, bool warnOnMiss = true);
 }

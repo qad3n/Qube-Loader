@@ -42,4 +42,19 @@ namespace guard
 
         return faultguard::runGuarded(what, owner,[](void* ctx) { (*static_cast<Fn*>(ctx))(); }, fnPtr);
     }
+
+    // Loader game-thread guard: isolates a CPU fault in the loader's OWN game-thread detour bodies
+    // (no mod owner) so the game thread recovers instead of dying silently. Returns false on fault so
+    // the caller can apply a safe fallback (e.g. the vanilla result). Falls back to the C++-only guard
+    // when isolation is off. Distinct from the owner form: no quarantine/strike, just recover + log.
+    template <typename Fn>
+    bool tryRunLoader(const char* what, Fn&& fn)
+    {
+        if (!faultguard::enabled())
+            return tryRun(what, std::forward<Fn>(fn));
+
+        Fn* fnPtr = &fn;
+
+        return faultguard::runGuarded(what, nullptr, [](void* ctx) { (*static_cast<Fn*>(ctx))(); }, fnPtr);
+    }
 }

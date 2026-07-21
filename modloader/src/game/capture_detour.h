@@ -81,7 +81,9 @@ namespace game
             if (!m_active.load(std::memory_order_acquire))
                 return; // tearing down: pass through without touching capture state
 
-            guard::tryRun(m_captureLabel, [&]()
+            // Isolate a CPU fault in our capture body (the game's own update already ran above). On a
+            // fault the game thread recovers and simply skips this capture rather than crashing.
+            guard::tryRunLoader(m_captureLabel, [&]()
             {
                 Record record = {};
                 if (capture(reinterpret_cast<uintptr_t>(self), record))
