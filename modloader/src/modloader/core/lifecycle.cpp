@@ -13,6 +13,7 @@
 #include "game/selection.h"
 #include "game/pickup.h"
 #include "game/assets.h"
+#include "game/view.h"
 #include "hooks/render_dispatch.h"
 #include "hooks/d3d9_hook.h"
 #include "hooks/dinput.h"
@@ -189,6 +190,20 @@ namespace modloader
             callbacks.onWndProc = &gameevents::onWndProc;
             g_renderToken = hooks::render::subscribe(callbacks);
             LOGC(Debug, kCategory, "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
+
+            // The overlay lives in the game's D3D9 swapchain; in EXCLUSIVE fullscreen that window is
+            // topmost + non-minimizable and loses the device on every alt-tab (freeze risk). The D3D9
+            // hook forces borderless windowed on the next device Reset. Best-effort nudge here so that
+            // reset happens promptly instead of waiting for the user's first alt-tab: if the game reads
+            // as fullscreen, write its display setting to windowed (guarded by a compatible build so the
+            // offset is valid). Harmless if the game ignores it - the Reset rewrite still catches every
+            // real reset. Only fires when a valid build resolved the setting global.
+            CubeDisplay disp = {};
+            if (game::signature::compatibleBuild() && game::readDisplay(disp) && disp.fullscreen)
+            {
+                if (game::setDisplayField(CUBE_DISPLAY_FULLSCREEN, 0))
+                    LOGC(Info, kCategory, "nudged game to windowed so the D3D9 hook can force borderless (fixes fullscreen alt-tab/minimize/freeze)");
+            }
         }
         else
             LOGC(Warn, kCategory, "safe mode: overlay disabled by config; D3D9 + input hooks not installed (mods still loaded, render-driven events off)");

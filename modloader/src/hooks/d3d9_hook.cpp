@@ -36,9 +36,68 @@ namespace hooks::d3d9
         std::atomic<bool> g_active{false};
         bool g_windowHooked = false; // render thread only
 
+        // Borderless coercion state (render thread only). The game runs in D3D9 EXCLUSIVE fullscreen,
+        // which makes its window topmost + non-minimizable and loses the device on every alt-tab. We
+        // force it to borderless windowed so alt-tab / minimize work and no exclusive device loss can
+        // freeze it. Cache the original style ONCE so eject can restore the game's own window.
+        bool g_styleSaved = false;
+        LONG_PTR g_savedStyle = 0;
+        LONG_PTR g_savedExStyle = 0;
+        HWND g_styledWindow = nullptr;
+
         std::size_t slotIndex(Slot slot)
         {
             return static_cast<std::size_t>(slot);
+        }
+
+        // Convert the game window to borderless covering its monitor: not topmost (alt-tab works),
+        // WS_POPUP (minimizable, no title bar), sized to the monitor. Idempotent; caches the original
+        // style the first time so restoreWindowStyle can put it back on eject.
+        void applyBorderless(HWND hwnd)
+        {
+            if (hwnd == nullptr)
+                return;
+
+            const LONG_PTR style = GetWindowLongPtrA(hwnd, GWL_STYLE);
+            const LONG_PTR exStyle = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
+            if (!g_styleSaved)
+            {
+                g_savedStyle = style;
+                g_savedExStyle = exStyle;
+                g_styledWindow = hwnd;
+                g_styleSaved = true;
+            }
+
+            const LONG_PTR newStyle = (style & ~static_cast<LONG_PTR>(WS_OVERLAPPEDWINDOW)) | WS_POPUP | WS_VISIBLE;
+            const LONG_PTR newExStyle = exStyle & ~static_cast<LONG_PTR>(WS_EX_TOPMOST);
+            SetWindowLongPtrA(hwnd, GWL_STYLE, newStyle);
+            SetWindowLongPtrA(hwnd, GWL_EXSTYLE, newExStyle);
+
+            RECT mon = {0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
+            HMONITOR hm = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO mi = {};
+            mi.cbSize = sizeof(mi);
+            if (hm != nullptr && GetMonitorInfoA(hm, &mi))
+                mon = mi.rcMonitor;
+
+            // HWND_NOTOPMOST drops the exclusive-fullscreen topmost band; SWP_NOACTIVATE so we do not
+            // steal focus, SWP_FRAMECHANGED so the style change takes effect.
+            SetWindowPos(hwnd, HWND_NOTOPMOST, mon.left, mon.top, mon.right - mon.left, mon.bottom - mon.top,
+                         SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+            LOGC(Info, kCategory, "forced borderless windowed on hwnd 0x%X (%ldx%ld) to fix exclusive-fullscreen alt-tab/minimize/freeze",
+                 fmt::ptr(hwnd), static_cast<long>(mon.right - mon.left), static_cast<long>(mon.bottom - mon.top));
+        }
+
+        void restoreWindowStyle()
+        {
+            if (!g_styleSaved || g_styledWindow == nullptr)
+                return;
+            SetWindowLongPtrA(g_styledWindow, GWL_STYLE, g_savedStyle);
+            SetWindowLongPtrA(g_styledWindow, GWL_EXSTYLE, g_savedExStyle);
+            SetWindowPos(g_styledWindow, nullptr, 0, 0, 0, 0,
+                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            g_styleSaved = false;
+            g_styledWindow = nullptr;
         }
 
         // Learn the window handle from the device (first frame) and hand it to hooks::window.
@@ -63,12 +122,14 @@ namespace hooks::d3d9
             if (g_active.load())
             {
                 ensureWindowHook(device);
-                // The game only calls EndScene mid-frame on a valid device, so drawing here is safe in
-                // windowed AND exclusive fullscreen (this is what every injected overlay does). Device
-                // loss is handled where it belongs, in hkReset; a bad draw is caught by the render
-                // dispatch's fault isolation, never a crash. No TestCooperativeLevel gate: it reports
-                // spuriously under some fullscreen/wrapper setups and would wrongly hide the overlay.
-                if (g_cb.onRender != nullptr)
+                // Gate ONLY the draw on the cooperative level. In exclusive fullscreen the device goes
+                // D3DERR_DEVICELOST / D3DERR_DEVICENOTRESET on focus loss / mode change; drawing ImGui
+                // (default-pool resources) on a lost device is what freezes/crashes the game. When lost
+                // we simply drop the overlay frame - the game's own loop performs the Reset, which
+                // hkReset catches (invalidate -> reset -> recreate). Skipping the draw (not the hook)
+                // keeps a wrapper false-positive cheap: one dropped frame, never a permanently hidden
+                // overlay. The trampoline below still runs every call so the game frame is untouched.
+                if (g_cb.onRender != nullptr && device->TestCooperativeLevel() == D3D_OK)
                     g_cb.onRender(device);
             }
             return g_origEndScene(device);
@@ -76,11 +137,27 @@ namespace hooks::d3d9
 
         HRESULT WINAPI hkReset(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pp)
         {
+            // Force borderless windowed: if the game is resetting into exclusive fullscreen, flip the
+            // present params to windowed so the device never takes exclusive mode again. The game already
+            // sized the back buffer to the target resolution, so we leave BackBufferWidth/Height alone and
+            // only clear the fullscreen bits. The matching borderless window restyle happens after the
+            // reset succeeds (below). This catches every reset: startup settings-apply, alt-tab device-loss
+            // recovery, and in-game resolution/mode changes.
+            bool coerced = false;
+            if (g_active.load() && pp != nullptr && pp->Windowed == FALSE)
+            {
+                pp->Windowed = TRUE;
+                pp->FullScreen_RefreshRateInHz = 0;
+                coerced = true;
+            }
+
             const bool live = g_active.load() && g_cb.onDeviceReset != nullptr;
             if (live)
                 g_cb.onDeviceReset(true);
 
             const HRESULT hr = g_origReset(device, pp);
+            if (SUCCEEDED(hr) && coerced)
+                applyBorderless(hooks::window::window());
             if (live && SUCCEEDED(hr))
                 g_cb.onDeviceReset(false);
 
@@ -221,6 +298,7 @@ namespace hooks::d3d9
         // Close the hook path, then drain before MinHook frees the trampolines (hooks still tail-call
         // the trampoline when inactive). wine: mingw has no SEH, so the in-flight window is inherent.
         g_active.store(false);
+        restoreWindowStyle(); // put the game's own window style back before we drop the WndProc hook
         hooks::window::restore();
         Sleep(kTeardownDrainMs);
         detour::remove(g_endSceneTarget);

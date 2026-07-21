@@ -274,6 +274,18 @@ namespace exmod::overlay
         if (msg == WM_DPICHANGED)
             g_styleDirty = true;
 
+        // Focus loss (alt-tab / Win+D / minimize): never leave the game with its DirectInput zeroed or
+        // the cursor captured, or alt-tab feels broken. Release the input freeze while unfocused; on
+        // refocus, re-freeze only if the menu is still open in interactive (non-passthrough) mode.
+        if (msg == WM_ACTIVATEAPP && g_ready)
+        {
+            const bool focused = wParam != FALSE;
+            if (!focused)
+                setInputBlocked(false);
+            else if (g_visible.load() && !g_allowGameInput.load())
+                setInputBlocked(true);
+        }
+
         if ((msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) &&
             (wParam == VK_INSERT || wParam == VK_DELETE) && (lParam & kKeyRepeatMask) == 0 &&
             !g_initFailed.load()) // never toggle (and freeze input) when the menu can't render
