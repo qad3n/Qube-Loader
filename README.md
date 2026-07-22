@@ -94,11 +94,13 @@ modloader/            the loader DLL (cube_mod.dll) and its injector
   src/game/           offsets, per-domain game readers/writers, game-log capture
   src/game/gamehooks/ mod-facing game-function hooking (the intercept subsystem)
   src/hooks/          D3D9 + MinHook detour + render dispatch
-  src/modloader/      mod loading, event bus, per-frame event polling
+  src/loader/         mod loading, registry, event bus, per-frame event polling
   src/api/            the CubeApi bridge (one file per domain)
   sdk/                the public mod SDK you compile against (split per domain internally)
-    cube_sdk.h        the raw versioned C ABI
-    cube_mod.hpp      the ergonomic C++ layer (this is what a mod includes)
+    cube_sdk.h        umbrella for the raw versioned C ABI
+    cube_sdk/         the C ABI split per concern (core, enums, types, apis, api, events_hooks)
+    cube_mod.hpp      umbrella for the ergonomic C++ layer (this is what a mod includes)
+    cube/             the C++ layer split per domain (hero, world, entity, items, view, ...)
     imgui/            Dear ImGui (git submodule) - shipped with the SDK; the loader owns the
                       context + backends, mods build it core-only via cube_imgui.cmake
     cube_imgui.cmake  one-line helper a mod uses to compile ImGui core for its own build
