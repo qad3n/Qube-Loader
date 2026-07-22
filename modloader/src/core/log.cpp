@@ -272,33 +272,21 @@ namespace logger
         const char* consoleSource = "none";
         if (opts.console)
         {
-            // Console handle: inherited char stdout, else an allocated one for a GUI exe (Cube.exe).
-            // wine reports VT enabled but prints ANSI literally, so method is chosen by path: allocated
-            // -> Win32 attrs, inherited pty -> ANSI, redirected -> plain. Override with color_mode.
-            HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-            const DWORD fileType = (h && h != INVALID_HANDLE_VALUE) ? GetFileType(h) : FILE_TYPE_UNKNOWN;
-            bool haveConsole = false;
-
-            if (fileType == FILE_TYPE_CHAR)
+            // The loader owns a dedicated console window, created identically on Windows and Wine.
+            // Detach any console the process inherited (a Wine tty, or a cmd window) so AllocConsole
+            // hands us a fresh one; a GUI launch on Windows has none to detach. Coloring uses Win32
+            // attributes because Wine's own console prints ANSI literally; override with color_mode.
+            FreeConsole();
+            if (AllocConsole())
             {
-                g_console = stdout;
-                g_conHandle = h;
-                consoleSource = "inherited";
-                haveConsole = true;
-            }
-            else if (fileType == FILE_TYPE_UNKNOWN)
-            {
-                static_cast<void>(AllocConsole()); // may already be attached; the freopen below is the real guard
                 SetConsoleTitleA(kConsoleTitle);
-                // Keep the console visible but make it a non-activating TOOL window: this drops it from
-                // the alt-tab/taskbar list and stops it ever taking foreground, so it cannot minimize an
-                // exclusive-fullscreen game (device lost) nor block alt-tab back into it. The game window
-                // stays the sole foreground/alt-tab target and recovers its device cleanly.
+                // Non-activating tool window: dropped from the alt-tab/taskbar list so it can never take
+                // foreground and minimize an exclusive-fullscreen game (device lost) nor block alt-tab back.
                 if (HWND con = GetConsoleWindow())
                 {
                     LONG_PTR ex = GetWindowLongPtrA(con, GWL_EXSTYLE);
                     ex = (ex | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW) & ~static_cast<LONG_PTR>(WS_EX_APPWINDOW);
-                    ShowWindow(con, SW_HIDE); // hide so the tool-window/taskbar style change takes effect
+                    ShowWindow(con, SW_HIDE);
                     SetWindowLongPtrA(con, GWL_EXSTYLE, ex);
                     ShowWindow(con, SW_SHOWNOACTIVATE);
                 }
@@ -308,34 +296,18 @@ namespace logger
                 g_conHandle = GetStdHandle(STD_OUTPUT_HANDLE);
                 g_allocatedConsole = true;
                 consoleSource = "allocated";
-                haveConsole = true;
                 enableConsoleSelection();
-            }
-            else
-            {
-                g_console = stdout;
-                consoleSource = "redirected";
-            }
 
-            if (haveConsole)
-            {
                 const char* forced = opts.colorMode ? opts.colorMode : "detect";
                 if (_stricmp(forced, "ansi") == 0)
                 {
                     tryEnableVt(g_conHandle);
                     g_colorMode = ColorMode::Ansi;
                 }
-                else if (_stricmp(forced, "win32") == 0)
-                    g_colorMode = ColorMode::Win32;
                 else if (_stricmp(forced, "none") == 0)
                     g_colorMode = ColorMode::None;
-                else if (g_allocatedConsole)
-                    g_colorMode = ColorMode::Win32;
                 else
-                {
-                    tryEnableVt(g_conHandle);
-                    g_colorMode = ColorMode::Ansi;
-                }
+                    g_colorMode = ColorMode::Win32;
 
                 if (g_colorMode == ColorMode::Win32)
                 {
@@ -344,10 +316,10 @@ namespace logger
                         GetConsoleScreenBufferInfo(g_conHandle, &info))
                         g_baseAttr = info.wAttributes;
                 }
-            }
 
-            if (!g_color)
-                g_colorMode = ColorMode::None;
+                if (!g_color)
+                    g_colorMode = ColorMode::None;
+            }
         }
 
         const std::string path = paths::join(opts.logDir ? opts.logDir : ".", kLogFileName);
