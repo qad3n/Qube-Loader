@@ -38,6 +38,8 @@ typedef struct CubeApi
     CubeLocaleApi locale; // per-mod string translation (<dllDir>/lang/<stem>/<locale>.ini)
     // --- appended in ABI 24 (asset overrides) ---
     CubeAssetsApi assets; // client only: override a game asset blob by filename key (detour-backed)
+    // --- appended in ABI 26 (loader-owned ImGui overlay) ---
+    CubeOverlayApi overlay; // client only: register a draw callback; the loader owns the ImGui context + lifecycle
 } CubeApi;
 
 // One declared dependency on another mod (CubeModInfo::deps, a null-terminated array). The loader

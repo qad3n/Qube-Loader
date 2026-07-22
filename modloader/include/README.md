@@ -2,9 +2,10 @@
 
 Third-party libraries the loader (`cube_mod.dll`) links against live here, as git
 submodules (integrated projects, not copied into this repo). This is the loader's
-own vendored-dependency directory, separate from a mod's `include/` (e.g.
-`example_mod/include/` vendors ImGui). Libraries the loader needs but does not
-expose to mods belong here.
+own vendored-dependency directory for libraries it does NOT expose to mods.
+ImGui is the exception: it is shared with mods, so it lives with the SDK at
+`modloader/sdk/imgui` (the loader owns the ImGui context + backends and builds it
+via `sdk/cube_imgui.cmake`; mods build the same submodule, core only).
 
 Submodules keep the upstream source out of our tree: the repo records only a
 pinned commit, and `git submodule update --init --recursive` (run automatically by

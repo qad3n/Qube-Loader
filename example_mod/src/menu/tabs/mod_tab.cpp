@@ -1,6 +1,5 @@
 #include "menu/tabs/mod_tab.h"
 #include "mod_context.h"
-#include "overlay.h"
 #include "features/memory_probe.h"
 #include "features/services_demo.h"
 #include "features/locale_demo.h"
@@ -76,8 +75,8 @@ namespace exmod::menu
         // Seed every editable field from this mod's persisted config (written last session), and apply
         // the ones with a live effect now so the saved UI scale / log level take hold immediately.
         cube::Config config = cube::mod().config();
-        m_uiScale = config.getFloat(kUiScaleKey, overlay::uiScale());
-        overlay::setUiScale(m_uiScale);
+        m_uiScale = config.getFloat(kUiScaleKey, cube::mod().menu().uiScale());
+        cube::mod().menu().setUiScale(m_uiScale);
         m_log.levelIndex = config.getInt(kLogLevelKey, CUBE_LOG_INFO);
         m_greetOnLoad = config.getBool(kGreetOnLoadKey, true);
         std::snprintf(m_greeting, sizeof(m_greeting), "%s",
@@ -109,34 +108,35 @@ namespace exmod::menu
             row("SDK ABI", "%d", CUBE_ABI_VERSION);
             row("FPS", "%.1f", io.Framerate);
             row("Frame", "%u", frame.frameIndex);
-            row("DPI scale", "%.2fx", overlay::dpiScale());
+            row("DPI scale", "%.2fx", cube::mod().menu().dpiScale());
             ImGui::EndTable();
         }
         // UI scale is persisted through mod.config() (a float setting), so it survives a restart -
         // exactly the pain point config solves (this slider used to reset every launch).
         ImGui::SeparatorText("ui scale (saved to config)");
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::SliderFloat("scale", &m_uiScale, overlay::kMinUiScale, overlay::kMaxUiScale, "%.2fx", kClampFlags))
+        if (ImGui::SliderFloat("scale", &m_uiScale, cube::Menu::kMinUiScale, cube::Menu::kMaxUiScale, "%.2fx", kClampFlags))
         {
-            overlay::setUiScale(m_uiScale);
+            cube::mod().menu().setUiScale(m_uiScale);
             cube::mod().config().setFloat(kUiScaleKey, m_uiScale);
         }
         ImGui::SameLine();
         if (ImGui::Button("Reset##scale"))
         {
             m_uiScale = 1.0f;
-            overlay::setUiScale(m_uiScale);
+            cube::mod().menu().setUiScale(m_uiScale);
             cube::mod().config().setFloat(kUiScaleKey, m_uiScale);
         }
 
         ImGui::SeparatorText("input");
-        bool allowGameInput = overlay::allowGameInput();
-        if (ImGui::Checkbox("Allow input and movement in menu", &allowGameInput))
-            overlay::setAllowGameInput(allowGameInput);
+        // HUD passthrough: the loader keeps the game's movement/camera live while the menu is open.
+        bool passthrough = cube::mod().menu().passthrough();
+        if (ImGui::Checkbox("Allow input and movement in menu", &passthrough))
+            cube::mod().menu().setPassthrough(passthrough);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Keep moving and looking with the menu open. The menu becomes a display-only\n"
                               "HUD and the game grabs the cursor, so widgets are not clickable in this mode.\n"
-                              "Press INSERT or DELETE to close and return to the interactive menu.");
+                              "Press INSERT to close and return to the interactive menu.");
     }
 
     void ModTab::drawMemory()

@@ -97,13 +97,17 @@ namespace exmod::menu
 
             if (ImGui::Begin(kWindowTitle))
             {
+                // The loader toggles visibility by not submitting our draw fn while hidden, so ImGui
+                // treats the window as (re)appearing on open - focus it then so the keyboard works at once.
+                if (ImGui::IsWindowAppearing())
+                    ImGui::SetWindowFocus();
                 drawSidebar();
                 ImGui::SameLine();
                 ImGui::BeginChild("##content", ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing()));
                 m_tabs[m_active]->draw(frame);
                 ImGui::EndChild();
                 ImGui::Separator();
-                ImGui::TextDisabled("INSERT / DELETE toggles this window (game input is frozen while open)");
+                ImGui::TextDisabled("INSERT toggles this window (game input is frozen while open)");
             }
             ImGui::End();
         }
@@ -116,9 +120,16 @@ namespace exmod::menu
 
     }
 
-    void draw(const CubeEventArgs* frame)
+    void draw()
     {
-        menu().draw(*frame);
+        // The loader-owned overlay hands the draw callback no per-frame args, so synthesize the small
+        // slice the tabs read (just the frame index, shown on the Mod > Info tab) straight from ImGui.
+        // Everything else the tabs need comes from the CubeApi accessors, not the frame.
+        CubeEventArgs frame = {};
+        frame.structSize = sizeof(CubeEventArgs);
+        frame.event = CUBE_EVENT_FRAME;
+        frame.frameIndex = static_cast<uint32_t>(ImGui::GetFrameCount());
+        menu().draw(frame);
     }
 
 }

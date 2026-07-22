@@ -394,3 +394,48 @@ typedef struct CubeAssetsApi
     int32_t (CUBE_CALL* hasAsset)(const struct CubeApi* api, const char* key);
 } CubeAssetsApi;
 
+// Loader-owned ImGui overlay (client only). The loader owns the ONE ImGui context, the DX9 + Win32
+// backends, the per-frame New/Render, DPI + user scaling, device-reset recreate, the toggle-key edge
+// and the game input freeze. A mod registers a draw callback and writes ImGui code inside it - no
+// hooking, no context creation, no lifecycle. Because the loader owns the single context, ANY number
+// of mods can each draw their own menu (the old "only one mod can have ImGui" limit is gone). Gated on
+// CUBE_CAP_OVERLAY. Prefer the cube::Menu C++ wrapper (cube/menu.hpp): it binds the shared context and
+// allocator for you and auto-unregisters on unload, so a mod never touches the handoff calls below.
+typedef void (CUBE_CALL* CubeOverlayDrawFn)(void* user); // runs between the loader's NewFrame and Render
+
+typedef struct CubeOverlayApi
+{
+    // Register a per-frame draw callback; returns a nonzero handle (0 = bad args / overlay unavailable /
+    // capability not declared). toggleKey is a VK_* code that flips this menu's visibility on its key-down
+    // edge (0 = no toggle, always drawn). startOpen sets the initial visibility. The callback runs only
+    // while the menu is visible, between the loader's NewFrame and Render, with the shared context current.
+    uint32_t (CUBE_CALL* registerMenu)(const struct CubeApi* api, CubeOverlayDrawFn fn, void* user,
+                                       uint32_t toggleKey, int32_t startOpen);
+    // Remove a menu this mod registered. Returns 1 if it existed. (All of a mod's menus are also dropped
+    // automatically on unload.)
+    int32_t (CUBE_CALL* unregisterMenu)(const struct CubeApi* api, uint32_t handle);
+
+    // Per-menu visibility + toggle key. setVisible drives the game input freeze (any visible,
+    // non-passthrough menu freezes movement/camera/cursor). isVisible returns 1/0 (0 on bad handle).
+    int32_t (CUBE_CALL* setVisible)(const struct CubeApi* api, uint32_t handle, int32_t visible);
+    int32_t (CUBE_CALL* isVisible)(const struct CubeApi* api, uint32_t handle);
+    int32_t (CUBE_CALL* setToggleKey)(const struct CubeApi* api, uint32_t handle, uint32_t vkey);
+    // HUD passthrough: 1 = an open menu does NOT freeze the game (movement/camera stay live, the game
+    // grabs the cursor so widgets are display-only). Default 0 (interactive: the menu owns input).
+    int32_t (CUBE_CALL* setPassthrough)(const struct CubeApi* api, uint32_t handle, int32_t passthrough);
+    int32_t (CUBE_CALL* passthrough)(const struct CubeApi* api, uint32_t handle);
+
+    // Shared user UI scale (multiplied on top of the monitor DPI the loader queries). One context, so
+    // this is loader-global across every mod's menu. setUiScale is clamped to [0.5, 3.0] and applied on
+    // the next frame. uiScale/dpiScale read the current user multiplier and the live monitor DPI factor.
+    int32_t (CUBE_CALL* setUiScale)(const struct CubeApi* api, float scale);
+    float (CUBE_CALL* uiScale)(const struct CubeApi* api);
+    float (CUBE_CALL* dpiScale)(const struct CubeApi* api);
+
+    // Shared-context handoff (Strategy B). The loader owns the ImGuiContext and installs the ImGui
+    // allocator; a mod compiling its own ImGui MUST bind BOTH before any ImGui:: call so its widget code
+    // targets the loader's live context and heap. The cube::Menu wrapper calls these once for you.
+    void* (CUBE_CALL* context)(const struct CubeApi* api); // the loader's ImGuiContext* (NULL until ready)
+    void (CUBE_CALL* allocFuncs)(const struct CubeApi* api, void** allocFn, void** freeFn, void** userData);
+} CubeOverlayApi;
+

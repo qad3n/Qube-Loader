@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define CUBE_ABI_VERSION 25
+#define CUBE_ABI_VERSION 26
 // Oldest mod ABI this loader still accepts. Held FIXED as CUBE_ABI_VERSION grows (growth is
 // additive-only), so a mod built against any ABI in [CUBE_MIN_ABI_VERSION, CUBE_ABI_VERSION] keeps
 // loading. Raised to 25 because that revision removed struct fields and renumbered enums, so older

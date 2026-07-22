@@ -18,6 +18,7 @@
 #include "hooks/d3d9_hook.h"
 #include "hooks/dinput.h"
 #include "hooks/input_block.h"
+#include "overlay/overlay.h"
 #include "core/log.h"
 #include "core/paths.h"
 #include "util/guard.h"
@@ -95,6 +96,9 @@ namespace modloader
                 });
             }
 
+            // Drop any overlay menus this mod registered (drains an in-flight frame) before its code is
+            // freed. No-op after overlay::shutdown() already cleared the registry (bulk remove()).
+            overlay::unregisterOwner(&mod->context.api);
             detachOwner(&mod->context.api);
             FreeLibrary(mod->module);
             LOGC(Debug, kCategory, "unloaded %s", mod->name.c_str());
@@ -218,6 +222,11 @@ namespace modloader
         // Stop per-frame delivery first so no mod code runs on the render thread while we free the DLLs.
         hooks::render::unsubscribe(g_renderToken);
         g_renderToken = hooks::render::kInvalidToken;
+
+        // Tear the overlay down next: unsubscribes its own render dispatch (draining an in-flight frame),
+        // releases the input freeze and destroys the shared ImGui context, so no menu draw can run on the
+        // render thread once we start freeing mod DLLs below.
+        overlay::shutdown();
 
         if (!g_mods.empty())
             gameevents::emitLifecycle(CUBE_EVENT_SHUTDOWN);

@@ -1,5 +1,7 @@
-# The mod loader DLL (cube_mod.dll): hooks the game, loads mods, serves the API.
-# No ImGui / UI here; that lives in mods (see example_mod). Sources auto-discovered.
+# The mod loader DLL (cube_mod.dll): hooks the game, loads mods, serves the API. It also OWNS the
+# ImGui overlay (context + DX9/Win32 backends + lifecycle) on behalf of every mod - see src/overlay/
+# and the CubeOverlayApi. Mods compile ImGui core only and draw into the loader's shared context.
+# Sources auto-discovered.
 file(GLOB_RECURSE MOD_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 if(NOT MOD_SOURCES)
   message(FATAL_ERROR "no sources found under modloader/src/")
@@ -32,6 +34,12 @@ target_include_directories(cube_mod PRIVATE src "${CMAKE_CURRENT_SOURCE_DIR}/sdk
 # MinHook's public header as SYSTEM so "MinHook.h" resolves and its warnings stay
 # out of our build.
 target_include_directories(cube_mod SYSTEM PRIVATE "${MINHOOK_DIR}/include")
+
+# ImGui: the loader owns the context AND the DX9 + Win32 backends (BACKENDS). The same submodule the
+# SDK ships to mods (modloader/sdk/imgui), so both sides build layout-identical ImGui. Compiled
+# warning-silenced; links d3d9 (DX9 backend) + dwmapi/imm32 (Win32 backend).
+include("${CMAKE_CURRENT_SOURCE_DIR}/sdk/cube_imgui.cmake")
+cube_add_imgui(cube_mod BACKENDS)
 set_target_properties(cube_mod PROPERTIES PREFIX "" OUTPUT_NAME "cube_mod")
 # psapi: module enumeration. d3d9: hidden probe device to grab the EndScene vtable.
 # dinput8 + dxguid: hidden probe device to grab the IDirectInputDevice8 vtable (hooks::dinput

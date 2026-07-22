@@ -1,7 +1,7 @@
 #include "cube_mod.hpp"
 #include "example_lib_api.h"
 #include "mod_context.h"
-#include "overlay.h"
+#include "menu/menu.h"
 #include "features/cheats.h"
 #include "features/game_events.h"
 #include "features/game_hooks.h"
@@ -47,13 +47,14 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
         mod.log.info("example_mod: launch #%d - %s", launches,
                      mod.config().getString("greeting", "welcome back").c_str());
 
-    // The loader hands us the device/window through these events; the overlay owns all ImGui.
-    cube::EventListener& eventListener = mod.eventListener;
-    eventListener.onRaw(cube::Event::Frame, [](cube::EventArgs& a) { exmod::overlay::onFrame(&a); });
-    eventListener.onRaw(cube::Event::DeviceReset, [](cube::EventArgs& a) { exmod::overlay::onDeviceReset(&a); });
-    eventListener.onRaw(cube::Event::WndProc, [](cube::EventArgs& a) { exmod::overlay::onWndProc(&a); });
-    eventListener.onUnload([] { exmod::overlay::onShutdown(nullptr); });
+    // The whole menu: one call. The loader owns the D3D9 hook, the ImGui context + backends, the
+    // per-frame New/Render, the INSERT toggle, the DPI/scale, device-reset recreate and the game input
+    // freeze. We just hand it a draw callback and write ImGui inside it. onDraw (not window) because
+    // this menu draws its own sidebar + tab layout; a simple mod would use mod.menu().window(title, fn).
+    mod.menu().onDraw([] { exmod::menu::draw(); });
 
+    // Plain per-frame work (runs on the loader's FRAME event, independent of whether the menu is open).
+    cube::EventListener& eventListener = mod.eventListener;
     eventListener.onFrame([]
     {
         exmod::cheats().apply();

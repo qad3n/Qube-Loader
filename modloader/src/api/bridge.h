@@ -227,4 +227,5 @@ namespace modloader::api
     void fillServices(CubeApi& api);
     void fillLocale(CubeApi& api);
     void fillAssets(CubeApi& api);
+    void fillOverlay(CubeApi& api);
 }

@@ -1,6 +1,5 @@
 #include "menu/tab.h"
 #include "mod_context.h"
-#include "overlay.h"
 
 #include "cube_mod.hpp"
 #include "imgui.h"
@@ -22,7 +21,10 @@ namespace exmod::menu
 
     float Tab::sc(float px)
     {
-        return px * overlay::dpiScale() * overlay::uiScale();
+        // Effective scale (monitor DPI * user UI scale) now lives in the loader-owned overlay; read it
+        // through the mod's menu handle. The loader already scales ImGui's built-in style + font, so
+        // this is only for our explicit pixel widths (SetNextItemWidth etc).
+        return cube::mod().menu().scale(px);
     }
 
     const char* Tab::yesNo(bool value)

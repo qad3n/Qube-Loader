@@ -1,18 +1,20 @@
-# example_mod/include/ - this mod's headers and vendored libraries
+# example_mod/include/ - this mod's headers
 
-This directory holds the example mod's own headers (`overlay.h`, `menu.h`,
-`mod_context.h`) alongside the third-party libraries it links against, vendored
-as git submodules (integrated projects, not copied into this repo).
+This directory holds the example mod's own headers (`menu/`, `mod_context.h`,
+`features/`). It no longer vendors any third-party library.
 
-Submodules keep the upstream source out of our tree: the repo records only a
-pinned commit, and `git submodule update --init --recursive` (run automatically by
-`build.sh`) fetches the actual files.
+## ImGui comes from the SDK, not here
 
-## Vendored
+The mod draws its menu with Dear ImGui, but ImGui itself is shipped by the SDK
+(`modloader/sdk/imgui`, a git submodule pinned upstream), because the **loader
+owns the single ImGui context and the DX9 + Win32 backends** (see the loader's
+`src/overlay/` and `CubeOverlayApi`). A mod just registers a draw callback with
+`mod.menu()` and writes ImGui code inside it - no hooking, no context, no
+lifecycle.
 
-- `imgui/`: Dear ImGui (`github.com/ocornut/imgui`, pinned to `v1.92.8`), the
-  immediate-mode UI the mod draws its debug menu with. The loader has no ImGui;
-  each mod owns its own context, so there is no shared-context problem.
-  `example_mod/CMakeLists.txt` compiles only the core plus the DX9 and Win32
-  backends (`imgui_impl_dx9.cpp`, `imgui_impl_win32.cpp`); a full upstream checkout
-  also ships every other backend and the `examples/`, which we do not build.
+`example_mod/CMakeLists.txt` calls `cube_add_imgui(example_mod)` (from
+`modloader/sdk/cube_imgui.cmake`) to compile ImGui **core only** - the same
+submodule the loader builds, so the shared context is layout-compatible. Adding
+`imgui.h` to the include path is also what makes `cube_mod.hpp` auto-enable
+`mod.menu()`. Run `git submodule update --init --recursive` (done automatically by
+`build.sh`) to fetch the ImGui sources.

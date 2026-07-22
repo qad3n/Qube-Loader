@@ -22,6 +22,11 @@
 
 namespace cube
 {
+    // Opt-in ImGui overlay layer, defined in cube/menu.hpp and auto-included by the umbrella only when
+    // the mod builds with ImGui on its include path. Forward-declared here so Mod::menu() can return it
+    // without pulling imgui.h into every mod. mod.menu() is usable only in a TU that has cube/menu.hpp.
+    class Menu;
+
     class Mod
     {
     public:
@@ -45,6 +50,18 @@ namespace cube
         Audio audio() const { return Audio(m_api); }
         Session session() const { return Session(m_api); }
         Ui ui() const { return Ui(m_api); }
+
+        // The mod's default ImGui overlay menu (client only). Register a draw callback and write ImGui
+        // code inside it - the loader owns the context, the hook, the toggle key, and the input freeze.
+        // Only available in a TU that includes cube/menu.hpp (auto-included by cube_mod.hpp when the mod
+        // builds with ImGui). Returns the same process-lifetime instance every call. Defined in
+        // cube/menu.hpp.
+        Menu& menu();
+
+        // Create an ADDITIONAL independently-toggled menu for this mod (its own visibility, toggle key,
+        // draw callback). Returns a fresh process-lifetime Menu each call - a mod can drive as many menus
+        // as it likes, and each is auto-released on unload. Defined in cube/menu.hpp.
+        Menu& addMenu();
         Selection selection() const { return Selection(m_api); }
         // Per-mod persistence: config() is user-editable settings (<stem>.ini); storage() is mod-owned
         // binary save data. Both keyed by this mod's DLL stem (stable and available even in init,
