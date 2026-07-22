@@ -7,7 +7,6 @@ GAME_DIR="${GAME_DIR:-$(cd .. && pwd)/cube_game}"
 GAME_EXE="${GAME_EXE:-Cube.exe}"
 WINE="${WINE:-wine}"
 DLL_NAME="cube_mod.dll"
-LOG_FILE="$BUILD_DIR/cube_mod.log"
 RETRIES=30
 
 command -v "$WINE" >/dev/null || { echo "run: wine not found (set WINE)" >&2; exit 1; }
@@ -18,17 +17,9 @@ for f in "$GAME_DIR/$GAME_EXE" "$BUILD_DIR/$DLL_NAME" "$BUILD_DIR/inject.exe"; d
     [ -f "$f" ] || { echo "run: missing $f" >&2; exit 1; }
 done
 
-TAIL_PID=""
-cleanup()
-{
-    [ -n "$TAIL_PID" ] && kill "$TAIL_PID" 2>/dev/null || true
-    pkill -f "$GAME_EXE" 2>/dev/null || true
-}
-trap cleanup EXIT INT TERM HUP
-
-rm -f "$LOG_FILE"
 echo "run: launching $GAME_EXE"
-( cd "$GAME_DIR" && WINEDEBUG="${WINEDEBUG:--all}" "$WINE" "$GAME_EXE" ) &
+( cd "$GAME_DIR" && WINEDEBUG="${WINEDEBUG:--all}" setsid "$WINE" "$GAME_EXE" >/dev/null 2>&1 ) &
+disown
 
 for _ in $(seq "$RETRIES"); do
     pgrep -f "$GAME_EXE" >/dev/null && break
@@ -42,10 +33,3 @@ for _ in $(seq "$RETRIES"); do
     sleep 1
 done
 [ "$injected" = 1 ] || { echo "run: injection failed" >&2; exit 1; }
-
-tail -F "$LOG_FILE" &
-TAIL_PID=$!
-
-while pgrep -f "$GAME_EXE" >/dev/null; do
-    sleep 1
-done
