@@ -1,6 +1,6 @@
-# Cube World Alpha Mod Loader (CWAML)
+# Cube World Alpha Mod Loader (Qube-Loader)
 
-CWAML is a mod loader for the 2013 alpha build of Cube World. Inject the 32-bit DLL, drop
+Qube-Loader is a mod loader for the 2013 alpha build of Cube World. Inject the 32-bit DLL, drop
 your mods into a `mods/` folder, and each one gets a clean C/C++ API instead of raw memory.
 
 With that API a mod can:
@@ -114,7 +114,7 @@ Clone with submodules first. The loader vendors MinHook and the example mod vend
 git submodules, so a plain `git clone` leaves them empty and the build fails:
 
 ```
-git clone --recurse-submodules https://github.com/qad3n/CWAML
+git clone --recurse-submodules https://github.com/qad3n/Qube-Loader
 ```
 
 (`--recursive` is an older alias for the same thing.) Already cloned without them? Pull them in:
@@ -391,7 +391,7 @@ environment variables. See `cube_mod.ini.sample`.
 
 ## Related project: the reverse-engineering source
 
-CWAML is built in direct reference to a companion project I maintain:
+Qube-Loader is built in direct reference to a companion project I maintain:
 
   https://github.com/qad3n/CubeWorld-Reversal
 
@@ -403,7 +403,7 @@ place to check it, and corrections there flow back into the loader.
 
 ## License
 
-CWAML is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE)
+Qube-Loader is licensed under the GNU General Public License v3.0. See [LICENSE](LICENSE)
 for the full text.
 
 Third-party components keep their own licenses: MinHook (BSD-2-Clause) and Dear ImGui
