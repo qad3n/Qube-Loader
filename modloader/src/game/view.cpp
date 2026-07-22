@@ -36,7 +36,7 @@ namespace game
             std::memcpy(out.proj, reinterpret_cast<const void*>(projAddr), matrixBytes);
             out.hasMatrices = 1;
         }
-        // First-person is derived: the game has no mode bool, but zoom distance sits
+        // First person is derived: the game has no mode bool, but zoom distance sits
         // at 0 on the player's eye.
         out.firstPerson = (out.distance == 0.0f) ? 1 : 0;
         out.hasMode = 1;
@@ -79,7 +79,7 @@ namespace game
 
         out.structSize = sizeof(CubeAudio);
         // Config volumes are static globals (always present); the live streamer chain
-        // is best-effort, so hasMusicState gates that part.
+        // is best effort, so hasMusicState gates that part.
         mem::read(mem::rebase(off::kSettingMusicVolume), out.musicVolumeConfig);
         mem::read(mem::rebase(off::kSettingSoundVolume), out.soundVolumeConfig);
 

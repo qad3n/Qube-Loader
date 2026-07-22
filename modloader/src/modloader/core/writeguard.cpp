@@ -13,7 +13,7 @@ namespace modloader::writeguard
 {
     namespace
     {
-        constexpr uint32_t kWarnCooldownFrames = 300; // re-warn a given pair+address at most this often
+        constexpr uint32_t kWarnCooldownFrames = 300; // re warn a given pair+address at most this often
 
         thread_local const CubeApi* g_writer = nullptr;
 

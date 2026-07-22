@@ -1,5 +1,5 @@
 #pragma once
-// Selection accessor: the R/use-key selected target.
+// Selection accessor: the R/use key selected target.
 
 #include "cube/common.hpp"
 

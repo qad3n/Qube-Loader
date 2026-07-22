@@ -1,8 +1,8 @@
 #pragma once
 // The ImGui overlay layer of the SDK: cube::Menu + mod.menu(). This is the WHOLE surface a mod needs
-// to draw a menu - register a draw callback and write ImGui code inside it. Everything else (the D3D9
+// to draw a menu: register a draw callback and write ImGui code inside it. Everything else (the D3D9
 // hook, the ImGui context, the DX9/Win32 backends, NewFrame/Render, the toggle key, DPI + scaling,
-// device-reset recreate, the game input freeze, shutdown) lives in the loader (see CubeOverlayApi).
+// device reset recreate, the game input freeze, shutdown) lives in the loader (see CubeOverlayApi).
 //
 //   CUBE_MOD("My Mod", "1.0.0", "me")
 //   {
@@ -16,14 +16,14 @@
 //   }
 //
 // That is the entire mod. INSERT toggles the menu; the loader freezes the game while it is open. This
-// header is opt-in: it pulls in imgui.h, so cube_mod.hpp only auto-includes it when the mod builds
+// header is opt in: it pulls in imgui.h, so cube_mod.hpp only auto includes it when the mod builds
 // with ImGui on its include path (the SDK's cube_add_imgui CMake helper puts it there). A mod that
 // draws no menu never includes this and never sees ImGui.
 //
 // Because the loader owns the ONE context, this wrapper binds the mod's own ImGui to it once (via the
-// CubeOverlayApi context + allocator handoff) before the first draw - so ImGui:: calls in the mod land
+// CubeOverlayApi context + allocator handoff) before the first draw, so ImGui:: calls in the mod land
 // in the loader's live context and heap. The mod must build the SAME ImGui the loader ships (the
-// modloader/sdk/imgui submodule, via cube_add_imgui) so the shared context is layout-compatible.
+// modloader/sdk/imgui submodule, via cube_add_imgui) so the shared context is layout compatible.
 
 #include "cube/mod.hpp"
 
@@ -35,9 +35,9 @@
 
 namespace cube
 {
-    // A loader-drawn overlay menu owned by one mod. Register a draw callback with window()/onDraw();
+    // A loader drawn overlay menu owned by one mod. Register a draw callback with window()/onDraw();
     // the rest (toggle key, visibility, HUD passthrough, UI scale) is optional configuration. Every
-    // setter returns *this so calls chain. All state is auto-released when the mod unloads.
+    // setter returns *this so calls chain. All state is auto released when the mod unloads.
     class Menu
     {
     public:
@@ -49,7 +49,7 @@ namespace cube
         explicit Menu(Mod* mod)
             : m_api(mod ? mod->raw() : nullptr) {}
 
-        // Sugar: the loader wraps your widgets in ImGui::Begin(title)/End - you write ONLY the widgets
+        // Sugar: the loader wraps your widgets in ImGui::Begin(title)/End, you write ONLY the widgets
         // inside fn. The window is toggled by the toggle key (INSERT by default). Call again to replace fn.
         Menu& window(const char* title, std::function<void()> fn)
         {
@@ -95,7 +95,7 @@ namespace cube
         }
 
         // HUD passthrough: when true, an open menu does NOT freeze the game (movement/camera stay live,
-        // the game grabs the cursor so widgets are display-only). Default false (interactive: the menu
+        // the game grabs the cursor so widgets are display only). Default false (interactive: the menu
         // owns input while open).
         Menu& setPassthrough(bool passthrough)
         {
@@ -109,17 +109,17 @@ namespace cube
             return m_handle && m_api && m_api->overlay.passthrough(m_api, m_handle) != 0;
         }
 
-        // Shared user UI scale (loader-global, since there is one context). Clamped [0.5, 3.0] by the
+        // Shared user UI scale (loader global, since there is one context). Clamped [0.5, 3.0] by the
         // loader and applied on the next frame; multiplies on top of the monitor DPI.
         void setUiScale(float scale) const { if (m_api) m_api->overlay.setUiScale(m_api, scale); }
         float uiScale() const { return m_api ? m_api->overlay.uiScale(m_api) : 1.0f; }
         float dpiScale() const { return m_api ? m_api->overlay.dpiScale(m_api) : 1.0f; }
 
         // Effective scale for MANUAL pixel sizing (e.g. SetNextItemWidth): dpi * user scale. The loader
-        // already scales ImGui's built-in style + font, so use this only for explicit pixel dimensions.
+        // already scales ImGui's built in style + font, so use this only for explicit pixel dimensions.
         float scale(float px) const { return px * uiScale() * dpiScale(); }
 
-        // The loader-side registration handle (0 until the first window()/onDraw()). Rarely needed.
+        // The loader side registration handle (0 until the first window()/onDraw()). Rarely needed.
         unsigned handle() const { return m_handle; }
 
     private:
@@ -153,7 +153,7 @@ namespace cube
         }
 
         // Point this mod's ImGui globals (context + allocator) at the loader's, once. GImGui and the
-        // allocator are per-DLL globals, so a mod that compiled its own ImGui must adopt the loader's or
+        // allocator are per DLL globals, so a mod that compiled its own ImGui must adopt the loader's or
         // its ImGui:: calls would target an empty context / a different heap.
         void bindContextOnce()
         {
@@ -185,7 +185,7 @@ namespace cube
 
     namespace detail
     {
-        // Process-lifetime storage for every Menu a mod creates. A deque never relocates its elements on
+        // Process lifetime storage for every Menu a mod creates. A deque never relocates its elements on
         // growth, so the Menu& handed back stays valid forever (unlike a vector). One shared pool is fine:
         // the SDK is one Mod singleton per DLL, and menus live until the DLL unloads.
         inline std::deque<Menu>& menuPool()
@@ -195,7 +195,7 @@ namespace cube
         }
     }
 
-    // Each call creates a fresh, independently-toggled menu bound to this mod.
+    // Each call creates a fresh, independently toggled menu bound to this mod.
     inline Menu& Mod::addMenu()
     {
         detail::menuPool().emplace_back(this);

@@ -1,5 +1,5 @@
 #pragma once
-// Showcases the per-mod localization API (ABI 23): translate keys against
+// Showcases the per mod localization API (ABI 23): translate keys against
 // lang/example_mod/<locale>.ini, switch the active locale live, and fall back to the key when a
 // translation is missing. The menu (Mod tab) views the translations and drives the locale switch.
 #include "cube_mod.hpp"

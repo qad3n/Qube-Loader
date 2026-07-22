@@ -18,15 +18,15 @@ namespace game::gamehooks
         constexpr char kCategory[] = "gamehooks";
 
         // Each detour bumps its slot for the whole body; disarmBuiltin drains it after flipping the
-        // active gate to pass-through, so the trampoline is never freed mid-call. Indexed by CubeHook.
+        // active gate to pass through, so the trampoline is never freed mid call. Indexed by CubeHook.
         std::atomic<int> g_inFlight[CUBE_HOOK_COUNT];
 
         // Whether each detour's trampoline is physically installed (MinHook). Kept separate from the
-        // dispatch gate (Def::active): a detour can be installed yet pass-through (a reservation with
+        // dispatch gate (Def::active): a detour can be installed yet pass through (a reservation with
         // no subscriber), so "installed" tracks the hook and "active" tracks whether handlers run.
         std::atomic<bool> g_installed[CUBE_HOOK_COUNT];
 
-        // Function-local (Meyers) so registration from any TU's static init is order-safe.
+        // Function local (Meyers) so registration from any TU's static init is order safe.
         std::vector<builtin::Def>& defs()
         {
             static std::vector<builtin::Def> g_defs;
@@ -81,8 +81,8 @@ namespace game::gamehooks
         if (g_installed[hook].load())
             return true;
 
-        // Refuse to patch a target whose bytes do not match the RE-target build: on a different
-        // Cube.exe the pinned address is mid-function and hooking it would corrupt the game.
+        // Refuse to patch a target whose bytes do not match the RE target build: on a different
+        // Cube.exe the pinned address is mid function and hooking it would corrupt the game.
         if (!signature::verifyTarget(def->target))
         {
             LOGC(Warn, kCategory, "built-in hook %s NOT armed: build signature mismatch at static 0x%X (wrong Cube.exe)",
@@ -99,7 +99,7 @@ namespace game::gamehooks
             return false;
         }
 
-        // Installed but NOT active: the detour runs the original untouched (pass-through) until a real
+        // Installed but NOT active: the detour runs the original untouched (pass through) until a real
         // subscriber flips the dispatch gate. This keeps an observation reservation vanilla.
         g_installed[hook].store(true, std::memory_order_release);
         LOGC(Debug, kCategory, "armed built-in hook %s at 0x%X (static 0x%X, trampoline 0x%X)", hookName(hook), fmt::ptr(target), fmt::ptr(reinterpret_cast<void*>(def->target)), fmt::ptr(*def->original));
@@ -119,9 +119,9 @@ namespace game::gamehooks
         if (!def || !g_installed[hook].load())
             return;
 
-        def->active->store(false, std::memory_order_release); // stop dispatching (pass-through) first
+        def->active->store(false, std::memory_order_release); // stop dispatching (pass through) first
         g_installed[hook].store(false, std::memory_order_release);
-        barrier::drain(g_inFlight[def->hook], hookName(hook)); // wait out any in-flight call
+        barrier::drain(g_inFlight[def->hook], hookName(hook)); // wait out any in flight call
         hooks::detour::remove(rebasePtr(def->target));
 
         *def->original = nullptr;

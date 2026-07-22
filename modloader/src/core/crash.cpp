@@ -40,7 +40,7 @@ namespace crash
         LPTOP_LEVEL_EXCEPTION_FILTER g_prev = nullptr;
         std::atomic<bool> g_inFilter{false};
 
-        // IAT guard so the game (or CRT) cannot displace our top-level filter after we install it.
+        // IAT guard so the game (or CRT) cannot displace our top level filter after we install it.
         void** g_uefSlot = nullptr;
         PfnSetUef g_uefOrig = nullptr;
 
@@ -196,7 +196,7 @@ namespace crash
         }
 
         // Intercepts the game's/CRT's own SetUnhandledExceptionFilter so it never displaces ours. We
-        // keep our filter as the OS top-level handler and record the caller's filter as our chain
+        // keep our filter as the OS top level handler and record the caller's filter as our chain
         // target (our filter calls g_prev after logging). Returns the prior chained filter, matching
         // the API contract the caller expects. This is why a real crash now always reaches our dump.
         LPTOP_LEVEL_EXCEPTION_FILTER WINAPI hkSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER next)

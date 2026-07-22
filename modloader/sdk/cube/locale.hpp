@@ -1,7 +1,7 @@
 #pragma once
-// Locale: the mod-facing localization facade. Translates keys against this mod's own
+// Locale: the mod facing localization facade. Translates keys against this mod's own
 // <dllDir>/lang/<stem>/<locale>.ini files (the loader keys them by the mod's DLL stem); every call is
-// a guarded one-liner returning the fallback if the loader is unavailable. Get with mod.locale().
+// a guarded one liner returning the fallback if the loader is unavailable. Get with mod.locale().
 
 #include "cube/common.hpp"
 

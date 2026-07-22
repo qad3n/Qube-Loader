@@ -8,7 +8,7 @@
 #include <atomic>
 #include <cstdint>
 
-// Hand-written detour behind CUBE_HOOK_IMPACT; __thiscall == __fastcall with a dummy edx on mingw.
+// Hand written detour behind CUBE_HOOK_IMPACT; __thiscall == __fastcall with a dummy edx on mingw.
 namespace game::gamehooks
 {
     namespace
@@ -49,17 +49,17 @@ namespace game::gamehooks
                 // cancel negates the hit entirely (no HP loss, stun, or knockback).
                 if (!cancel && g_impactOrig)
                 {
-                    // Re-invoke with every marshalled field so a handler can retarget/rescale, not just argi[0].
+                    // Re invoke with every marshalled field so a handler can retarget/rescale, not just argi[0].
                     g_impactOrig(reinterpret_cast<void*>(static_cast<uintptr_t>(call.self)), edx, reinterpret_cast<void*>(static_cast<uintptr_t>(call.target)), reinterpret_cast<void*>(static_cast<uintptr_t>(call.argi[1])), call.argi[0], static_cast<uint32_t>(call.argi[2]));
                     ranOriginal = true;
                 }
             }
 
-            // vfunc_0 is the per-tick behavior update that sets the action byte; sample the local player's
-            // action right after it ran so a sub-frame attack/shot/ability pulse is caught on the game
+            // vfunc_0 is the per tick behavior update that sets the action byte; sample the local player's
+            // action right after it ran so a sub frame attack/shot/ability pulse is caught on the game
             // thread (the render poll misses it). The ticked creature is the first arg (victim); we also
-            // pass self in case the convention differs - onBehaviorTick ignores anything that is not the
-            // cached local player, so the wrong one is a cheap no-op.
+            // pass self in case the convention differs, onBehaviorTick ignores anything that is not the
+            // cached local player, so the wrong one is a cheap no op.
             if (ranOriginal)
             {
                 guard::tryRunLoader("attackwatch", [&]()

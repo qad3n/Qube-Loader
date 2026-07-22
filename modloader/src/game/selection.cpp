@@ -36,7 +36,7 @@ namespace game::selection
         }
 
         // Reads the committed target (set by updateSelectedEntity). Always publishes (a world
-        // selection has target 0). All reads are VirtualQuery-guarded.
+        // selection has target 0). All reads are VirtualQuery guarded.
         bool capture(uintptr_t gc, Record& rec)
         {
             uint32_t target = 0;

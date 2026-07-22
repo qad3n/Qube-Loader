@@ -1,7 +1,7 @@
 #pragma once
-// Assets: the mod-facing asset-override facade. Registers this mod's bytes for a game asset addressed by
-// its original filename key (e.g. "aim.png", "alga.cub"); the loader owns the storage-format encoding
-// and the game-thread detour that serves the override. Requires the Assets capability and a compatible
+// Assets: the mod facing asset override facade. Registers this mod's bytes for a game asset addressed by
+// its original filename key (e.g. "aim.png", "alga.cub"); the loader owns the storage format encoding
+// and the game thread detour that serves the override. Requires the Assets capability and a compatible
 // game build. Get with mod.assets().
 
 #include "cube/common.hpp"

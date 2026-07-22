@@ -48,7 +48,7 @@ namespace modloader::modlocale
             return mod;
         }
 
-        // The mod's cached file for its active locale, loaded on first touch. Empty g_dir -> empty map.
+        // The mod's cached file for its active locale, loaded on first touch. Empty g_dir gives empty map.
         LocaleFile& fileOf(ModLang& mod, const std::string& modStem)
         {
             const std::string safeStem = paths::sanitizeComponent(modStem);

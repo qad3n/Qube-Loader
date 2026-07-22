@@ -83,8 +83,8 @@ namespace game::diag
             LOGC(Debug, kCategory, "  state: movement=%s action=%s facing=%.2f speed=%.1f sneaking=%d", movementName(p.movement), actionName(p.action), p.facing, p.speed, p.sneaking);
             LOGC(Debug, kCategory, "  pos: %.1f, %.1f, %.1f  vel: %.2f, %.2f, %.2f", p.x, p.y, p.z, p.velX, p.velY, p.velZ);
 
-            // Spawn-field disambiguation: the candidate whose coord>>6 == region and coord ==
-            // zone is the bound-home field.
+            // Spawn field disambiguation: the candidate whose coord>>6 == region and coord ==
+            // zone is the bound home field.
             if (p.address)
             {
                 int32_t aX = 0;
@@ -285,13 +285,13 @@ namespace game::diag
 
         constexpr char kItemCategory[] = "itemscan";
         constexpr int32_t kMaxItemDefects = 16; // reported per scan
-        constexpr int32_t kMaxWarnedDefects = 64; // distinct signatures remembered (anti-spam)
-        constexpr int32_t kItemScanIntervalFrames = 180; // rescan cadence while in-world
+        constexpr int32_t kMaxWarnedDefects = 64; // distinct signatures remembered (anti spam)
+        constexpr int32_t kItemScanIntervalFrames = 180; // rescan cadence while in world
         constexpr uint32_t kDefectTypeShift = 8;
         constexpr uint32_t kDefectSubtypeShift = 16;
 
-        // Defect identity for de-dup: address + type/subtype, so a slot mutating to a new
-        // bad value re-warns.
+        // Defect identity for de dup: address + type/subtype, so a slot mutating to a new
+        // bad value re warns.
         uint32_t defectSignature(const ItemDefect& defect)
         {
             return defect.address ^ (static_cast<uint32_t>(defect.type) << kDefectTypeShift) ^
@@ -356,7 +356,7 @@ namespace game::diag
             if (g_inWorld)
             {
                 g_inWorld = false;
-                g_warnedCount = 0; // forget warnings so re-entering the world re-checks
+                g_warnedCount = 0; // forget warnings so reentering the world rechecks
                 g_pendingCount = 0;
             }
             return;
@@ -364,7 +364,7 @@ namespace game::diag
         if (!g_inWorld)
         {
             g_inWorld = true;
-            g_countdown = 0; // scan immediately on entering the world (catch pre-existing corruption)
+            g_countdown = 0; // scan immediately on entering the world (catch pre existing corruption)
         }
         if (g_countdown > 0)
         {

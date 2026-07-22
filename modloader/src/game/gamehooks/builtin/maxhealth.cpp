@@ -7,12 +7,12 @@
 #include <atomic>
 #include <cstdint>
 
-// Hand-written detour behind CUBE_HOOK_MAX_HEALTH; __thiscall == __fastcall with a dummy edx on mingw.
+// Hand written detour behind CUBE_HOOK_MAX_HEALTH; __thiscall == __fastcall with a dummy edx on mingw.
 namespace game::gamehooks
 {
     namespace
     {
-        // compute-max-health, returns float in ST0.
+        // compute max health, returns float in ST0.
         typedef float(__fastcall* MaxHealthFn)(void* self, void* edx);
         MaxHealthFn g_maxHealthOrig = nullptr;
         std::atomic<bool> g_maxHealthActive{false};

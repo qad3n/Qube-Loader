@@ -10,9 +10,9 @@
 namespace modloader::api
 {
 
-    constexpr char kApiCategory[] = "api"; // every mod->loader call is logged here
+    constexpr char kApiCategory[] = "api"; // every mod to loader call is logged here
 
-    // Recovers the calling mod's name from its CubeApi (for the per-call log line).
+    // Recovers the calling mod's name from its CubeApi (for the per call log line).
     inline const char* modName(const CubeApi* api)
     {
         return modloader::ownerName(api);
@@ -42,8 +42,8 @@ namespace modloader::api
     }
 
     // "reader get" reducer; `absent` is the log word on read failure ("unavailable"/"none").
-    // `addr` (optional) names the struct's live-base field so a successful read logs the resolved
-    // memory address alongside "ok" - the single most useful datum for a mod dev inspecting a read.
+    // `addr` (optional) names the struct's live base field so a successful read logs the resolved
+    // memory address alongside "ok", the single most useful datum for a mod dev inspecting a read.
     template <typename T>
     int32_t bridgeGet(const CubeApi* api, T* out, bool (*read)(T&), const char* label, const char* absent, uint32_t T::* addr = nullptr)
     {
@@ -62,7 +62,7 @@ namespace modloader::api
         return 1;
     }
 
-    // "list" reducer: log the "(max %d) -> %d" line and return the count.
+    // "list" reducer: log the max and actual count, then return the count.
     inline int32_t bridgeList(const CubeApi* api, const char* label, int32_t maxCount, int32_t count)
     {
         LOGC(Trace, kApiCategory, "'%s' %s(max %d) -> %d", modName(api), label, maxCount, count);
@@ -111,10 +111,10 @@ namespace modloader::api
         }
     }
 
-    // Call-time capability gate. A mod that declares no capabilities (0) is unrestricted (the trusted
+    // Call time capability gate. A mod that declares no capabilities (0) is unrestricted (the trusted
     // default); otherwise a call whose `required` bit is absent is denied (returns false, caller
     // returns its failure value). Denials log one WARN per (mod, capability) via ModContext.warnedCaps
-    // so a per-frame denied call cannot flood the log.
+    // so a per frame denied call cannot flood the log.
     inline bool capabilityGate(const CubeApi* api, uint32_t required, const char* label)
     {
         const uint32_t caps = ownerCapabilities(api);
@@ -126,7 +126,7 @@ namespace modloader::api
         return false;
     }
 
-    // Setter reducers, one per argument-shape so the log format matches. Every game-state write is
+    // Setter reducers, one per argument shape so the log format matches. Every game state write is
     // gated on the Writes capability here, so a mod that declares capabilities but not Writes is denied.
     inline int32_t bridgeSetAddrField(const CubeApi* api, const char* label,
                                       bool (*set)(uint32_t, int32_t, double),

@@ -1,5 +1,5 @@
 #pragma once
-// Client-only reads: 3rd-person camera scalars and the render target size.
+// Client only reads: third person camera scalars and the render target size.
 
 #include "cube_sdk.h"
 
@@ -7,7 +7,7 @@ namespace game
 {
     bool readCamera(CubeCamera& out);
     bool readDisplay(CubeDisplay& out);
-    // Live audio state (config volumes + music-streamer playing/looping/volume, guarded).
+    // Live audio state (config volumes + music streamer playing/looping/volume, guarded).
     bool readAudio(CubeAudio& out);
     // Writes a CubeCameraField (distance/pitch/yaw) on the GameController camera.
     bool setCameraField(int32_t fieldId, double value);

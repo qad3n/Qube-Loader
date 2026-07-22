@@ -1,6 +1,6 @@
 #pragma once
 // The Mod object (accessor factory + event/hook storage), the detail trampolines, and the
-// CUBE_MOD entry-point macro. Depends on every accessor header.
+// CUBE_MOD entry point macro. Depends on every accessor header.
 
 #include "cube/common.hpp"
 #include "cube/hero.hpp"
@@ -22,8 +22,8 @@
 
 namespace cube
 {
-    // Opt-in ImGui overlay layer, defined in cube/menu.hpp and auto-included by the umbrella only when
-    // the mod builds with ImGui on its include path. Forward-declared here so Mod::menu() can return it
+    // Opt in ImGui overlay layer, defined in cube/menu.hpp and auto included by the umbrella only when
+    // the mod builds with ImGui on its include path. Forward declared here so Mod::menu() can return it
     // without pulling imgui.h into every mod. mod.menu() is usable only in a TU that has cube/menu.hpp.
     class Menu;
 
@@ -33,13 +33,13 @@ namespace cube
         Logger log;
 
         // eventListener OBSERVES (runs after a detected change); eventHook INTERCEPTS (runs on the game
-        // thread, can cancel/mutate/override). Both auto-clean on unload.
+        // thread, can cancel/mutate/override). Both auto clean on unload.
         EventListener eventListener;
         EventHook eventHook;
 
         Mod() : eventListener(this), eventHook(this) {}
 
-        // High-level game objects - the whole surface a mod needs.
+        // High level game objects, the whole surface a mod needs.
         Hero hero() const { return Hero(m_api); }
         Player player() const { return Hero(m_api); }
         Combat combat() const { return Combat(m_api); }
@@ -52,31 +52,31 @@ namespace cube
         Ui ui() const { return Ui(m_api); }
 
         // The mod's default ImGui overlay menu (client only). Register a draw callback and write ImGui
-        // code inside it - the loader owns the context, the hook, the toggle key, and the input freeze.
-        // Only available in a TU that includes cube/menu.hpp (auto-included by cube_mod.hpp when the mod
-        // builds with ImGui). Returns the same process-lifetime instance every call. Defined in
+        // code inside it. The loader owns the context, the hook, the toggle key, and the input freeze.
+        // Only available in a TU that includes cube/menu.hpp (auto included by cube_mod.hpp when the mod
+        // builds with ImGui). Returns the same process lifetime instance every call. Defined in
         // cube/menu.hpp.
         Menu& menu();
 
-        // Create an ADDITIONAL independently-toggled menu for this mod (its own visibility, toggle key,
-        // draw callback). Returns a fresh process-lifetime Menu each call - a mod can drive as many menus
-        // as it likes, and each is auto-released on unload. Defined in cube/menu.hpp.
+        // Create an ADDITIONAL independently toggled menu for this mod (its own visibility, toggle key,
+        // draw callback). Returns a fresh process lifetime Menu each call, so a mod can drive as many menus
+        // as it likes, and each is auto released on unload. Defined in cube/menu.hpp.
         Menu& addMenu();
         Selection selection() const { return Selection(m_api); }
-        // Per-mod persistence: config() is user-editable settings (<stem>.ini); storage() is mod-owned
+        // Per mod persistence: config() is user editable settings (<stem>.ini); storage() is mod owned
         // binary save data. Both keyed by this mod's DLL stem (stable and available even in init,
         // unlike the manifest id), so a mod's own files stay put regardless of the id it declares.
         Config config() const { return Config(m_api); }
         Storage storage() const { return Storage(m_api); }
-        // Per-mod localization: translate keys against this mod's <dllDir>/lang/<stem>/<locale>.ini.
+        // Per mod localization: translate keys against this mod's <dllDir>/lang/<stem>/<locale>.ini.
         Locale locale() const { return Locale(m_api); }
-        // Inter-mod ecosystem: publish/resolve a named shared service and message another mod by its id.
+        // Inter mod ecosystem: publish/resolve a named shared service and message another mod by its id.
         // Resolve peers at eventListener().onReady() (every mod has loaded by then).
         Services services() const { return Services(m_api, const_cast<Mod*>(this)); }
         // Asset overrides: replace a game asset (texture/model/...) by its filename key. Requires the
         // Assets capability and a compatible game build.
         Assets assets() const { return Assets(m_api); }
-        // The most recently picked-up item (E key). present()==false until the first pickup.
+        // The most recently picked up item (E key). present()==false until the first pickup.
         // Item.getStack() is the count picked up; the item base address is 0 (transient staging copy).
         Item lastPickup() const
         {
@@ -149,12 +149,12 @@ namespace cube
         const CubeApi* raw() const { return m_api; }
 
         // Declare this mod's dispatch priority. Higher priority runs LAST in every event/hook reduce,
-        // so it gets the final say on last-writer-wins returns; ties keep load order. Call this in the
+        // so it gets the final say on last writer wins returns; ties keep load order. Call this in the
         // mod body (it is read once at load). Changing it at runtime has no effect on dispatch order.
         void setPriority(int priority) { m_priority = priority; }
         int priority() const { return m_priority; }
 
-        // Declare a stable machine id (unique across mods) - the key for this mod's config, storage,
+        // Declare a stable machine id (unique across mods). The key for this mod's config, storage,
         // services, and dependency references. Defaults to the DLL filename stem if left unset.
         void setId(const char* id) { m_id = id; }
         const char* id() const { return m_id; }
@@ -185,7 +185,7 @@ namespace cube
             log = Logger(api);
         }
 
-        // Internal: the null-terminated dep array handed to the loader via CubeModInfo (read once at boot).
+        // Internal: the null terminated dep array handed to the loader via CubeModInfo (read once at boot).
         const CubeModDep* depsData()
         {
             if (m_deps.empty())
@@ -213,13 +213,13 @@ namespace cube
             if (index < 0 || index >= CUBE_EVENT_COUNT)
                 return;
             // Snapshot the handler list before calling: a handler may add or remove handlers for
-            // this same event (a common one-shot pattern), which would invalidate a live iteration.
+            // this same event (a common one shot pattern), which would invalidate a live iteration.
             const std::vector<std::function<void(EventArgs*)>> handlers = m_handlers[index];
             for (const std::function<void(EventArgs*)>& fn : handlers)
                 fn(args);
         }
 
-        // Event-listener primitive: store a handler and (once per event) subscribe the trampoline,
+        // Event listener primitive: store a handler and (once per event) subscribe the trampoline,
         // remembering the token so the whole event can be unsubscribed later.
         void addEventHandler(Event event, std::function<void(EventArgs*)> fn)
         {
@@ -239,7 +239,7 @@ namespace cube
         }
 
         // Drop all of this mod's handlers for an event and unsubscribe the trampoline. Returns true
-        // if the event was subscribed. Re-adding a handler later re-subscribes cleanly.
+        // if the event was subscribed. Adding a handler again later resubscribes cleanly.
         bool removeEventHandlers(Event event)
         {
             const int index = static_cast<int>(event);
@@ -254,7 +254,7 @@ namespace cube
             return had;
         }
 
-        // Event-hook primitives: mirror the listener but through the api->hooks sub-api.
+        // Event hook primitives: mirror the listener but through the hooks sub api.
         void addHookHandler(Hook hook, std::function<void(HookCall&)> fn)
         {
             const int index = static_cast<int>(hook);
@@ -275,7 +275,7 @@ namespace cube
             std::vector<std::function<void(HookCall&)>>& handlers = m_rawHandlers[address];
             if (handlers.empty())
             {
-                // First handler for this address: install the loader-side raw hook FIRST, keeping
+                // First handler for this address: install the loader side raw hook FIRST, keeping
                 // the map entry only if it succeeded (else a failed install leaves a stale handler).
                 if (m_api->hooks.onRaw(m_api, address, static_cast<CubeCallConv>(cc), argCount,
                                        &hookTrampoline, nullptr) == 0)
@@ -318,7 +318,7 @@ namespace cube
         void dispatchHook(CubeHookCall* raw)
         {
             HookCall call(raw, m_api);
-            // Snapshot before calling (see dispatch): a handler may (un)subscribe mid-dispatch.
+            // Snapshot before calling (see dispatch): a handler may (un)subscribe mid dispatch.
             if (raw->hook == CUBE_HOOK_RAW)
             {
                 if (m_rawHandlers.count(raw->address) == 0)
@@ -336,8 +336,8 @@ namespace cube
                 fn(call);
         }
 
-        // Inter-mod message receiver: store a handler and (once) subscribe the loader-side trampoline,
-        // fanning every directed message out to all handlers - the messaging analogue of addEventHandler.
+        // Inter mod message receiver: store a handler and (once) subscribe the loader side trampoline,
+        // fanning every directed message out to all handlers, the messaging analogue of addEventHandler.
         void addMessageHandler(std::function<void(Message&)> fn)
         {
             m_messageHandlers.push_back(std::move(fn));
@@ -355,7 +355,7 @@ namespace cube
         void dispatchMessage(CubeMessageArgs* raw)
         {
             Message msg(raw);
-            // Snapshot before calling (see dispatch): a handler may (un)register handlers mid-dispatch.
+            // Snapshot before calling (see dispatch): a handler may (un)register handlers mid dispatch.
             const std::vector<std::function<void(Message&)>> handlers = m_messageHandlers;
             for (const std::function<void(Message&)>& fn : handlers)
                 fn(msg);
@@ -383,7 +383,7 @@ namespace cube
         uint32_t m_messageToken = 0;
     };
 
-    // Out-of-line EventListener / EventHook method definitions (Mod is now a complete type).
+    // Out of line EventListener / EventHook method definitions (Mod is now a complete type).
     inline void EventListener::on(Event event, std::function<void()> fn)
     {
         m_mod->addEventHandler(event, [fn = std::move(fn)](EventArgs*) { fn(); });
@@ -474,7 +474,7 @@ namespace cube
         inline CubeModInfo* boot(const CubeApi* api, const char* name, const char* version,
                                  const char* author, void (*entry)(Mod&))
         {
-            // Reject a loader OLDER than what this mod was built against: it would be missing sub-apis
+            // Reject a loader OLDER than what this mod was built against: it would be missing sub apis
             // or struct fields the mod expects. A newer loader is fine because ABI growth is additive
             // (appended members keep existing offsets), so the loader still serves this mod's prefix.
             if (!api)
@@ -495,7 +495,7 @@ namespace cube
             entry(mod());
             info().priority = mod().priority();
             // Manifest fields resolved from what the mod declared in its body. requiredAbi is stamped
-            // automatically to the ABI this mod compiled against, so the loader can range-check it.
+            // automatically to the ABI this mod compiled against, so the loader can range check it.
             info().requiredAbi = CUBE_ABI_VERSION;
             info().id = mod().id();
             info().capabilities = mod().capabilities();

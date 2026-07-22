@@ -1,7 +1,7 @@
 #pragma once
-// Storage: the mod-facing save-data facade. Reads/writes this mod's own binary blobs under
-// <dllDir>/data/<stem>/ (the loader keys it by the mod's DLL stem). Distinct from Config (user-editable
-// text settings); this is mod-owned, binary-safe state - counters, discovered progress. Get with
+// Storage: the mod facing save data facade. Reads/writes this mod's own binary blobs under
+// <dllDir>/data/<stem>/ (the loader keys it by the mod's DLL stem). Distinct from Config (user editable
+// text settings); this is mod owned, binary safe state like counters and discovered progress. Get with
 // mod.storage(); an optional setScope() namespaces blobs per world/character.
 
 #include "cube/common.hpp"
@@ -59,7 +59,7 @@ namespace cube
             return m_api && m_api->storage.put(m_api, key, data, size) != 0;
         }
 
-        // Persist/read a trivially-copyable value (a counter, a small POD). getValue returns fallback
+        // Persist/read a trivially copyable value (a counter, a small POD). getValue returns fallback
         // unless a blob of exactly sizeof(T) exists.
         template <typename T>
         bool putValue(const char* key, const T& value) const

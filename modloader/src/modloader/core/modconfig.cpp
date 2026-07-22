@@ -28,7 +28,7 @@ namespace modloader::modconfig
             return paths::join(g_dir, (safeStem + kFileSuffix).c_str());
         }
 
-        // The mod's cached file, loaded from disk on first touch. Empty g_dir (init not run) -> empty.
+        // The mod's cached file, loaded from disk on first touch. Empty g_dir (init not run) gives empty.
         File& fileOf(const std::string& modStem)
         {
             const std::string safeStem = paths::sanitizeComponent(modStem);
@@ -42,7 +42,7 @@ namespace modloader::modconfig
             return file;
         }
 
-        // Look up a key (case-insensitive, matching ini::read's lowered keys); returns null if absent.
+        // Look up a key (case insensitive, matching ini::read's lowered keys); returns null if absent.
         const std::string* find(const std::string& modStem, const std::string& key)
         {
             const File& file = fileOf(modStem);

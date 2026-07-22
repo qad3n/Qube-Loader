@@ -24,7 +24,7 @@ namespace game
             return out;
         }
 
-        // MSVC _Tree in-order successor. Leaf child pointers point at _Myhead (head),
+        // MSVC _Tree in order successor. Leaf child pointers point at _Myhead (head),
         // which serves as the nil sentinel; head is returned to signal "end".
         uint32_t successor(uint32_t node, uint32_t head)
         {
@@ -68,7 +68,7 @@ namespace game
                 return;
 
             uint32_t node = 0;
-            if (!mem::read(head + off::kRbLeft, node)) // begin() = _Myhead->_Left (leftmost)
+            if (!mem::read(head + off::kRbLeft, node)) // begin() is the leftmost node (head _Left)
                 return;
 
             uint32_t steps = 0;
@@ -96,7 +96,7 @@ namespace game
             return false;
         }
 
-        // Passive-critter faction test: a kind==1 creature in the peaceful species set
+        // Passive critter faction test: a kind==1 creature in the peaceful species set
         // (and whose state word lacks the disqualifying bits) is wildlife, not a monster.
         bool isPassiveCritter(uintptr_t creature, int32_t species)
         {
@@ -112,7 +112,7 @@ namespace game
             return false;
         }
 
-        // Kind 1 splits by the passive-critter test (monster -> HOSTILE, animal -> NEUTRAL).
+        // Kind 1 splits by the passive critter test (monster is HOSTILE, animal is NEUTRAL).
         // Kind 3 is unlabeled in the binary, so it stays UNKNOWN (never guessed).
         CubeRelation resolveRelation(uintptr_t creature, int32_t kind, int32_t species)
         {
@@ -172,7 +172,7 @@ namespace game
 
             if (mem::read(creature + off::kPlayerActionOff, action))
                 out.knockedDown = (action == off::kActionKnockdown) ? 1 : 0;
-            // ownerAddress left 0: no confirmed pet->owner back-pointer. Own-pet is
+            // ownerAddress left 0: no confirmed pet to owner back pointer. Own pet is
             // identified by matching the player's pet id against the map key.
         }
 
@@ -195,7 +195,7 @@ namespace game
         if (!out || maxCount <= 0)
             return 0;
 
-        // Served from the intra-frame cache on a hit (nearest-first prefix); miss -> live walk.
+        // Served from the intra frame cache on a hit (nearest first prefix); a miss does a live walk.
         const int32_t cached = framecache::getEntities(out, maxCount);
         if (cached >= 0)
             return cached;
@@ -216,18 +216,18 @@ namespace game
             ++count;
         });
 
-        // Nearest-first (index 0 = closest). The map is walked in id order, so a world with
-        // >maxCount creatures keeps the first maxCount by id then sorts (not a true nearest-N cap).
+        // Nearest first (index 0 = closest). The map is walked in id order, so a world with
+        // >maxCount creatures keeps the first maxCount by id then sorts (not a true nearest N cap).
         std::sort(out, out + count, closerToPlayer);
-        // Cache only a full-buffer request, so a later larger request isn't served a truncated set.
+        // Cache only a full buffer request, so a later larger request isn't served a truncated set.
         if (maxCount >= CUBE_ENTITIES_MAX)
             framecache::putEntities(out, count);
         return count;
     }
 
-    // Mirrors the game's tameable predicate (FUN_00444680): the creature must be a passive-critter
+    // Mirrors the game's tameable predicate (FUN_00444680): the creature must be a passive critter
     // species AND its state word must lack the disqualifying faction bits. Taming feeds it a Food
-    // item (kItemTypeFood) via the R-interact.
+    // item (kItemTypeFood) via the R interact.
     bool isCreatureTameable(uint32_t address)
     {
         uintptr_t obj = 0;

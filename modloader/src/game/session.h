@@ -1,5 +1,5 @@
 #pragma once
-// Session/network state and HUD menu-open state for the mod API.
+// Session/network state and HUD menu open state for the mod API.
 
 #include "cube_sdk.h"
 

@@ -10,7 +10,7 @@
 
 // Dependency resolution: after scan() and before CUBE_EVENT_READY, unload any mod whose hard
 // dependency is missing or below its declared minVersion (cascading to that mod's dependents), warn
-// on missing soft deps, then topological-rank the surviving mods so a dependency dispatches before its
+// on missing soft deps, then topological rank the surviving mods so a dependency dispatches before its
 // dependents at equal priority (context.dispatchOrder).
 namespace modloader
 {
@@ -170,7 +170,7 @@ namespace modloader
                 inDegree[mod.get()] = prereqs;
             }
 
-            // Seed with zero-prerequisite mods in load order, so ties keep load order.
+            // Seed with zero prerequisite mods in load order, so ties keep load order.
             std::vector<LoadedMod*> queue;
             for (const std::unique_ptr<LoadedMod>& mod : mods)
             {

@@ -21,8 +21,8 @@
 #include "cube/events.hpp"
 #include "cube/mod.hpp"
 
-// Opt-in ImGui overlay layer (cube::Menu + mod.menu()). Auto-included ONLY when the mod builds with
-// ImGui on its include path - which a menu mod gets from the SDK's cube_add_imgui CMake helper. This
+// Opt in ImGui overlay layer (cube::Menu + mod.menu()). Auto included ONLY when the mod builds with
+// ImGui on its include path, which a menu mod gets from the SDK's cube_add_imgui CMake helper. This
 // keeps imgui.h out of mods that draw nothing, while a menu mod just includes cube_mod.hpp and calls
 // mod.menu(). A mod can also include "cube/menu.hpp" explicitly.
 #if defined(__has_include) && __has_include("imgui.h")

@@ -30,7 +30,7 @@ namespace modloader::overlay
         constexpr double kMsPerSecond = 1000.0;
         constexpr double kMenuTargetFps = 60.0;
         constexpr double kMenuIntervalMs = kMsPerSecond / kMenuTargetFps;
-        constexpr DWORD kDrainMs = 32; // let an in-flight frame finish before an owner's code is freed
+        constexpr DWORD kDrainMs = 32; // let an in flight frame finish before an owner's code is freed
         constexpr int kMaxMenuFaults = 8; // disable a menu that keeps throwing, so it can't burn CPU/log
 
         // One registered menu. Owned by `owner` (a mod's CubeApi*) for fault attribution + unload scoping.
@@ -60,12 +60,12 @@ namespace modloader::overlay
         LARGE_INTEGER g_lastBuild = {};
 
         ImGuiStyle g_baseStyle; // style snapshot at scale 1.0
-        HWND g_hwnd = nullptr; // cached for DPI re-query on device reset
+        HWND g_hwnd = nullptr; // cached for DPI re query on device reset
         std::atomic<float> g_dpiScale{1.0f};
         std::atomic<float> g_uiScale{1.0f};
         std::atomic<bool> g_styleDirty{true};
         std::atomic<bool> g_inputBlocked{false}; // last value pushed to input_block (edge tracking)
-        // Cached aggregates so the per-message WndProc swallow check and the per-frame resubmit gate are
+        // Cached aggregates so the per message WndProc swallow check and the per frame resubmit gate are
         // O(1) atomic reads instead of a locked scan of every mod's menus. Refreshed by syncAggregates
         // on any visibility/passthrough change. g_inputBlocked doubles as "any interactive menu open".
         std::atomic<bool> g_anyVisible{false};
@@ -92,7 +92,7 @@ namespace modloader::overlay
                 std::lock_guard<std::mutex> lock(g_mutex);
                 for (const Menu& m : g_menus)
                 {
-                    if (!m.visible || !m.fn) // fn == nullptr: fault-disabled, never draws
+                    if (!m.visible || !m.fn) // fn == nullptr: fault disabled, never draws
                         continue;
                     anyVisible = true;
                     if (!m.passthrough)
@@ -108,8 +108,8 @@ namespace modloader::overlay
         }
 
         // A menu's draw threw: bump its fault count and, past the cap, disable it (clear fn) so a
-        // persistently broken menu cannot burn CPU or flood the log every frame. Owner CPU-faults are
-        // already quarantined by faultguard; this is the menu-granularity net for the C++-exception /
+        // persistently broken menu cannot burn CPU or flood the log every frame. Owner CPU faults are
+        // already quarantined by faultguard; this is the menu granularity net for the C++-exception /
         // repeat case, and keeps one bad mod from degrading everyone else's menus.
         void chargeFault(uint32_t handle)
         {
@@ -127,7 +127,7 @@ namespace modloader::overlay
                 }
             }
             // Refresh outside the lock: a disabled menu no longer counts as visible/interactive, so if it
-            // was the only one open the render + input-freeze state must fall back to idle.
+            // was the only one open the render + input freeze state must fall back to idle.
             if (disabled)
                 syncAggregates();
         }
@@ -135,7 +135,7 @@ namespace modloader::overlay
         // --- scaling (render thread) ---
 
         // Rederives style + font scale from DPI * user scale. Must run outside a NewFrame/EndFrame pair;
-        // reapplies from the scale-1.0 snapshot so it never compounds. Re-queries the monitor DPI here so
+        // reapplies from the scale 1.0 snapshot so it never compounds. Re queries the monitor DPI here so
         // a resolution/monitor change flagged by a device reset or WM_DPICHANGED is reflected.
         void applyScaleIfDirty()
         {
@@ -255,7 +255,7 @@ namespace modloader::overlay
             {
                 if (g_initFailed.load())
                     return;
-                // First EndScene: the game is mid-frame with a valid device, the right time to init ImGui.
+                // First EndScene: the game is mid frame with a valid device, the right time to init ImGui.
                 if (!initImGui(device, hooks::d3d9::window()))
                 {
                     g_initFailed.store(true);
@@ -280,13 +280,13 @@ namespace modloader::overlay
 
             // Only rebuild the UI at the throttle rate; between rebuilds we resubmit the cached draw data
             // (so a 300 fps game does not rebuild every menu 300 times a second). The snapshot + widget
-            // work - the only per-menu cost - happens solely on a rebuild frame.
+            // work, the only per menu cost, happens solely on a rebuild frame.
             if (menuRebuildDue())
             {
                 applyScaleIfDirty();
 
-                // Snapshot the visible menus (a draw callback may (un)register mid-iteration). Reuse one
-                // render-thread buffer so this is not a per-frame heap allocation as menu count grows.
+                // Snapshot the visible menus (a draw callback may (un)register mid iteration). Reuse one
+                // render thread buffer so this is not a per frame heap allocation as menu count grows.
                 static std::vector<Menu> visible;
                 visible.clear();
                 {
@@ -308,7 +308,7 @@ namespace modloader::overlay
                 ImGui::NewFrame();
                 for (const Menu& m : visible)
                 {
-                    // Each menu's widget code is fault-isolated + attributed to its owner mod, so one
+                    // Each menu's widget code is fault isolated + attributed to its owner mod, so one
                     // crashing menu is quarantined, not fatal to the game or the other menus. A repeat
                     // offender is disabled by chargeFault (rare path; the lock is brief and off the
                     // steady state).
@@ -335,27 +335,27 @@ namespace modloader::overlay
             else
             {
                 ImGui_ImplDX9_CreateDeviceObjects();
-                // Resolution/monitor may have changed; re-fit style + DPI on the next visible frame.
+                // Resolution/monitor may have changed; refit style + DPI on the next visible frame.
                 g_styleDirty.store(true);
             }
         }
 
         bool CUBE_CALL onWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
-            // Monitor/DPI changed (dragged to another display): flag a re-fit; the render thread
-            // re-queries the DPI in applyScaleIfDirty, so no cross-thread ImGui write here.
+            // Monitor/DPI changed (dragged to another display): flag a refit; the render thread
+            // re queries the DPI in applyScaleIfDirty, so no cross thread ImGui write here.
             if (msg == WM_DPICHANGED)
                 g_styleDirty.store(true);
 
-            // Focus loss (alt-tab / Win+D / minimize): never leave the game with its DirectInput zeroed
-            // or the cursor captured. Release the freeze while unfocused; on refocus re-apply it if an
+            // Focus loss (alt tab / Win+D / minimize): never leave the game with its DirectInput zeroed
+            // or the cursor captured. Release the freeze while unfocused; on refocus reapply it if an
             // interactive menu is still open.
             if (msg == WM_ACTIVATEAPP && g_ready)
             {
                 const bool focused = wParam != FALSE;
                 if (!focused)
                 {
-                    // Force-release and update the tracker so a later refocus re-freezes correctly.
+                    // Force release and update the tracker so a later refocus re freezes correctly.
                     if (g_inputBlocked.exchange(false))
                         hooks::input_block::setBlocked(false);
                 }
@@ -363,7 +363,7 @@ namespace modloader::overlay
                     syncAggregates();
             }
 
-            // Toggle-key edges: flip every menu whose key matches (ignore auto-repeat). A menu with
+            // Toggle key edges: flip every menu whose key matches (ignore auto repeat). A menu with
             // toggleKey 0 has no key and is unaffected.
             bool toggled = false;
             if ((msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && (lParam & kKeyRepeatMask) == 0 &&
@@ -389,8 +389,8 @@ namespace modloader::overlay
 
             // While an interactive menu owns input, eat discrete input so it never reaches the game
             // (ImGui saw it above). In HUD passthrough the game keeps receiving it, so do not swallow.
-            // g_inputBlocked is exactly "an interactive menu is open" - an O(1) atomic read, so this runs
-            // per window message (mouse-move can be frequent) without locking or scanning the registry.
+            // g_inputBlocked is exactly "an interactive menu is open", an O(1) atomic read, so this runs
+            // per window message (mouse move can be frequent) without locking or scanning the registry.
             return isBlockableInput(msg) && g_inputBlocked.load();
         }
 
@@ -407,7 +407,7 @@ namespace modloader::overlay
             if (!g_armed)
             {
                 g_armed = true;
-                needArm = true; // first-ever menu: arm the render dispatch outside the lock below
+                needArm = true; // first ever menu: arm the render dispatch outside the lock below
             }
             handle = g_nextHandle++;
             g_menus.push_back(Menu{handle, owner, fn, user, toggleKey, startOpen, false, 0});
@@ -580,7 +580,7 @@ namespace modloader::overlay
 
     void shutdown()
     {
-        // Stop per-frame delivery FIRST (drains an in-flight frame) so no render callback runs while we
+        // Stop per frame delivery FIRST (drains an in flight frame) so no render callback runs while we
         // destroy the context, then release the freeze and tear ImGui down.
         hooks::render::Token token = hooks::render::kInvalidToken;
         {

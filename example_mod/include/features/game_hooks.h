@@ -1,5 +1,5 @@
 #pragma once
-// The mod's INTERCEPT side: installs the built-in impact/crit/maxHP hooks and owns every interception
+// The mod's INTERCEPT side: installs the built in impact/crit/maxHP hooks and owns every interception
 // handler (all run on the game thread). The Hooks tab is a pure view over settings() and counters.
 
 #include "cube_mod.hpp"
@@ -29,10 +29,10 @@ namespace exmod
             float maxHpScale = kDefaultMaxHpScale;
         };
 
-        // Raw-hook installer inputs; the menu binds to these and the parse/install lives here.
+        // Raw hook installer inputs; the menu binds to these and the parse/install lives here.
         struct RawInput
         {
-            char address[kRawAddressLen] = ""; // seeded at install() from the loader's built-in crit target
+            char address[kRawAddressLen] = ""; // seeded at install() from the loader's built in crit target
             int conv = 0; // index into the convention dropdown (maps to cube::CallConv)
             int argCount = 0;
         };
@@ -53,17 +53,17 @@ namespace exmod
         unsigned lastImpactTarget() const { return m_lastImpactTarget.load(); }
         int lastImpactDamage() const { return m_lastImpactDamage.load(); }
 
-        // Detach / reattach a built-in hook (the EventHook removal showcase).
+        // Detach / reattach a built in hook (the EventHook removal showcase).
         bool builtinAttached(cube::Hook hook) const;
         void setBuiltinAttached(cube::Hook hook, bool attached);
 
-        // Raw hook (generic pool). Auto-borrows the built-in crit hook when the target is the crit address.
+        // Raw hook (generic pool). Auto borrows the built in crit hook when the target is the crit address.
         RawInput& rawInput() { return m_rawInput; }
         bool installRawFromInput();
         void removeRawFromInput();
         bool rawInstalled() const { return m_rawInstalled; }
 
-        // Hand-written detour on the crit function (the float/odd-arity escape hatch), borrowing the crit slot.
+        // Hand written detour on the crit function (the float/odd arity escape hatch), borrowing the crit slot.
         bool installRawDetour();
         void removeRawDetour();
         bool rawDetourInstalled() const { return m_rawDetourInstalled; }

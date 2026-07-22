@@ -1,5 +1,5 @@
 #pragma once
-// Generic capture pool for raw (user-address) hooks; __thiscall/__cdecl, up to CUBE_HOOK_ARG_MAX int/ptr args, int/ptr return.
+// Generic capture pool for raw (user address) hooks; __thiscall/__cdecl, up to CUBE_HOOK_ARG_MAX int/ptr args, int/ptr return.
 #include "cube_sdk.h"
 
 #include <cstdint>

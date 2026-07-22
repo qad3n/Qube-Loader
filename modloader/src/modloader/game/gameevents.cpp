@@ -28,13 +28,13 @@ namespace modloader::gameevents
     {
 
         constexpr char kCategory[] = "gameevents";
-        // Live-calibration channel: logs the raw action id whenever it changes so a test run reveals
+        // Live calibration channel: logs the raw action id whenever it changes so a test run reveals
         // the exact attack/cast ids each weapon produces (the id partition is weapon/class dependent).
         constexpr char kActionCategory[] = "action";
 
         uint32_t g_frameIndex = 0; // render thread only
 
-        // Snapshot of last frame's watched values, diffed each frame to detect edges. Render-thread only.
+        // Snapshot of last frame's watched values, diffed each frame to detect edges. Render thread only.
         struct PrevGameState
         {
             bool valid = false;
@@ -72,7 +72,7 @@ namespace modloader::gameevents
 
         PrevGameState g_prev; // render thread only
 
-        // Jump/land are the grounded-family <-> airborne-family edge only. Swimming and Climbing are
+        // Jump/land are the grounded family and airborne family edge only. Swimming and Climbing are
         // deliberately in neither family, so entering water or a climb is a MOVEMENT_CHANGED, not a jump.
         bool isGroundedFamily(int32_t movement)
         {
@@ -100,8 +100,8 @@ namespace modloader::gameevents
             args.param2 = param2;
             args.amount = amount;
             // One detailed line per emitted event, with the FULL raw payload every mod receives
-            // (subject address + the three data fields). Replaces the per-event scalar lines so every
-            // event - not just a hand-picked few - is logged identically. See the SDK event catalog
+            // (subject address + the three data fields). Replaces the per event scalar lines so every
+            // event, not just a hand picked few, is logged identically. See the SDK event catalog
             // for what param/param2/amount mean per event.
             LOGC(Debug, kCategory, "emit %s: subject=0x%08X param=%d param2=%d amount=%.2f",
                  modloader::events::eventName(event), subject, param, param2, amount);
@@ -112,7 +112,7 @@ namespace modloader::gameevents
         constexpr uint32_t kSigEmpty = 0u; // signature of an absent item (empty slot)
         constexpr uint32_t kSigNonEmpty = 1u; // fallback so a present item never reads as empty
 
-        // A stable per-item signature to detect an equipment slot change without storing the item.
+        // A stable per item signature to detect an equipment slot change without storing the item.
         // Change detection only, not identity.
         uint32_t itemSignature(const CubeItem& item)
         {
@@ -130,7 +130,7 @@ namespace modloader::gameevents
         }
 
         // Emit a BUFF_GAINED carrying the effect's magnitude + remaining duration, looked up from the
-        // live buff list by type (the first match; duplicate types share one lookup - documented in the SDK).
+        // live buff list by type (the first match; duplicate types share one lookup, documented in the SDK).
         void emitBuffGained(uint8_t type, const CubeBuff* live, int32_t liveN)
         {
             for (int32_t i = 0; i < liveN; ++i)
@@ -263,7 +263,7 @@ namespace modloader::gameevents
         }
 
         // Diff the pet id for PET_SUMMONED/PET_DISMISSED. Pet address is cached on the summon edge so
-        // PET_DIED matches the per-frame ENTITY_DEATH edges without an extra tree walk.
+        // PET_DIED matches the per frame ENTITY_DEATH edges without an extra tree walk.
         void pollPetLifecycle(const CubePlayer& player, bool okPlayer)
         {
             if (!okPlayer || !player.address)
@@ -306,7 +306,7 @@ namespace modloader::gameevents
             return 0;
         }
 
-        // Diff the ability-cooldown map: an ability whose remaining-ms goes from ready (absent/0) to a
+        // Diff the ability cooldown map: an ability whose remaining ms goes from ready (absent/0) to a
         // fresh positive value was just cast. The map key is the ability id (matches CUBE_CATALOG_ABILITY).
         void pollAbilityUse(uint32_t playerAddress)
         {
@@ -345,8 +345,8 @@ namespace modloader::gameevents
             world.structSize = sizeof(CubeWorld);
             const bool okWorld = game::readWorld(world);
 
-            // World residency edge (title/menu <-> in-world), distinct from AREA_CHANGE (zone to zone).
-            // Default-false baseline is "not in world", so ENTER only fires on a real title->world cross
+            // World residency edge (title/menu and in world), distinct from AREA_CHANGE (zone to zone).
+            // Default false baseline is "not in world", so ENTER only fires on a real title to world cross
             // and EXIT never fires spuriously on the first poll.
             const bool nowInWorld = okPlayer && player.hasState;
             if (nowInWorld != g_prev.inWorld)
@@ -360,13 +360,13 @@ namespace modloader::gameevents
 
             if (okPlayer && player.hasState)
             {
-                // Tell the game-thread attack watcher who the local player is (cheap per-tick filter).
+                // Tell the game thread attack watcher who the local player is (cheap per tick filter).
                 game::attackwatch::setLocalPlayer(player.address);
 
-                // The +0x128 control-lock is SHARED by hit-stun and the dodge-roll. game::actionlock
+                // The +0x128 control lock is SHARED by hit stun and the dodge roll. game::actionlock
                 // (sampled in readPlayer) tells the two apart; hitStun carries the raw timer for the
                 // STUNNED payload. While rolling, the roll's upward pop and lock must not misfire as a
-                // jump / movement change / stun - it raises a single PLAYER_ROLL instead.
+                // jump / movement change / stun. It raises a single PLAYER_ROLL instead.
                 int32_t hitStun = 0;
                 mem::read(static_cast<uintptr_t>(player.address) + off::kPlayerHitStunOff, hitStun);
                 const game::actionlock::Cause lockCause = game::actionlock::cause();
@@ -374,8 +374,8 @@ namespace modloader::gameevents
                 if (g_prev.valid)
                 {
                     // PLAYER_ATTACK is detected on the game thread by the attack watcher (it catches a
-                    // sub-frame shot/ability action pulse the frame poll misses). Only fall back to the
-                    // frame-poll edge (a rising edge into an attack/cast action) if the watcher could not
+                    // sub frame shot/ability action pulse the frame poll misses). Only fall back to the
+                    // frame poll edge (a rising edge into an attack/cast action) if the watcher could not
                     // arm its detour.
                     if (!game::attackwatch::active() && !isAttackAction(g_prev.action) && isAttackAction(player.action))
                     {
@@ -414,9 +414,9 @@ namespace modloader::gameevents
                     {
                         emitEvent(CUBE_EVENT_COINS_CHANGED, 0, player.coins, player.coins - g_prev.coins);
                     }
-                    // Emit on the classified lock-cause transition: a fresh roll -> PLAYER_ROLL, a fresh
-                    // hit -> PLAYER_STUNNED, clearing a hit -> PLAYER_RECOVERED. A roll ending is silent
-                    // (Rolling -> None): the roll is one atomic event, not a stun/recover pair.
+                    // Emit on the classified lock cause transition: a fresh roll gives PLAYER_ROLL, a fresh
+                    // hit gives PLAYER_STUNNED, clearing a hit gives PLAYER_RECOVERED. A roll ending is silent
+                    // (Rolling back to None): the roll is one atomic event, not a stun/recover pair.
                     if (lockCause != g_prev.lockCause)
                     {
                         switch (lockCause)
@@ -439,8 +439,8 @@ namespace modloader::gameevents
                     }
                 }
 
-                // Game-thread attack watcher: emit PLAYER_ATTACK for the attack/shot/ability edge(s) the
-                // behavior detour captured since the last frame - reliable for the sub-frame action pulses
+                // Game thread attack watcher: emit PLAYER_ATTACK for the attack/shot/ability edge(s) the
+                // behavior detour captured since the last frame, reliable for the sub frame action pulses
                 // the poll above cannot see. param = action id at the edge, param2 = current selected target.
                 if (game::attackwatch::active())
                 {
@@ -452,7 +452,7 @@ namespace modloader::gameevents
                     }
                 }
 
-                // Calibration trace: log every action-id change (with the loader's attack/movement
+                // Calibration trace: log every action id change (with the loader's attack/movement
                 // classification) so a live test run confirms which ids each weapon actually uses.
                 if (player.actionId != g_prev.lastActionId)
                 {
@@ -589,7 +589,7 @@ namespace modloader::gameevents
             else
                 g_prev.hadTime = false;
 
-            // Select detour captured a new R/use-key selection: emit it on the render thread
+            // Select detour captured a new R/use key selection: emit it on the render thread
             // (subject = creature/object, param = CubeSelectionKind).
             CubeSelection selection = {};
             selection.structSize = sizeof(CubeSelection);
@@ -598,7 +598,7 @@ namespace modloader::gameevents
                 emitEvent(CUBE_EVENT_ENTITY_SELECTED, selection.address, selection.kind, selection.typeByte);
             }
 
-            // Pickup detour captured a new E-key item pickup: emit it on the render thread
+            // Pickup detour captured a new E key item pickup: emit it on the render thread
             // (subject = item type, param = subtype, param2 = stack count).
             CubeItem pickup = {};
             pickup.structSize = sizeof(CubeItem);
@@ -607,9 +607,9 @@ namespace modloader::gameevents
                 emitEvent(CUBE_EVENT_ITEM_PICKUP, static_cast<uint32_t>(pickup.type), pickup.subtype, pickup.stack);
             }
 
-            // Emits the full offset-resolution report the first frame a world loads.
+            // Emits the full offset resolution report the first frame a world loads.
             game::diag::pollResolutionReport();
-            // Warns if any held/equipped/stored item is corrupt (throttled + de-duplicated).
+            // Warns if any held/equipped/stored item is corrupt (throttled + de duplicated).
             game::diag::pollItemCorruption();
         }
     }
@@ -626,7 +626,7 @@ namespace modloader::gameevents
 
     void CUBE_CALL onFrame(IDirect3DDevice9* device)
     {
-        // Open the intra-frame resolve cache so the many player/GC/entity resolves below walk the
+        // Open the intra frame resolve cache so the many player/GC/entity resolves below walk the
         // pointer chains only once.
         game::framecache::beginFrame();
 

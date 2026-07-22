@@ -11,12 +11,12 @@
 #include <string>
 #include <vector>
 
-// Load-time compatibility report: log what every mod attached to and warn about anything they share.
+// Load time compatibility report: log what every mod attached to and warn about anything they share.
 namespace modloader
 {
     namespace
     {
-        // Append owner to index[key], de-duplicated, for the shared-hook/event inverse index.
+        // Append owner to index[key], de duplicated, for the shared hook/event inverse index.
         void addOwner(std::map<std::string, std::vector<std::string>>& index, const std::string& key, const std::string& owner)
         {
             std::vector<std::string>& owners = index[key];
@@ -46,8 +46,8 @@ namespace modloader
 
     }
 
-    // User-facing version report (Info): one line per loaded mod with its version, id, and optional
-    // update URL. Offline and network-free; the URL is shown, never fetched, unless the user opts in.
+    // User facing version report (Info): one line per loaded mod with its version, id, and optional
+    // update URL. Offline and network free; the URL is shown, never fetched, unless the user opts in.
     void reportVersions()
     {
         for (const std::unique_ptr<LoadedMod>& mod : loadedMods())
@@ -61,7 +61,7 @@ namespace modloader
         }
     }
 
-    // Intercept hooks shared by >1 mod are loud (last-writer-wins); shared observe events are informational.
+    // Intercept hooks shared by >1 mod are loud (last writer wins); shared observe events are informational.
     void reportCompatibility()
     {
         LOGC(Debug, kCategory, "compatibility report: %zu mod(s) loaded", loadedMods().size());

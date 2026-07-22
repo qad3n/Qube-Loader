@@ -1,8 +1,8 @@
 #pragma once
-// Per-mod save data: opaque binary blobs, one file per key at <dllDir>/data/<stem>/[<scope>/]<key>.bin,
-// keyed by the mod's DLL stem (the stable pre-init identity; see modconfig). Distinct from modconfig
-// (that is user-editable text settings; this is mod-owned, binary-safe save state - counters,
-// discovered progress). An optional per-mod scope (world seed / character) namespaces a blob under a
+// Per mod save data: opaque binary blobs, one file per key at <dllDir>/data/<stem>/[<scope>/]<key>.bin,
+// keyed by the mod's DLL stem (the stable pre init identity; see modconfig). Distinct from modconfig
+// (that is user editable text settings; this is mod owned, binary safe save state like counters,
+// discovered progress). An optional per mod scope (world seed / character) namespaces a blob under a
 // subdirectory so one mod can keep separate saves per game.
 #include <cstdint>
 #include <string>

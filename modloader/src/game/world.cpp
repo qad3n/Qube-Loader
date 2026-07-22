@@ -32,7 +32,7 @@ namespace game
             return true;
         }
 
-        // Walks World -> Region -> Zone for the player's tile. 0 if not resident.
+        // Walks World to Region to Zone for the player's tile. 0 if not resident.
         uintptr_t resolveZone(uintptr_t gc, int32_t tileX, int32_t tileY)
         {
             const uintptr_t world = gc + off::kWorldEmbedOff;

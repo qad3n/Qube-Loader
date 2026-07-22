@@ -15,7 +15,7 @@ namespace modloader::conflict
         constexpr int kMessageMax = 512;
 
         std::mutex g_throttleMutex;
-        std::unordered_map<uint64_t, uint32_t> g_lastWarn; // conflict signature -> last-warned frame
+        std::unordered_map<uint64_t, uint32_t> g_lastWarn; // conflict signature to last warned frame
 
         void emit(logger::Level level, const char* fmt, va_list args)
         {

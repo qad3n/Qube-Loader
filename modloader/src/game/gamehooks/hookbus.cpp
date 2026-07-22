@@ -18,13 +18,13 @@
 #include <string>
 #include <vector>
 
-// Hook bus: per-mod handler registry, multi-mod dispatch + reduce, per-hook arm/disarm refcount.
+// Hook bus: per mod handler registry, multi mod dispatch + reduce, per hook arm/disarm refcount.
 namespace game::gamehooks
 {
     namespace
     {
         constexpr char kCategory[] = "gamehooks";
-        constexpr int kLabelMax = 96; // stack buffer for a per-handler guard label (no heap alloc)
+        constexpr int kLabelMax = 96; // stack buffer for a per handler guard label (no heap alloc)
         using modloader::ownerName;
         using modloader::ownerPriority;
         using modloader::ownerOrder;
@@ -60,7 +60,7 @@ namespace game::gamehooks
         std::vector<RawDetour> g_rawDetours;
         // Install refcount = reservations (attack/crit sampling) + real subscribers; drives arm/disarm
         // of the trampoline. Subscriber count = real mod handlers only; drives the dispatch gate. A
-        // reservation therefore keeps a detour installed yet pass-through until a mod actually hooks it.
+        // reservation therefore keeps a detour installed yet pass through until a mod actually hooks it.
         int32_t g_installRefcount[CUBE_HOOK_COUNT] = {};
         int32_t g_subCount[CUBE_HOOK_COUNT] = {};
         bool g_armed[CUBE_HOOK_COUNT] = {};
@@ -68,8 +68,8 @@ namespace game::gamehooks
         // (the detour may stay armed for another mod, uncovered by disarm's own drain).
         std::atomic<int> g_dispatchInFlight{0};
 
-        // Increment the install refcount; arm the trampoline on the 0->1 edge. Returns whether the
-        // detour is installed afterward. Never touches the dispatch gate: a fresh install is pass-through
+        // Increment the install refcount; arm the trampoline on the 0 to 1 edge. Returns whether the
+        // detour is installed afterward. Never touches the dispatch gate: a fresh install is pass through
         // until a real subscriber activates it, so an observation reservation stays vanilla.
         bool acquireInstall(CubeHook hook)
         {
@@ -91,7 +91,7 @@ namespace game::gamehooks
             return ok;
         }
 
-        // Decrement the install refcount by n; disarm the trampoline on the ->0 edge.
+        // Decrement the install refcount by n; disarm the trampoline when the count drops to 0.
         void releaseInstall(CubeHook hook, int32_t n)
         {
             bool disarm = false;
@@ -143,8 +143,8 @@ namespace game::gamehooks
             return h;
         }
 
-        // Two mods overriding the same hook's return silently fight (last-writer-wins). Warn loudly,
-        // throttled per (hook, owner-pair) so a per-frame combat hook does not flood the log.
+        // Two mods overriding the same hook's return silently fight (last writer wins). Warn loudly,
+        // throttled per (hook, owner pair) so a per frame combat hook does not flood the log.
         void warnContestedReturn(const char* subject, const CubeApi* first, const CubeApi* second)
         {
             const uintptr_t lo = reinterpret_cast<uintptr_t>(first < second ? first : second);
@@ -155,9 +155,9 @@ namespace game::gamehooks
                                           subject, ownerName(first), ownerName(second));
         }
 
-        // Order handlers low-to-high priority so the highest-priority mod runs LAST and wins the
-        // last-writer-wins return reduce; within one priority a dependency (lower topological rank)
-        // runs before its dependents; stable so fully-equal keys keep subscription (load) order.
+        // Order handlers low to high priority so the highest priority mod runs LAST and wins the
+        // last writer wins return reduce; within one priority a dependency (lower topological rank)
+        // runs before its dependents; stable so fully equal keys keep subscription (load) order.
         void sortByPriority(std::vector<HookSub>& matched)
         {
             std::stable_sort(matched.begin(), matched.end(), [](const HookSub& a, const HookSub& b)
@@ -168,9 +168,9 @@ namespace game::gamehooks
             });
         }
 
-        // Reduce: cancel sticky OR, args chain, return last-writer-wins. Each handler guarded (no SEH
-        // under mingw). `subject` names the hook, used both for the per-mod guard label (so a throwing
-        // handler is attributed) and the contested-return warning.
+        // Reduce: cancel sticky OR, args chain, return last writer wins. Each handler guarded (no SEH
+        // under mingw). `subject` names the hook, used both for the per mod guard label (so a throwing
+        // handler is attributed) and the contested return warning.
         int32_t dispatchMatched(const std::vector<HookSub>& matched, const char* subject, CubeHookCall& call)
         {
             int32_t cancel = call.cancel;
@@ -183,7 +183,7 @@ namespace game::gamehooks
                 const int32_t prevOverride = call.overrideReturn;
                 const int32_t prevReturnI = call.returnI;
                 const float prevReturnF = call.returnF;
-                // Per-handler label names the mod + hook so a fault/exception is attributed to it.
+                // Per handler label names the mod + hook so a fault/exception is attributed to it.
                 char label[kLabelMax];
                 std::snprintf(label, sizeof(label), "mod '%s' %s hook callback", ownerName(sub.owner), subject);
                 guard::tryRun(label, sub.owner, [&]()
@@ -191,7 +191,7 @@ namespace game::gamehooks
                     sub.fn(&call);
                 });
 
-                // A mod that declared capabilities but not Writes may observe a built-in hook yet not
+                // A mod that declared capabilities but not Writes may observe a built in hook yet not
                 // change its outcome; revert any cancel/override it attempted (mutating combat is a write).
                 if (!ownerMayWrite(sub.owner) &&
                     (call.cancel != cancel || call.overrideReturn != prevOverride ||
@@ -303,7 +303,7 @@ namespace game::gamehooks
     {
         // Reserve the IMPACT detour installed for the whole session so the attack watcher can sample
         // the local player's action every tick, WITHOUT activating dispatch. With no mod subscribed the
-        // detour stays pass-through (runs the original untouched) and only reads state; a mod that hooks
+        // detour stays pass through (runs the original untouched) and only reads state; a mod that hooks
         // IMPACT flips it active, this reservation never does. Released at shutdown by shutdownBuiltin.
         if (!acquireInstall(CUBE_HOOK_IMPACT))
         {
@@ -318,7 +318,7 @@ namespace game::gamehooks
     void armCritCounter()
     {
         // Reserve the CRIT_ROLL detour installed so the loader can count the local player's crits,
-        // WITHOUT activating dispatch. Pass-through returns the real roll untouched and only increments
+        // WITHOUT activating dispatch. Pass through returns the real roll untouched and only increments
         // the counter; a mod that hooks CRIT_ROLL flips it active. Released at shutdown by shutdownBuiltin.
         if (!acquireInstall(CUBE_HOOK_CRIT_ROLL))
         {
@@ -349,7 +349,7 @@ namespace game::gamehooks
             count = ++g_subCount[hook];
         }
 
-        // A real subscriber now exists: leave pass-through and dispatch to handlers.
+        // A real subscriber now exists: leave pass through and dispatch to handlers.
         setBuiltinActive(hook, true);
         LOGC(Debug, kCategory, "'%s' subscribed built-in hook %s (#%d, now %d subscriber(s))", ownerName(owner), hookName(hook), static_cast<int>(hook), count);
     }
@@ -386,7 +386,7 @@ namespace game::gamehooks
         if (!removed)
             return 0;
 
-        // Last real subscriber gone: back to pass-through, then drop the install hold (a reservation
+        // Last real subscriber gone: back to pass through, then drop the install hold (a reservation
         // keeps the trampoline armed; releaseInstall only disarms once nothing holds it).
         if (deactivate)
             setBuiltinActive(hook, false);
@@ -412,7 +412,7 @@ namespace game::gamehooks
         if (matched.empty())
             return 0;
 
-        // Bump in-flight under the lock so the drain can't observe zero between snapshot and dispatch.
+        // Bump in flight under the lock so the drain can't observe zero between snapshot and dispatch.
         barrier::InFlight inflight(g_dispatchInFlight);
         lock.unlock();
 
@@ -610,8 +610,8 @@ namespace game::gamehooks
             }
         }
 
-        // Deactivate + drop the install hold for each built-in hook this owner held. A reservation
-        // (attack/crit sampling) keeps the trampoline armed pass-through; releaseInstall disarms only
+        // Deactivate + drop the install hold for each built in hook this owner held. A reservation
+        // (attack/crit sampling) keeps the trampoline armed pass through; releaseInstall disarms only
         // once nothing holds it.
         for (int32_t h = 0; h < CUBE_HOOK_COUNT; ++h)
         {
@@ -631,7 +631,7 @@ namespace game::gamehooks
 
         if (dropped)
         {
-            // Wait out in-flight dispatch of this mod's handlers before its DLL frees; covers
+            // Wait out in flight dispatch of this mod's handlers before its DLL frees; covers
             // detours still armed for another mod (disarm/rawpool::remove drain their own).
             barrier::drain(g_dispatchInFlight, "unsubscribe");
             LOGC(Debug, kCategory, "dropped %zu hook(s) for an unloaded mod (drained)", dropped);

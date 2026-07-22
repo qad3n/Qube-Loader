@@ -1,5 +1,5 @@
 #pragma once
-// Consumes the headless example_lib companion mod to exercise the whole inter-mod ecosystem API:
+// Consumes the headless example_lib companion mod to exercise the whole inter mod ecosystem API:
 // resolve its service at READY, send it directed messages, and (for the register/unregister half)
 // publish a marker service of this mod's own. The Mod > Services tab views this and drives the sends.
 #include "cube_mod.hpp"

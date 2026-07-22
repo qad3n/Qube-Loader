@@ -29,8 +29,8 @@ namespace
     constexpr int kMaxModules = 1024;
 
     // Substrings (lowercased) of module names that hook or replace d3d9: a proxy d3d9, translation
-    // layers, and in-game overlays. These change the device vtable and are the usual cause of an
-    // overlay crash or no-show on a given machine, so a support log should name any that are present.
+    // layers, and in game overlays. These change the device vtable and are the usual cause of an
+    // overlay crash or no show on a given machine, so a support log should name any that are present.
     const char* const kInterposerModules[] = {
         "dxvk", "d3d9on12", "dgvoodoo", "reshade", "rtss", "gameoverlayrenderer", "discord",
         "nvspcap", "specialk", "fraps", "bandicam", "obs-hook", "amdxx", "gfsdk"
@@ -161,12 +161,12 @@ namespace
         logEnvironment();
 
         crash::install(cfg.logDir);
-        // Arm mod-fault isolation ahead of the unhandled-exception filter, so a CPU fault in a mod
-        // callback disables that mod instead of crashing the game. Config-gated.
+        // Arm mod fault isolation ahead of the unhandled exception filter, so a CPU fault in a mod
+        // callback disables that mod instead of crashing the game. Config gated.
         faultguard::install(cfg.faultIsolation);
 
-        // Guard the session so a std::exception mid-init cannot skip teardown and unmap the DLL with
-        // hooks still installed. Each teardown step no-ops if its install did not run.
+        // Guard the session so a std::exception mid init cannot skip teardown and unmap the DLL with
+        // hooks still installed. Each teardown step no ops if its install did not run.
         guard::tryRun("mod session", [&]()
         {
             bool gamelogOk = false;
@@ -181,12 +181,12 @@ namespace
 
             // Load mods. The loader arms its game hooks (input freeze, DI passthrough, select/pickup
             // capture, attack/crit sampling) ONLY when at least one mod is present, and every one is a
-            // transparent pass-through until a mod's own callback acts - so with no mods the game runs
+            // transparent pass through until a mod's own callback acts, so with no mods the game runs
             // exactly as vanilla. See modloader/core/lifecycle.cpp (installModHooks).
             const std::size_t modCount = modloader::install(dir, cfg.overlay);
 
-            // With no mods loaded, no mod callback will ever run, so mod-fault isolation has nothing to
-            // guard. Drop its vectored exception handler now so a mod-less loader leaves zero footprint
+            // With no mods loaded, no mod callback will ever run, so mod fault isolation has nothing to
+            // guard. Drop its vectored exception handler now so a mod less loader leaves zero footprint
             // in the game's exception path (it stays armed through load above to catch a fault in a
             // mod's init). Idempotent with the teardown remove() below.
             if (modCount == 0)
@@ -195,7 +195,7 @@ namespace
             reportLoadStatus(cfg.captureGameLog, gamelogOk, modCount);
 
             // Verbose init diagnostics: report which offsets/chains resolve now (mostly pending on
-            // the title screen) and which are deferred. gameevents re-emits it when a world loads.
+            // the title screen) and which are deferred. gameevents re emits it when a world loads.
             game::diag::logKnownGaps();
             game::diag::logResolutionReport();
 
@@ -203,7 +203,7 @@ namespace
         });
 
         modloader::remove(); // unsubscribes render + removes the loader's game hooks (select/pickup/DI/input)
-        game::gamehooks::shutdown(); // remove any remaining game-function detours (built-in reservations + raw)
+        game::gamehooks::shutdown(); // remove any remaining game function detours (built in reservations + raw)
         hooks::detour::shutdown(); // single MinHook owner now that all detour users are gone
 
         LOGD("cube_mod detaching");

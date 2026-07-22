@@ -32,16 +32,16 @@ namespace exmod::menu
         void drawMemory();
         void drawLogging();
         void drawPersist();
-        void drawServices(); // inter-mod services + messaging demo
-        void drawLocale(); // per-mod localization demo
-        void drawAssets(); // asset-override demo (set / has / remove)
+        void drawServices(); // inter mod services + messaging demo
+        void drawLocale(); // per mod localization demo
+        void drawAssets(); // asset override demo (set / has / remove)
         void reloadNote(); // pull the storage note for the active scope into m_note
 
         LogState m_log;
         float m_uiScale = 1.0f;
         char m_greeting[kConfigInputSize] = "";
         bool m_greetOnLoad = true;
-        char m_note[kNoteInputSize] = "";  // storage() blob demo (a persistent free-text note)
+        char m_note[kNoteInputSize] = "";  // storage() blob demo (a persistent free text note)
         char m_scope[kScopeInputSize] = ""; // storage().setScope demo (namespace the note per save)
         int m_pingValue = 21; // services demo: payload sent to example_lib
         int m_pingResult = 0; // last ping reply from example_lib

@@ -18,7 +18,7 @@ namespace game::pickup
             "pickup detour failed to install; item-pickup events disabled");
 
         // Reads the staged pickup POD (set by the game before onItemPickup). False on an empty/
-        // unreadable staged cell (type 0). All reads are VirtualQuery-guarded via game::readItem.
+        // unreadable staged cell (type 0). All reads are VirtualQuery guarded via game::readItem.
         bool capture(uintptr_t gc, CubeItem& item)
         {
             const uintptr_t staged = gc + off::kStagedPickupItemOff;

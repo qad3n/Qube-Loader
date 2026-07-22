@@ -13,10 +13,10 @@ namespace game::signature
     {
         constexpr char kCategory[] = "signature";
         constexpr std::size_t kSigLen = 16; // prologue bytes compared per detour site
-        constexpr int kNoReloc = -1; // prologue holds no base-relocated absolute-address operand
+        constexpr int kNoReloc = -1; // prologue holds no base relocated absolute address operand
         constexpr std::size_t kRelocOperandLen = sizeof(uint32_t); // width of an imm32/disp32 operand
 
-        // Byte offset of each site's absolute-address operand within its 16-byte prologue (skipped in
+        // Byte offset of each site's absolute address operand within its 16 byte prologue (skipped in
         // the compare because base relocation patches it). Derived from the disassembly, see kSites.
         constexpr int kImpactRelocOffset = 9;     // push 0x006e21cc
         constexpr int kMaxHealthRelocOffset = 10; // movss xmm3, [0x00745dc0]
@@ -27,17 +27,17 @@ namespace game::signature
             uintptr_t staticAddr;
             const char* name;
             uint8_t bytes[kSigLen];
-            // Start byte of a 4-byte absolute-address operand (push imm32 / [disp32]) that the PE loader
+            // Start byte of a 4 byte absolute address operand (push imm32 / [disp32]) that the PE loader
             // patches when the image is based off 0x400000; skipped in the compare, or kNoReloc if none.
             int relocOffset;
         };
 
-        // Reference prologue bytes captured from the RE-target Cube.exe (image base 0x400000) with
+        // Reference prologue bytes captured from the RE target Cube.exe (image base 0x400000) with
         // i686-w64-mingw32-objdump. Order matches the pinned detour targets in offsets.h. A mismatch on
         // the FIXED bytes means the loaded binary is a different build, so hooking would corrupt code;
-        // the absolute-address operand bytes are masked (relocOffset) so a rebased-but-correct image
+        // the absolute address operand bytes are masked (relocOffset) so a rebased but correct image
         // still verifies. Operands here: push 0x6e21cc (impact), movss [0x745dc0] (maxhealth), push
-        // 0x6e5928 (pickup); crit/selection use register-relative operands that never relocate.
+        // 0x6e5928 (pickup); crit/selection use register relative operands that never relocate.
         constexpr Site kSites[] =
         {
             {off::kImpactFn, "impact",
@@ -82,8 +82,8 @@ namespace game::signature
 
             for (std::size_t i = 0; i < kSigLen; ++i)
             {
-                // Skip the absolute-address operand: base relocation patches these bytes when the image
-                // loads off 0x400000, so comparing them would false-mismatch a correct-but-rebased build.
+                // Skip the absolute address operand: base relocation patches these bytes when the image
+                // loads off 0x400000, so comparing them would false mismatch a correct but rebased build.
                 if (site.relocOffset >= 0)
                 {
                     const std::size_t relocStart = static_cast<std::size_t>(site.relocOffset);
@@ -113,7 +113,7 @@ namespace game::signature
 
     bool compatibleBuild()
     {
-        static int cached = -1; // -1 unknown, 0 mismatch, 1 match; first call runs single-threaded at load
+        static int cached = -1; // -1 unknown, 0 mismatch, 1 match; first call runs single threaded at load
 
         if (cached >= 0)
             return cached != 0;

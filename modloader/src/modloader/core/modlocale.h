@@ -1,9 +1,9 @@
 #pragma once
-// Per-mod localization: one flat ini per (mod, locale) at <dllDir>/lang/<stem>/<locale>.ini, keyed by
+// Per mod localization: one flat ini per (mod, locale) at <dllDir>/lang/<stem>/<locale>.ini, keyed by
 // the mod's DLL stem (like modconfig). A translate resolves the mod's active locale (default from the
-// loader - env CUBE_MOD_LOCALE, else "en" - and per-mod overridable via setLocale), reads the key
-// case-insensitively, and falls back to the caller's fallback. Lazily loaded + cached per (stem,
-// locale) in memory, so a per-frame translate never hits disk.
+// loader, from env CUBE_MOD_LOCALE, else "en", and per mod overridable via setLocale), reads the key
+// case insensitively, and falls back to the caller's fallback. Lazily loaded + cached per (stem,
+// locale) in memory, so a per frame translate never hits disk.
 #include <string>
 
 namespace modloader::modlocale

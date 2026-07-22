@@ -22,7 +22,7 @@ namespace game::attackwatch
         uint32_t g_seenSeq = 0; // render thread only
 
         // A PRIMARY attack (basic weapon swing/shot): a combat action that is NOT a special hotbar
-        // ability (those are reported separately via the cooldown-map diff). The ability set is exactly
+        // ability (those are reported separately via the cooldown map diff). The ability set is exactly
         // the CUBE_CATALOG_ABILITY entries, so a named ability id is excluded here.
         bool isPrimaryAttack(uintptr_t creature, uint8_t action)
         {
@@ -77,8 +77,8 @@ namespace game::attackwatch
             return;
 
         // One edge per swing/shot: entered a primary attack (first swing / discrete shot), the swing
-        // anim changed (combo step to a different anim), or the elapsed timer re-zeroed while still
-        // attacking (a new swing of the same anim). The chained-combo case is exactly the last one:
+        // anim changed (combo step to a different anim), or the elapsed timer re zeroed while still
+        // attacking (a new swing of the same anim). The chained combo case is exactly the last one:
         // +0x68 never returns to idle between swings, but +0x6c is reset at the start of each swing.
         const bool entered = !prevPrimary;
         const bool animChanged = prevPrimary && static_cast<int32_t>(action) != prevAction;

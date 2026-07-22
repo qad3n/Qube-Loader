@@ -7,7 +7,7 @@ namespace exmod
     namespace
     {
         constexpr char kSelfService[] = "example.consumer";
-        constexpr int kPingProbe = 21; // pinged at READY to prove the round-trip
+        constexpr int kPingProbe = 21; // pinged at READY to prove the round trip
         int g_selfMarker = 0; // the self service impl pointer (its presence is the whole contract)
     }
 

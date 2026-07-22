@@ -23,9 +23,9 @@ namespace game
             bool knockedDown;
         };
 
-        // Render-thread-only edge-detection state: last frame's player HP plus the nearby-creature
-        // set, diffed each frame to emit PLAYER_DAMAGED / ENTITY_* edges. The only cross-thread combat
-        // signal is g_critPending below (game-thread noteCrit).
+        // Render thread only edge detection state: last frame's player HP plus the nearby creature
+        // set, diffed each frame to emit PLAYER_DAMAGED / ENTITY_* edges. The only cross thread combat
+        // signal is g_critPending below (game thread noteCrit).
         struct CombatStore
         {
             bool valid = false;
@@ -87,7 +87,7 @@ namespace game
         if (hadPrev && player.health < prevHealth)
             edges.damageTaken = prevHealth - player.health;
 
-        // One entity-map walk feeds hit detection + spawn/death edges (a hit = any nearby
+        // One entity map walk feeds hit detection + spawn/death edges (a hit = any nearby
         // creature losing health). Static, not a ~125KB stack array (overflow = uncatchable, no SEH).
         static CubeEntity entities[CUBE_ENTITIES_MAX];
         const int32_t count = listEntities(entities, CUBE_ENTITIES_MAX);
@@ -108,7 +108,7 @@ namespace game
                 {
                     if (edgesOut && edgeCount < maxEdges)
                         edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Spawn, 0.0f, health, category, type};
-                    continue; // brand-new creature has no previous state to diff
+                    continue; // brand new creature has no previous state to diff
                 }
 
                 const TrackedEntity& was = g_store.tracked[prev];

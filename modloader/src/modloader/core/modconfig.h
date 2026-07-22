@@ -1,9 +1,9 @@
 #pragma once
-// Per-mod user-editable settings, one flat ini per mod at <dllDir>/config/<stem>.ini, keyed by the
+// Per mod user editable settings, one flat ini per mod at <dllDir>/config/<stem>.ini, keyed by the
 // mod's DLL stem (like modregistry: the stem is the loader's stable identity that is known before a
 // mod's init runs, unlike the manifest id it declares during init). Values are typed on the way
-// in/out (int/float/bool/string) with a caller-supplied default on a missing or malformed key. Lazily
-// loaded and cached in memory (a per-frame get never hits disk); a set updates the cache and writes
+// in/out (int/float/bool/string) with a caller supplied default on a missing or malformed key. Lazily
+// loaded and cached in memory (a per frame get never hits disk); a set updates the cache and writes
 // the file through immediately (durable).
 #include <cstdint>
 #include <string>

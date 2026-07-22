@@ -10,7 +10,7 @@ namespace game
 {
     namespace
     {
-        // "id=name" pairs, comma-separated, one string per CubeCatalog. Empty = raw id.
+        // "id=name" pairs, comma separated, one string per CubeCatalog. Empty = raw id.
         const char* const kCatalogData[CUBE_CATALOG_COUNT] =
         {
             // CUBE_CATALOG_ITEM_TYPE (item POD byte +0x0)
@@ -25,13 +25,13 @@ namespace game
             "1=Iron,2=Wood,5=Obsidian,7=Bone,10=Copper,11=Gold,12=Silver,13=Emerald,14=Sapphire,"
             "15=Ruby,16=Diamond,17=Sandstone,18=Saurian,19=Parrot,20=Mammoth,21=Plant,22=Ice,"
             "23=Light,24=Glass,25=Silk,26=Linen,27=Cotton,128=Fire,129=Unholy,130=Ice,131=Wind",
-            // CUBE_CATALOG_ITEM_MODIFIER (item POD byte +0xc) - numeric, no name table
+            // CUBE_CATALOG_ITEM_MODIFIER (item POD byte +0xc), numeric, no name table
             "",
-            // CUBE_CATALOG_TERRAIN (ZoneTile byte +0x0) - numeric material index, no names
+            // CUBE_CATALOG_TERRAIN (ZoneTile byte +0x0), numeric material index, no names
             "",
-            // CUBE_CATALOG_BUFF_TYPE (status node byte +0x8) - only proven ids
+            // CUBE_CATALOG_BUFF_TYPE (status node byte +0x8), only proven ids
             "1=Damage Reduction,6=Shield,8=Unstoppable,11=Guaranteed Crit",
-            // CUBE_CATALOG_ACTION (Creature byte +0x68): full action/animation id -> name from the
+            // CUBE_CATALOG_ACTION (Creature byte +0x68): full action/animation id to name from the
             // game's own icon map (GameController::ctor_0 @0x459c40), plus the eat/downed states.
             "0=Idle,1=Attack Right,2=Attack Left,3=Stab Right,4=Stab Left,5=Perforate,"
             "6=Punch Right,7=Punch Left,8=Block,9=Shield Attack,10=Shield Slam,11=Swirl,12=Slash,"
@@ -44,7 +44,7 @@ namespace game
             "59=Charge Slam,63=Swirl,64=Charge Mutilate,65=Slam Left,66=Slam Right,67=Jab,79=Sneak,"
             "86=Cyclone,88=Fire Explosion,95=Beam,96=Shuriken,97=Camouflage,99=Aim,100=Swiftness,"
             "101=Bulwark,102=War Frenzy,103=Mana Shield,106=Eating,110=Knocked Down",
-            // CUBE_CATALOG_STRUCTURE_TYPE (zone structure record int +0x0); ids non-sequential
+            // CUBE_CATALOG_STRUCTURE_TYPE (zone structure record int +0x0); ids non sequential
             // (gaps + repeats)
             "0=Statue,1=Door,2=Big Door,3=Window,4=Castle Window,5=Gate,6=Fire Trap,7=Spike Trap,"
             "8=Stomp Trap,9=Lever,10=Chest,12=Table,13=Table,14=Table,15=Stool,16=Stool,17=Stool,"
@@ -86,11 +86,11 @@ namespace game
             "142=Dummy,143=Vase,144=Bomb,145=SapphireFish,146=LemonFish,147=Seahorse,148=Mermaid,"
             "149=Merman,150=Shark,151=Bumblebee,152=LanternFish,153=MawFish,154=Piranha,"
             "155=Blowfish",
-            // CUBE_CATALOG_SKILL (skill-ranks array slot 0..10 -> skill name)
+            // CUBE_CATALOG_SKILL (skill ranks array slot 0..10 to skill name)
             "0=Pet Master,1=Riding,2=Climbing,3=Hang Gliding,4=Swimming,5=Sailing,"
             "6=Ability 1,7=Ability 2,8=Ability 3,9=Ability 4,10=Ability 5",
-            // CUBE_CATALOG_ABILITY (ability id -> name): the castable/special abilities (the ids that
-            // appear in the cooldown map), from the icon map + @tuning-var cross-check @0x459c40.
+            // CUBE_CATALOG_ABILITY (ability id to name): the castable/special abilities (the ids that
+            // appear in the cooldown map), from the icon map + @tuning var cross check @0x459c40.
             "21=Ranger Kick,34=Healing Stream,48=Intercept,49=Teleport,50=Retreat,54=Smash,79=Sneak,"
             "86=Cyclone,88=Fire Explosion,96=Shuriken,97=Camouflage,99=Aim,100=Swiftness,"
             "101=Bulwark,102=War Frenzy,103=Mana Shield",
@@ -118,7 +118,7 @@ namespace game
             "8=Bandage,9=Salve",
             // CUBE_CATALOG_VEHICLE_SUBTYPE (item subtype when type==Vehicle/23)
             "0=HangGlider,1=Boat",
-            // CUBE_CATALOG_SOUND (built-in sfx id -> wav base name, for audio.playSound)
+            // CUBE_CATALOG_SOUND (built in sfx id to wav base name, for audio.playSound)
             "0=hit,1=blade1,2=blade2,3=long-blade1,4=long-blade2,5=hit1,6=hit2,7=punch1,8=punch2,"
             "9=hit-arrow,10=hit-arrow-critical,11=smash1,12=slam-ground,13=smash-hit2,14=smash-jump,"
             "15=swing,16=shield-swing,17=swing-slow,18=swing-slow2,19=arrow-destroy,20=blade1b,"

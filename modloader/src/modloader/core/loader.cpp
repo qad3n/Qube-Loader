@@ -40,7 +40,7 @@ namespace modloader
             return name;
         }
 
-        // How many already-loaded mods share this exact id (0 = unique so far). Id is the stable
+        // How many already loaded mods share this exact id (0 = unique so far). Id is the stable
         // identity (manifest id, or DLL stem fallback), so a match is a genuine collision.
         int32_t countLoadedId(const std::string& id)
         {
@@ -166,8 +166,8 @@ namespace modloader
             mod->context.id = (declaredId && declaredId[0]) ? declaredId : stem;
 
             // ABI gate: reject a mod built against an ABI this loader cannot serve. requiredAbi==0
-            // means undeclared (a raw-C mod that did not stamp it) and passes. CUBE_MOD mods always
-            // stamp it, so this backs up the mod-side boot check for the raw-ABI path.
+            // means undeclared (a raw C mod that did not stamp it) and passes. CUBE_MOD mods always
+            // stamp it, so this backs up the mod side boot check for the raw ABI path.
             if (mod->requiredAbi != 0 &&
                 (mod->requiredAbi < CUBE_MIN_ABI_VERSION || mod->requiredAbi > CUBE_ABI_VERSION))
             {
@@ -180,7 +180,7 @@ namespace modloader
             }
 
             // Log category is the stable id on every path (the collision path disambiguates as id#N),
-            // so a mod's init-time logs (keyed by stem, the id fallback) and its runtime logs agree.
+            // so a mod's init time logs (keyed by stem, the id fallback) and its runtime logs agree.
             const int32_t priorSameId = countLoadedId(mod->context.id);
             if (priorSameId > 0)
             {

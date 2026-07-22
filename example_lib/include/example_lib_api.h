@@ -1,6 +1,6 @@
 #pragma once
-// Public contract for example_lib's inter-mod service. A consumer includes this header, resolves the
-// service by kServiceName at READY, and casts the pointer to PingService. The loader never touches it.
+// Public contract for example_lib's inter mod service. A consumer includes this header, resolves the
+// service by kServiceName at READY, then casts the pointer to PingService. The loader never touches it.
 
 #include "cube_sdk.h"
 

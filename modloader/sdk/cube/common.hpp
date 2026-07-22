@@ -1,6 +1,6 @@
 #pragma once
 // Shared value types for the cube:: SDK: enums, Vec3, NamedValue, the catalog namespace,
-// and the enum-name helpers. Every other cube/ header includes this one.
+// and the enum name helpers. Every other cube/ header includes this one.
 
 #include "cube_sdk.h"
 
@@ -26,7 +26,7 @@ namespace cube
             return result;
         }
 
-        // Fills a fixed-max C buffer via one list() call and wraps each element; shared by the
+        // Fills a fixed max C buffer via one list() call and wraps each element; shared by the
         // equipmentOf / inventoryOf / buffsOf / abilityCooldownsOf / structuresOf collection helpers.
         template <typename CObj, typename Wrapper, size_t Max>
         inline std::vector<Wrapper> fillList(const CubeApi* api, int32_t (CUBE_CALL* list)(const CubeApi*, CObj*, int32_t))
@@ -138,7 +138,7 @@ namespace cube
         Multiplayer = CUBE_NET_MULTIPLAYER
     };
 
-    // Built-in game-function hook (interception): the handler gets a HookCall to cancel/mutate/override.
+    // Built in game function hook (interception): the handler gets a HookCall to cancel/mutate/override.
     enum class Hook
     {
         Impact = CUBE_HOOK_IMPACT, // an incoming hit lands; cancel() to negate it, argInt(0)=damage
@@ -390,7 +390,7 @@ namespace cube
 
     typedef CubeEventArgs EventArgs;
 
-    // An opaque game id paired with its human-readable name.
+    // An opaque game id paired with its human readable name.
     struct NamedValue
     {
         int id;

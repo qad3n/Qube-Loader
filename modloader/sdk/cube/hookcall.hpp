@@ -12,9 +12,9 @@ namespace cube
 
         Hook hook() const { return static_cast<Hook>(m_call->hook); }
         bool isRaw() const { return m_call->hook == CUBE_HOOK_RAW; }
-        unsigned address() const { return m_call->address; } // hooked function (raw hooks); 0 built-in
+        unsigned address() const { return m_call->address; } // hooked function (raw hooks); 0 built in
         unsigned self() const { return m_call->self; } // 'this' object, 0 if not a method
-        unsigned target() const { return m_call->target; } // decoded primary object arg (built-in)
+        unsigned target() const { return m_call->target; } // decoded primary object arg (built in)
         int argCount() const { return m_call->argCount; }
 
         int argInt(int index) const { return validArg(index) ? m_call->argi[index] : 0; }
@@ -35,7 +35,7 @@ namespace cube
 
         // Named accessors for CUBE_HOOK_IMPACT (a real hit landing), so the participants read clearly.
         // attacker = the CombatBehavior 'this', victim = the struck creature, damage = the game's own
-        // damage value (mutable), hitFlags = the hit flag word, hitContext = the hit-context pointer.
+        // damage value (mutable), hitFlags = the hit flag word, hitContext = the hit context pointer.
         unsigned attacker() const { return m_call->self; }
         unsigned victim() const { return m_call->target; }
         int damage() const { return m_call->argi[0]; }

@@ -121,11 +121,11 @@ namespace game
             }
         }
 
-        constexpr char kFoodDefaultName[] = "Bait"; // every un-named Food subtype is "Bait" in-game
+        constexpr char kFoodDefaultName[] = "Bait"; // every un named Food subtype is "Bait" in game
         constexpr char kItemFallbackName[] = "item";
         constexpr char kEmptyItemName[] = "empty";
 
-        // The per-type catalog that names an item's subtype, or -1 if the type has no subtype
+        // The per type catalog that names an item's subtype, or -1 if the type has no subtype
         // variants (a singleton item whose name is the type name itself).
         int32_t subtypeCatalogFor(int32_t type)
         {
@@ -142,7 +142,7 @@ namespace game
     }
 
     // The full item directory: resolves (type, subtype) to the game's display name via the catalogs
-    // extracted from the item-name registry. Food falls back to "Bait", singleton types to the type
+    // extracted from the item name registry. Food falls back to "Bait", singleton types to the type
     // name, and anything unmapped to "item". Never null.
     const char* itemDisplayName(int32_t type, int32_t subtype)
     {
@@ -309,7 +309,7 @@ namespace game
         if (!addr || !mem::readable(reinterpret_cast<const void*>(addr), off::kItemStructSize))
             return 0;
 
-        // Game-call the price function (int __thiscall(Item*)); __fastcall shim on mingw.
+        // Game call the price function (int __thiscall(Item*)); __fastcall shim on mingw.
         typedef int32_t(__fastcall* ItemValueFn)(void* self, void* edx);
         const ItemValueFn fn = reinterpret_cast<ItemValueFn>(mem::rebase(off::kItemValueFn));
         int32_t value = 0;
@@ -352,7 +352,7 @@ namespace game
 
         int32_t count = 0;
 
-        // Held / cursor item first: count>0 with an invalid body is the crash-on-menu-open case.
+        // Held / cursor item first: count>0 with an invalid body is the crash on menu open case.
         int32_t heldCount = 0;
         if (mem::read(player + off::kHeldItemCountOff, heldCount) && heldCount > 0)
         {
@@ -468,7 +468,7 @@ namespace game
             case CUBE_ITEM_FIELD_UPGRADE_COUNT:
                 return mem::write<int32_t>(addr + off::kItemUpgradeCountOff,
                     clampInt(value, off::kItemUpgradeMin, maxUpgradesFor(curType, curSubtype)));
-            // Seed only feeds stat-roll variance (consumed modulo), so any value is safe.
+            // Seed only feeds stat roll variance (consumed modulo), so any value is safe.
             case CUBE_ITEM_FIELD_SEED: return mem::write<uint32_t>(addr + off::kItemSeedOff, static_cast<uint32_t>(raw));
             // Inventory stack count sits in the cell, immediately before the item body.
             case CUBE_ITEM_FIELD_STACK:
@@ -491,8 +491,8 @@ namespace game
 
     namespace
     {
-        // DFS over the MSVC std::map<int,int> ability-cooldown tree (bounded node count).
-        // Children are read before fn runs, so an in-fn value write does not disturb traversal.
+        // DFS over the MSVC std::map<int,int> ability cooldown tree (bounded node count).
+        // Children are read before fn runs, so an in fn value write does not disturb traversal.
         template <typename Fn>
         void forEachAbilityNode(uintptr_t player, Fn fn)
         {

@@ -47,7 +47,7 @@ namespace cube
         bool isMenuOpen() const { return m_data.anyOpen != 0; }
         unsigned getAddress() const { return m_data.address; } // GameController base (raw)
         const CubeUi& raw() const { return m_data; }
-        // Force HUD panels open/closed. Input-driven panels may re-close next frame.
+        // Force HUD panels open/closed. Input driven panels may re close next frame.
         bool set(UiField field, bool open) const { return m_api && m_api->ui.setField(m_api, static_cast<int32_t>(field), open ? 1 : 0) != 0; }
         bool setInventoryOpen(bool open) const { return set(UiField::Inventory, open); }
         bool setCharacterOpen(bool open) const { return set(UiField::Character, open); }

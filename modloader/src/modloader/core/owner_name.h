@@ -15,7 +15,7 @@ namespace modloader
         return reinterpret_cast<const ModContext*>(owner)->category.c_str();
     }
 
-    // Stable machine id (manifest id, or DLL stem fallback) - the key for config/storage/services/deps.
+    // Stable machine id (manifest id, or DLL stem fallback). The key for config/storage/services/deps.
     inline const char* ownerId(const CubeApi* owner)
     {
         if (!owner)
@@ -23,7 +23,7 @@ namespace modloader
         return reinterpret_cast<const ModContext*>(owner)->id.c_str();
     }
 
-    // DLL filename stem - the key for the enable/disable + fault-strike registry.
+    // DLL filename stem. The key for the enable/disable and fault strike registry.
     inline const char* ownerStem(const CubeApi* owner)
     {
         if (!owner)
@@ -31,8 +31,8 @@ namespace modloader
         return reinterpret_cast<const ModContext*>(owner)->stem.c_str();
     }
 
-    // Mod-declared dispatch priority (0 for the loader's internal sentinel owners, which have a
-    // zeroed ModContext). Higher priority is dispatched last so it wins last-writer-wins reduces.
+    // Mod declared dispatch priority (0 for the loader's internal sentinel owners, which have a
+    // zeroed ModContext). Higher priority is dispatched last so it wins last writer wins reduces.
     inline int32_t ownerPriority(const CubeApi* owner)
     {
         if (!owner)
@@ -59,7 +59,7 @@ namespace modloader
         return reinterpret_cast<const ModContext*>(owner)->capabilities;
     }
 
-    // Whether this owner may perform game-state writes (declared Writes, or the unrestricted 0 default).
+    // Whether this owner may perform game state writes (declared Writes, or the unrestricted 0 default).
     inline bool ownerMayWrite(const CubeApi* owner)
     {
         const uint32_t caps = ownerCapabilities(owner);
@@ -67,7 +67,7 @@ namespace modloader
     }
 
     // Marks capability bit as warned for this owner and returns true only the first time, so a denied
-    // power logs one WARN per (mod, capability) instead of every call. Log-only state; a race is benign.
+    // power logs one WARN per (mod, capability) instead of every call. Log only state; a race is benign.
     inline bool ownerWarnOnce(const CubeApi* owner, uint32_t bit)
     {
         if (!owner)

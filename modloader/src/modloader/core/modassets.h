@@ -1,8 +1,8 @@
 #pragma once
-// Per-mod ownership over the flat asset-override table in game::assets: tracks which DLL stem registered
-// each filename key so a mod's overrides drop on unload, and warns on a cross-mod key collision (last
-// writer wins). Keyed by DLL stem like modconfig/modstorage. Purely in-memory; the mod supplies the
-// bytes through the assets API (there is no on-disk asset store yet).
+// Per mod ownership over the flat asset override table in game::assets: tracks which DLL stem registered
+// each filename key so a mod's overrides drop on unload, and warns on a cross mod key collision (last
+// writer wins). Keyed by DLL stem like modconfig/modstorage. Purely in memory; the mod supplies the
+// bytes through the assets API (there is no on disk asset store yet).
 #include <cstdint>
 #include <string>
 

@@ -22,7 +22,7 @@ namespace cube
         PlatinumCoin = 13,
         Candle = 18,
         Pet = 19,
-        Food = 20, // food; also the pet-taming / pet-food item
+        Food = 20, // food; also the pet taming / pet food item
         Accessory = 21, // medical / trinket
         Vehicle = 23,
         Lamp = 24,
@@ -54,13 +54,13 @@ namespace cube
         bool isWeapon() const { return getItemType() == ItemType::Weapon; }
         bool isConsumable() const { return getItemType() == ItemType::Consumable; }
         bool isFood() const { return getItemType() == ItemType::Food; }
-        bool isPetFood() const { return isFood(); } // pet-taming feeds a Food item to a tameable critter
-        // Coin value via the game price function (this is the buy price). Needs an api-bound item.
+        bool isPetFood() const { return isFood(); } // pet taming feeds a Food item to a tameable critter
+        // Coin value via the game price function (this is the buy price). Needs an api bound item.
         int getValue() const { return (m_api && m_data.address) ? static_cast<int>(m_api->items.value(m_api, m_data.address)) : 0; }
         // The sell price the game gives for this item (half the buy value).
         int getSellValue() const { return getValue() / kSellValueDivisor; }
         const CubeItem& raw() const { return m_data; }
-        // Live edits (needs an api-bound item, i.e. from equipmentOf/inventoryOf).
+        // Live edits (needs an api bound item, i.e. from equipmentOf/inventoryOf).
         bool set(ItemField field, double value) const { return m_api && m_data.address && m_api->items.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
         bool setType(int type) const { return set(ItemField::Type, type); }
         bool setSubtype(int subtype) const { return set(ItemField::Subtype, subtype); }

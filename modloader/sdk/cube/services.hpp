@@ -1,7 +1,7 @@
 #pragma once
-// Services: the mod-facing inter-mod ecosystem facade. Publish/resolve a named shared service and
+// Services: the mod facing inter mod ecosystem facade. Publish/resolve a named shared service and
 // exchange directed messages with another mod by its manifest id. Get it with mod.services(). No
-// offsets. The service impl pointer and message payloads are raw and mod-owned: provider and consumer
+// offsets. The service impl pointer and message payloads are raw and mod owned: provider and consumer
 // agree their layout by contract (a shared header), the loader never dereferences them.
 
 #include "cube/common.hpp"
@@ -34,7 +34,7 @@ namespace cube
     public:
         Services(const CubeApi* api, Mod* owner) : m_api(api), m_mod(owner) {}
 
-        // Publish impl under name at version (>=1); re-registering the same name replaces it.
+        // Publish impl under name at version (>=1); reregistering the same name replaces it.
         bool registerService(const char* name, unsigned version, void* impl) const
         {
             return m_api && m_api->services.registerService(m_api, name, version, impl) != 0;
@@ -45,7 +45,7 @@ namespace cube
             return m_api && m_api->services.unregisterService(m_api, name) != 0;
         }
 
-        // Resolve the highest-version provider of name with version >= minVersion (nullptr if none).
+        // Resolve the highest version provider of name with version >= minVersion (nullptr if none).
         void* query(const char* name, unsigned minVersion = 1, unsigned* outVersion = nullptr) const
         {
             return m_api ? m_api->services.query(m_api, name, minVersion, outVersion) : nullptr;
@@ -59,7 +59,7 @@ namespace cube
         }
 
         // Register a handler for messages addressed to this mod. Multiple handlers are allowed; each
-        // receives every message. Defined out-of-line (routes through the Mod trampoline).
+        // receives every message. Defined out of line (routes through the Mod trampoline).
         void onMessage(std::function<void(Message&)> fn) const;
 
         // Send msgId + optional payload to the mod whose id == targetModId; returns the handler's reply

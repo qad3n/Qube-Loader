@@ -15,7 +15,7 @@ namespace game
 {
     namespace
     {
-        // Calls the game's own attack-windup classifier (getAttackWindup): a nonzero windup means
+        // Calls the game's own attack windup classifier (getAttackWindup): a nonzero windup means
         // the creature is mid attack/shot/cast/ability, 0 means idle/locomotion. A pure leaf read on
         // the Creature, so it is safe to call for any validated creature. int __thiscall(this,int);
         // action < 0 selects the current action byte. On mingw a __thiscall is called as __fastcall
@@ -29,8 +29,8 @@ namespace game
             return windup > 0;
         }
 
-        // In-progress attack/cast/ability. Named non-attack states are excluded first; every other
-        // id is decided by the game's windup classifier, so we never guess an attack-id whitelist.
+        // In progress attack/cast/ability. Named non attack states are excluded first; every other
+        // id is decided by the game's windup classifier, so we never guess an attack id whitelist.
         bool isCombatAction(uintptr_t creature, uint8_t action)
         {
             switch (action)
@@ -92,8 +92,8 @@ namespace game
         return mem::writeRaw(obj + off::kPlayerNameOff, buffer, std::strlen(buffer) + 1);
     }
 
-    // Writes a creature-local scalar stat (shared by player + entities). FACING here is body yaw;
-    // the player's camera-yaw facing is special-cased in setPlayerStat.
+    // Writes a creature local scalar stat (shared by player + entities). FACING here is body yaw;
+    // the player's camera yaw facing is special cased in setPlayerStat.
     bool writeCreatureStat(uintptr_t obj, int32_t stat, double value)
     {
         const float f = static_cast<float>(value);

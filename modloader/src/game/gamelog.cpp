@@ -95,9 +95,9 @@ namespace gamelog
             static_cast<void>(type);
             g_activeCalls.fetch_add(1);
             LOGC(Error, kGameCategory, "MessageBox [%s] %s", caption ? caption : "", text ? text : "");
-            // Do NOT forward to the real MessageBoxA: a modal behind an exclusive-fullscreen surface is
+            // Do NOT forward to the real MessageBoxA: a modal behind an exclusive fullscreen surface is
             // invisible and blocks the game thread forever (hard hang). The game's MessageBoxA sites are
-            // fatal-init / DB-write errors, already terminal, so capturing the text above is the useful
+            // fatal init / DB write errors, already terminal, so capturing the text above is the useful
             // part. Return the default button so the game proceeds or exits cleanly instead of freezing
             // behind an unseen dialog.
             LOGC(Warn, kGameCategory, "MessageBox suppressed (returned IDOK; a modal would hang behind fullscreen)");

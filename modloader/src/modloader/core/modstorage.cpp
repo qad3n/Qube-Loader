@@ -15,7 +15,7 @@ namespace modloader::modstorage
         constexpr char kBlobSuffix[] = ".bin";
 
         std::string g_dir; // <dllDir>/data
-        std::map<std::string, std::string> g_scope; // sanitized DLL stem -> sanitized scope ("" = root)
+        std::map<std::string, std::string> g_scope; // sanitized DLL stem to sanitized scope ("" = root)
 
         // The directory holding a mod's blobs for its current scope: <data>/<stem>[/<scope>].
         std::string dirOf(const std::string& modStem)

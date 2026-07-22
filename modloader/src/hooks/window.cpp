@@ -20,7 +20,7 @@ namespace hooks::window
             const d3d9::WndProcFn cb = g_onWndProc;
             if (g_active.load() && cb != nullptr && cb(hwnd, msg, wParam, lParam))
                 return 1;
-            // Snapshot: restore() on the eject thread can null g_origWndProc mid-message here
+            // Snapshot: restore() on the eject thread can null g_origWndProc mid message here
             // (mingw has no SEH to guard the window).
             const WNDPROC orig = g_origWndProc;
             if (orig == nullptr)

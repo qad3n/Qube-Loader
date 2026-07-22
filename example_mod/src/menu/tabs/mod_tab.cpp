@@ -20,14 +20,14 @@ namespace exmod::menu
         const char* const kLogLevelNames[] = {"Trace", "Debug", "Info", "Warn", "Error"};
 
         // config() keys: these persist REAL example_mod settings across restarts (not throwaway demo
-        // values) - the UI scale, log level, and the on-load greeting.
+        // values). The UI scale, log level, and the on load greeting.
         constexpr char kUiScaleKey[] = "ui_scale";
         constexpr char kLogLevelKey[] = "log_level";
         constexpr char kGreetOnLoadKey[] = "greet_on_load";
         constexpr char kGreetingKey[] = "greeting";
         constexpr char kGreetingDefault[] = "welcome back";
 
-        // storage() keys: mod-owned binary save data (the launch counter and a free-text note blob).
+        // storage() keys: mod owned binary save data (the launch counter and a free text note blob).
         constexpr char kLaunchesKey[] = "launches";
         constexpr char kNoteKey[] = "note";
 
@@ -206,7 +206,7 @@ namespace exmod::menu
 
     void ModTab::drawPersist()
     {
-        // config() = user-editable settings (<stem>.ini); storage() = mod-owned binary save data. Both
+        // config() = user editable settings (<stem>.ini); storage() = mod owned binary save data. Both
         // key on this mod's DLL stem and persist across restarts. This tab exercises the whole surface;
         // ui_scale (float) and log_level (int) are edited on the Info / Logging tabs and shown here.
         cube::Config config = cube::mod().config();
@@ -249,7 +249,7 @@ namespace exmod::menu
             emitLog(CUBE_LOG_INFO, "example_mod: launch count reset");
         }
 
-        // A free-text note blob, optionally namespaced by a scope (setScope) so each save/world keeps
+        // A free text note blob, optionally namespaced by a scope (setScope) so each save/world keeps
         // its own copy. Demonstrates put/getString, has, size and remove.
         ImGui::SeparatorText("note blob (put/getString + has/size/remove + setScope)");
         ImGui::SetNextItemWidth(sc(kInputWidth));

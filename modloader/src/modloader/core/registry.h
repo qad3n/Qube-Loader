@@ -1,6 +1,6 @@
 #pragma once
-// Owner-tagged subscription registry behind the event bus: a sub drops by token (one) or owner (all).
-// Thread-safe: snapshotInto() copies matching subs under the lock so dispatch runs without holding it.
+// Owner tagged subscription registry behind the event bus: a sub drops by token (one) or owner (all).
+// Thread safe: snapshotInto() copies matching subs under the lock so dispatch runs without holding it.
 #include "cube_sdk.h"
 
 #include <cstdint>
@@ -25,7 +25,7 @@ namespace modloader
         }
 
         // Copies every sub matching pred into out (cleared, capacity reused) under the lock, for
-        // lock-free dispatch afterwards. Pass a reusable buffer to keep the hot path allocation-free.
+        // lock free dispatch afterwards. Pass a reusable buffer to keep the hot path allocation free.
         template <typename Pred>
         void snapshotInto(std::vector<Sub>& out, Pred pred) const
         {

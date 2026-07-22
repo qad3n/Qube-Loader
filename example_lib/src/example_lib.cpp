@@ -1,7 +1,7 @@
 #include "cube_mod.hpp"
 #include "example_lib_api.h"
 
-// A minimal headless companion mod: no ImGui, no menu. It makes the inter-mod ecosystem real, so
+// A minimal headless companion mod: no ImGui, no menu. It makes the inter mod ecosystem real, so
 // example_mod can declare a dependency on it, resolve its service at READY, and message it. Doubles as
 // the smallest possible CUBE_MOD template.
 

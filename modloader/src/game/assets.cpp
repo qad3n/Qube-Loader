@@ -22,20 +22,20 @@ namespace game::assets
     namespace
     {
         constexpr char kCategory[] = "assets";
-        constexpr char kRawExtension[] = ".cub"; // data1 is stored un-obfuscated; all other DBs re-encode
+        constexpr char kRawExtension[] = ".cub"; // data1 is stored un obfuscated; all other DBs reencode
         constexpr uint32_t kMaxKeyLength = 260;  // filename key upper bound (bounds the guarded string read)
         constexpr int32_t kMaxBlobBytes = 64 * 1024 * 1024; // sanity cap on a single override blob
-        constexpr uint8_t kSelfTestLen = 64;     // codec round-trip sample size
-        constexpr uint8_t kSelfTestStep = 7;     // arbitrary non-trivial byte pattern for the self-test
+        constexpr uint8_t kSelfTestLen = 64;     // codec round trip sample size
+        constexpr uint8_t kSelfTestStep = 7;     // arbitrary non trivial byte pattern for the self test
 
         // db::loadBlobByKey is __thiscall(Database* this, std::string* key, void** outBlob, size_t*
-        // outSize). On mingw a __thiscall with stack args is ABI-identical to __fastcall(self, edx, ...):
-        // ECX -> self, EDX is an unused dummy, and the three stack args follow.
+        // outSize). On mingw a __thiscall with stack args is ABI identical to __fastcall(self, edx, ...):
+        // ECX is self, EDX is an unused dummy, and the three stack args follow.
         typedef uint32_t(__fastcall* LoadBlobFn)(void* self, void* edx, void* key, void** outBlob, uint32_t* outSize);
         typedef void*(__cdecl* OperatorNewFn)(uint32_t size);
 
         std::mutex g_mutex;
-        std::map<std::string, std::vector<uint8_t>> g_overrides; // key (filename) -> plaintext bytes
+        std::map<std::string, std::vector<uint8_t>> g_overrides; // key (filename) to plaintext bytes
         int32_t g_key[off::kBlobShuffleKeyCount] = {};           // shuffle key, loaded from .rdata at install
 
         LoadBlobFn g_original = nullptr;
@@ -48,8 +48,8 @@ namespace game::assets
             return reinterpret_cast<void*>(mem::rebase(off::kDbLoadBlobByKey));
         }
 
-        // ASCII-lowercase a byte (letters only; '.' and digits pass through), so the extension test is
-        // case-insensitive without pulling in locale-sensitive std::tolower.
+        // ASCII lowercase a byte (letters only; '.' and digits pass through), so the extension test is
+        // case insensitive without pulling in locale sensitive std::tolower.
         char asciiLower(char c)
         {
             return (c >= 'A' && c <= 'Z') ? static_cast<char>(c + ('a' - 'A')) : c;
@@ -97,8 +97,8 @@ namespace game::assets
         }
 
         // On an override hit, allocate the blob with the game's operator new (so the caller frees it with
-        // operator delete), fill it with the mod's bytes (re-encoded for non-.cub), and report it through
-        // the caller's out-args. Returns false to fall through to the original read.
+        // operator delete), fill it with the mod's bytes (reencoded for non-.cub), and report it through
+        // the caller's out args. Returns false to fall through to the original read.
         bool tryOverride(void* keyStr, void** outBlob, uint32_t* outSize, uint32_t& result)
         {
             std::string key;
@@ -111,7 +111,7 @@ namespace game::assets
                 const std::map<std::string, std::vector<uint8_t>>::const_iterator it = g_overrides.find(key);
                 if (it == g_overrides.end())
                     return false;
-                bytes = it->second; // copy out so the re-encode runs without holding the lock
+                bytes = it->second; // copy out so the reencode runs without holding the lock
             }
 
             if (!endsWithRawExtension(key))
@@ -141,9 +141,9 @@ namespace game::assets
             {
                 uint32_t result = 0;
                 bool handled = false;
-                // Isolate a CPU fault in the override path (this runs on the game's asset-streaming
+                // Isolate a CPU fault in the override path (this runs on the game's asset streaming
                 // thread at load). On a fault handled stays false and we fall through to the original
-                // read below - the game loads the vanilla blob and keeps running.
+                // read below, the game loads the vanilla blob and keeps running.
                 guard::tryRunLoader("asset override", [&]()
                 {
                     handled = tryOverride(keyStr, outBlob, outSize, result);
@@ -161,7 +161,7 @@ namespace game::assets
 
         // Prove encode() and decode() are mutual inverses under the loaded key, so a corrupt key read is
         // caught before any override goes live. Does not prove parity with the game's decode (that is the
-        // standing live-verify item), but catches the most likely failure.
+        // standing live verify item), but catches the most likely failure.
         bool selfTest()
         {
             std::vector<uint8_t> sample;
@@ -208,8 +208,8 @@ namespace game::assets
         if (!g_installed)
             return;
 
-        g_active.store(false, std::memory_order_release); // flip to pass-through first
-        barrier::drain(g_inFlight, kCategory);             // drain in-flight calls before unpatching
+        g_active.store(false, std::memory_order_release); // flip to pass through first
+        barrier::drain(g_inFlight, kCategory);             // drain in flight calls before unpatching
         hooks::detour::remove(target());
         g_original = nullptr;
         g_installed = false;

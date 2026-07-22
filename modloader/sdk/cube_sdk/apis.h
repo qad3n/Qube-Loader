@@ -1,5 +1,5 @@
 #pragma once
-// Sub-API vtable structs: one function-pointer table per domain.
+// Sub API vtable structs: one function pointer table per domain.
 
 #include "cube_sdk/types.h"
 #include "cube_sdk/events_hooks.h"
@@ -33,7 +33,7 @@ typedef struct CubePlayerApi
     int32_t (CUBE_CALL* teleport)(const struct CubeApi* api, float x, float y, float z);
     // Writes any CubePlayerStat at the field's correct width; value is a double covering float and int.
     int32_t (CUBE_CALL* setStat)(const struct CubeApi* api, int32_t stat, double value);
-    // Sets the local player's name (narrow, truncated to the in-game buffer).
+    // Sets the local player's name (narrow, truncated to the in game buffer).
     int32_t (CUBE_CALL* setName)(const struct CubeApi* api, const char* name);
 } CubePlayerApi;
 
@@ -47,7 +47,7 @@ typedef struct CubeItemsApi
 {
     // Fills the local player's equipped items (present slots only) into out; returns count.
     int32_t (CUBE_CALL* equipment)(const struct CubeApi* api, CubeItem* out, int32_t maxCount);
-    // Fills the local player's inventory items (non-empty cells) into out; returns count.
+    // Fills the local player's inventory items (non empty cells) into out; returns count.
     int32_t (CUBE_CALL* inventory)(const struct CubeApi* api, CubeItem* out, int32_t maxCount);
     // Writes one CubeItemField of the item at itemAddress (from CubeItem.address); guarded. 1 on success.
     // value is double so every field setter shares one width (the loader casts per field).
@@ -65,7 +65,7 @@ typedef struct CubeItemsApi
 typedef struct CubeAbilityCooldown
 {
     uint32_t structSize;
-    uint32_t address; // live map-node base pointer (for raw edits)
+    uint32_t address; // live map node base pointer (for raw edits)
     int32_t abilityId;
     int32_t remainingMs;
 } CubeAbilityCooldown;
@@ -76,7 +76,7 @@ typedef struct CubeSkillsApi
     int32_t (CUBE_CALL* ranks)(const struct CubeApi* api, int32_t* out, int32_t maxCount);
     // Sets skill rank [index] (0..CUBE_SKILL_COUNT-1) to value. 1 on success.
     int32_t (CUBE_CALL* setRank)(const struct CubeApi* api, int32_t index, int32_t value);
-    // Fills the live per-ability cooldown timers into out; returns the count written.
+    // Fills the live per ability cooldown timers into out; returns the count written.
     int32_t (CUBE_CALL* cooldowns)(const struct CubeApi* api, CubeAbilityCooldown* out, int32_t maxCount);
     // Sets abilityId's remaining cooldown (ms). 0 if the ability is not in the cooldown map yet or the player is unavailable.
     int32_t (CUBE_CALL* setCooldown)(const struct CubeApi* api, int32_t abilityId, int32_t remainingMs);
@@ -101,7 +101,7 @@ typedef struct CubeWorldApi
     int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeWorld* out);
     // Fills placed structures / POIs from the player's current zone; returns count.
     int32_t (CUBE_CALL* structures)(const struct CubeApi* api, CubeStructure* out, int32_t maxCount);
-    // Sets the time-of-day (milliseconds in [0, 86400000); wrapped by the loader). 1 on success.
+    // Sets the time of day (milliseconds in [0, 86400000); wrapped by the loader). 1 on success.
     int32_t (CUBE_CALL* setTime)(const struct CubeApi* api, int32_t ms);
     // Writes a CubeTileField on the player's current ZoneTile (terrain/temp/...). 1 on success.
     int32_t (CUBE_CALL* setTile)(const struct CubeApi* api, int32_t field, double value);
@@ -156,10 +156,10 @@ typedef struct CubeDisplayApi
 typedef struct CubeAudioApi
 {
     int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeAudio* out); // client only
-    // Play a built-in sound effect (CUBE_CATALOG_SOUND id, 0..100) 2D at the listener. 1 on success.
-    // WARNING: game-call; invoke from the game thread (an event callback / hook), not another thread.
+    // Play a built in sound effect (CUBE_CATALOG_SOUND id, 0..100) 2D at the listener. 1 on success.
+    // WARNING: game call; invoke from the game thread (an event callback / hook), not another thread.
     int32_t (CUBE_CALL* playSound)(const struct CubeApi* api, int32_t soundId);
-    // Play a built-in sound effect at a world position with volume/pitch multipliers. 1 on success.
+    // Play a built in sound effect at a world position with volume/pitch multipliers. 1 on success.
     int32_t (CUBE_CALL* playSoundAt)(const struct CubeApi* api, int32_t soundId, float x, float y, float z, float volume, float pitch);
     // Stop the currently playing music. 1 on success. (Playing music by name needs a file path the
     // game does not expose, so it is not offered here.)
@@ -219,11 +219,11 @@ typedef struct CubeSessionApi
 typedef struct CubeUiApi
 {
     int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeUi* out); // client only
-    // Forces a CubeUiField open/closed (client only); input-driven panels may be re-closed by the game next frame. 1 on success.
+    // Forces a CubeUiField open/closed (client only); input driven panels may be re closed by the game next frame. 1 on success.
     int32_t (CUBE_CALL* setField)(const struct CubeApi* api, int32_t field, int32_t open);
 } CubeUiApi;
 
-// Human-readable name catalogs, so a mod can render/edit opaque game ids (item
+// Human readable name catalogs, so a mod can render/edit opaque game ids (item
 // type, material, terrain, buff, ...) as names + dropdowns instead of raw numbers.
 typedef enum CubeCatalog
 {
@@ -238,14 +238,14 @@ typedef enum CubeCatalog
     CUBE_CATALOG_ENTITY_CATEGORY,
     CUBE_CATALOG_CLASS,
     CUBE_CATALOG_SPECIES,
-    CUBE_CATALOG_SKILL, // indexed by skill-array slot (0..CUBE_SKILL_COUNT-1)
-    CUBE_CATALOG_ABILITY, // ability id -> name (matches CubeAbilityCooldown.abilityId)
+    CUBE_CATALOG_SKILL, // indexed by skill array slot (0..CUBE_SKILL_COUNT-1)
+    CUBE_CATALOG_ABILITY, // ability id to name (matches CubeAbilityCooldown.abilityId)
     CUBE_CATALOG_CONSUMABLE_SUBTYPE, // item subtype when type == Consumable (1): potions/edibles
     CUBE_CATALOG_FOOD_SUBTYPE, // item subtype when type == Food (20); only named overrides (default = Bait)
     CUBE_CATALOG_SPECIAL_SUBTYPE, // item subtype when type == Special (11): crafting materials / parts
     CUBE_CATALOG_ACCESSORY_SUBTYPE, // item subtype when type == Accessory (21): medical / trinkets
     CUBE_CATALOG_VEHICLE_SUBTYPE, // item subtype when type == Vehicle (23)
-    CUBE_CATALOG_SOUND, // built-in sound-effect id -> wav name (for audio.playSound)
+    CUBE_CATALOG_SOUND, // built in sound effect id to wav name (for audio.playSound)
     CUBE_CATALOG_COUNT
 } CubeCatalog;
 
@@ -279,44 +279,44 @@ typedef struct CubeSelectionApi
     int32_t (CUBE_CALL* getLast)(const struct CubeApi* api, CubeSelection* out);
 } CubeSelectionApi;
 
-// Item pickup (client only). The loader detours the E / hold-to-pickup action
+// Item pickup (client only). The loader detours the E / hold to pickup action
 // (GameController::onItemPickup); subscribe to CUBE_EVENT_ITEM_PICKUP or poll getLast().
 typedef struct CubePickupApi
 {
-    // Fills the most recently picked-up item (out.stack = count); returns 1 if any pickup has
+    // Fills the most recently picked up item (out.stack = count); returns 1 if any pickup has
     // happened, else 0. out.address is 0 (the picked item is a transient staging copy).
     int32_t (CUBE_CALL* getLast)(const struct CubeApi* api, CubeItem* out);
 } CubePickupApi;
 
-// Game-function hooking (interception). All registrations are per-mod and auto-removed on unload; see the game-thread warning above.
+// Game function hooking (interception). All registrations are per mod and auto removed on unload; see the game thread warning above.
 typedef struct CubeHooksApi
 {
-    // Built-in (semantic) hook: run fn whenever the named game function is called. Returns 1.
+    // Built in (semantic) hook: run fn whenever the named game function is called. Returns 1.
     int32_t (CUBE_CALL* on)(const struct CubeApi* api, CubeHook hook, CubeHookFn fn, void* user);
-    // Detach all of this mod's handlers for a built-in hook. Returns 1 if any were removed.
+    // Detach all of this mod's handlers for a built in hook. Returns 1 if any were removed.
     int32_t (CUBE_CALL* off)(const struct CubeApi* api, CubeHook hook);
     // Raw hook of an address the mod found itself; fn receives a CubeHookCall via a generic capture stub.
     // First cut: __thiscall/__cdecl, up to CUBE_HOOK_ARG_MAX int/pointer args, int return. 0 if the pool is full or unhookable.
     int32_t (CUBE_CALL* onRaw)(const struct CubeApi* api, uint32_t address, CubeCallConv cc,
                                int32_t argCount, CubeHookFn fn, void* user);
-    // Escape hatch: install a mod-supplied detour and receive the trampoline; the mod owns the signature/convention.
+    // Escape hatch: install a mod supplied detour and receive the trampoline; the mod owns the signature/convention.
     int32_t (CUBE_CALL* installRawDetour)(const struct CubeApi* api, uint32_t address, void* detour,
                                           void** trampoline);
     // Remove any raw hook (onRaw or installRawDetour) this mod placed at address. Returns 1/0.
     int32_t (CUBE_CALL* removeRaw)(const struct CubeApi* api, uint32_t address);
-    // Runtime (rebased) address of a built-in hook's target game function, or 0 if unknown. Lets a mod
-    // coordinate a raw hook with a built-in without hardcoding a loader-owned address.
+    // Runtime (rebased) address of a built in hook's target game function, or 0 if unknown. Lets a mod
+    // coordinate a raw hook with a built in without hardcoding a loader owned address.
     uint32_t (CUBE_CALL* builtinTarget)(const struct CubeApi* api, int32_t hook);
 } CubeHooksApi;
 
-// Per-mod user-editable settings, persisted to <dllDir>/config/<stem>.ini (keyed by the mod's DLL
-// stem, resolved loader-side - no key argument). Each getter takes a fallback returned when the key is missing/malformed.
+// Per mod user editable settings, persisted to <dllDir>/config/<stem>.ini (keyed by the mod's DLL
+// stem, resolved loader side, no key argument). Each getter takes a fallback returned when the key is missing/malformed.
 typedef struct CubeConfigApi
 {
     int32_t (CUBE_CALL* getInt)(const struct CubeApi* api, const char* key, int32_t fallback);
     double (CUBE_CALL* getFloat)(const struct CubeApi* api, const char* key, double fallback);
     int32_t (CUBE_CALL* getBool)(const struct CubeApi* api, const char* key, int32_t fallback);
-    // Copies the value (or fallback) into out (always null-terminated within size); returns the string length.
+    // Copies the value (or fallback) into out (always null terminated within size); returns the string length.
     int32_t (CUBE_CALL* getString)(const struct CubeApi* api, const char* key, const char* fallback, char* out, int32_t size);
     int32_t (CUBE_CALL* setInt)(const struct CubeApi* api, const char* key, int32_t value);
     int32_t (CUBE_CALL* setFloat)(const struct CubeApi* api, const char* key, double value);
@@ -324,8 +324,8 @@ typedef struct CubeConfigApi
     int32_t (CUBE_CALL* setString)(const struct CubeApi* api, const char* key, const char* value);
 } CubeConfigApi;
 
-// Per-mod save data: opaque binary blobs under <dllDir>/data/<stem>/ (keyed by the mod's DLL stem,
-// resolved loader-side). Distinct from config (that is user-editable text); this is mod-owned, binary-safe state.
+// Per mod save data: opaque binary blobs under <dllDir>/data/<stem>/ (keyed by the mod's DLL stem,
+// resolved loader side). Distinct from config (that is user editable text); this is mod owned, binary safe state.
 typedef struct CubeStorageApi
 {
     // Namespace subsequent get/put/... under a scope subdirectory (e.g. world seed / character). "" or NULL = the unscoped root. Returns 1.
@@ -340,18 +340,18 @@ typedef struct CubeStorageApi
     int32_t (CUBE_CALL* has)(const struct CubeApi* api, const char* key);
 } CubeStorageApi;
 
-// Inter-mod ecosystem: a mod publishes a named, versioned shared service (any consumer resolves it by
+// Inter mod ecosystem: a mod publishes a named, versioned shared service (any consumer resolves it by
 // name at CUBE_EVENT_READY) and/or receives directed messages addressed to its manifest id. The service
-// impl pointer and message payloads cross the DLL boundary raw - provider and consumer own their
+// impl pointer and message payloads cross the DLL boundary raw. Provider and consumer own their
 // lifetime and agree their layout by contract (the loader never dereferences either).
 typedef struct CubeServicesApi
 {
-    // Publish impl under name at version (>=1). Re-registering the same name from the same mod replaces
+    // Publish impl under name at version (>=1). reregistering the same name from the same mod replaces
     // it. Returns 1 on success, 0 on bad args.
     int32_t (CUBE_CALL* registerService)(const struct CubeApi* api, const char* name, uint32_t version, void* impl);
     // Withdraw this mod's service named name. Returns 1 if one existed. (Also dropped automatically on unload.)
     int32_t (CUBE_CALL* unregisterService)(const struct CubeApi* api, const char* name);
-    // Resolve the highest-version provider of name whose version >= minVersion; NULL if none. Optionally
+    // Resolve the highest version provider of name whose version >= minVersion; NULL if none. Optionally
     // writes the chosen provider's version to outVersion (may be NULL).
     void* (CUBE_CALL* query)(const struct CubeApi* api, const char* name, uint32_t minVersion, uint32_t* outVersion);
     // Register this mod's message receiver. Returns a token (0 on failure); pass it to clearMessageHandler.
@@ -363,24 +363,24 @@ typedef struct CubeServicesApi
     int32_t (CUBE_CALL* sendMessage)(const struct CubeApi* api, const char* targetModId, uint32_t msgId, void* payload, uint32_t payloadSize);
 } CubeServicesApi;
 
-// Per-mod localization: translate keys against the mod's own locale files at
+// Per mod localization: translate keys against the mod's own locale files at
 // <dllDir>/lang/<stem>/<locale>.ini (flat key=value, keyed by the mod's DLL stem like config/storage).
 // A missing key falls back to the caller's fallback, then to the key text. The active locale defaults
 // to the loader's (env CUBE_MOD_LOCALE, else "en") and can be overridden per mod via setLocale.
 typedef struct CubeLocaleApi
 {
     // Copies the translation of key (or fallback, or key if fallback is NULL) into out (always
-    // null-terminated within size); returns the string length.
+    // null terminated within size); returns the string length.
     int32_t (CUBE_CALL* translate)(const struct CubeApi* api, const char* key, const char* fallback, char* out, int32_t size);
     // Sets this mod's active locale (which <locale>.ini subsequent translate calls read). Returns 1.
     int32_t (CUBE_CALL* setLocale)(const struct CubeApi* api, const char* locale);
-    // Copies this mod's active locale into out (always null-terminated); returns the string length.
+    // Copies this mod's active locale into out (always null terminated); returns the string length.
     int32_t (CUBE_CALL* getLocale)(const struct CubeApi* api, char* out, int32_t size);
 } CubeLocaleApi;
 
 // Asset override: a mod supplies its own bytes for a game asset addressed by its original filename key
 // (e.g. "alga.cub", "aim.png"). The loader detours the game's blob read and returns the mod's data,
-// re-encoding it to match the per-database storage format so the game's own decode reconstructs it. The
+// reencoding it to match the per database storage format so the game's own decode reconstructs it. The
 // mod always supplies decoded plaintext (a raw .cub, a real .png); the loader owns the encoding. Gated
 // on the Assets capability. Requires a compatible Cube.exe build (the detour is skipped otherwise).
 typedef struct CubeAssetsApi
@@ -394,19 +394,19 @@ typedef struct CubeAssetsApi
     int32_t (CUBE_CALL* hasAsset)(const struct CubeApi* api, const char* key);
 } CubeAssetsApi;
 
-// Loader-owned ImGui overlay (client only). The loader owns the ONE ImGui context, the DX9 + Win32
-// backends, the per-frame New/Render, DPI + user scaling, device-reset recreate, the toggle-key edge
-// and the game input freeze. A mod registers a draw callback and writes ImGui code inside it - no
+// Loader owned ImGui overlay (client only). The loader owns the ONE ImGui context, the DX9 + Win32
+// backends, the per frame New/Render, DPI + user scaling, device reset recreate, the toggle key edge
+// and the game input freeze. A mod registers a draw callback and writes ImGui code inside it. No
 // hooking, no context creation, no lifecycle. Because the loader owns the single context, ANY number
 // of mods can each draw their own menu (the old "only one mod can have ImGui" limit is gone). Gated on
 // CUBE_CAP_OVERLAY. Prefer the cube::Menu C++ wrapper (cube/menu.hpp): it binds the shared context and
-// allocator for you and auto-unregisters on unload, so a mod never touches the handoff calls below.
+// allocator for you and auto unregisters on unload, so a mod never touches the handoff calls below.
 typedef void (CUBE_CALL* CubeOverlayDrawFn)(void* user); // runs between the loader's NewFrame and Render
 
 typedef struct CubeOverlayApi
 {
-    // Register a per-frame draw callback; returns a nonzero handle (0 = bad args / overlay unavailable /
-    // capability not declared). toggleKey is a VK_* code that flips this menu's visibility on its key-down
+    // Register a per frame draw callback; returns a nonzero handle (0 = bad args / overlay unavailable /
+    // capability not declared). toggleKey is a VK_* code that flips this menu's visibility on its key down
     // edge (0 = no toggle, always drawn). startOpen sets the initial visibility. The callback runs only
     // while the menu is visible, between the loader's NewFrame and Render, with the shared context current.
     uint32_t (CUBE_CALL* registerMenu)(const struct CubeApi* api, CubeOverlayDrawFn fn, void* user,
@@ -415,24 +415,24 @@ typedef struct CubeOverlayApi
     // automatically on unload.)
     int32_t (CUBE_CALL* unregisterMenu)(const struct CubeApi* api, uint32_t handle);
 
-    // Per-menu visibility + toggle key. setVisible drives the game input freeze (any visible,
-    // non-passthrough menu freezes movement/camera/cursor). isVisible returns 1/0 (0 on bad handle).
+    // Per menu visibility + toggle key. setVisible drives the game input freeze (any visible,
+    // non passthrough menu freezes movement/camera/cursor). isVisible returns 1/0 (0 on bad handle).
     int32_t (CUBE_CALL* setVisible)(const struct CubeApi* api, uint32_t handle, int32_t visible);
     int32_t (CUBE_CALL* isVisible)(const struct CubeApi* api, uint32_t handle);
     int32_t (CUBE_CALL* setToggleKey)(const struct CubeApi* api, uint32_t handle, uint32_t vkey);
     // HUD passthrough: 1 = an open menu does NOT freeze the game (movement/camera stay live, the game
-    // grabs the cursor so widgets are display-only). Default 0 (interactive: the menu owns input).
+    // grabs the cursor so widgets are display only). Default 0 (interactive: the menu owns input).
     int32_t (CUBE_CALL* setPassthrough)(const struct CubeApi* api, uint32_t handle, int32_t passthrough);
     int32_t (CUBE_CALL* passthrough)(const struct CubeApi* api, uint32_t handle);
 
     // Shared user UI scale (multiplied on top of the monitor DPI the loader queries). One context, so
-    // this is loader-global across every mod's menu. setUiScale is clamped to [0.5, 3.0] and applied on
+    // this is loader global across every mod's menu. setUiScale is clamped to [0.5, 3.0] and applied on
     // the next frame. uiScale/dpiScale read the current user multiplier and the live monitor DPI factor.
     int32_t (CUBE_CALL* setUiScale)(const struct CubeApi* api, float scale);
     float (CUBE_CALL* uiScale)(const struct CubeApi* api);
     float (CUBE_CALL* dpiScale)(const struct CubeApi* api);
 
-    // Shared-context handoff (Strategy B). The loader owns the ImGuiContext and installs the ImGui
+    // Shared context handoff (Strategy B). The loader owns the ImGuiContext and installs the ImGui
     // allocator; a mod compiling its own ImGui MUST bind BOTH before any ImGui:: call so its widget code
     // targets the loader's live context and heap. The cube::Menu wrapper calls these once for you.
     void* (CUBE_CALL* context)(const struct CubeApi* api); // the loader's ImGuiContext* (NULL until ready)

@@ -13,8 +13,8 @@ namespace modloader::modassets
     {
         constexpr char kCategory[] = "modasset";
 
-        std::map<std::string, std::set<std::string>> g_byStem; // stem -> keys it owns
-        std::map<std::string, std::string> g_owner;            // key -> current owning stem
+        std::map<std::string, std::set<std::string>> g_byStem; // stem to keys it owns
+        std::map<std::string, std::string> g_owner;            // key to current owning stem
     }
 
     bool registerAsset(const std::string& modStem, const std::string& key, const void* data, int32_t size)

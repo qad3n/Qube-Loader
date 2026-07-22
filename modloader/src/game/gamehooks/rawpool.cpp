@@ -11,7 +11,7 @@
 #include <mutex>
 #include <utility>
 
-// Generic raw-hook capture pool: precompiled detour slots per (cc, arity) so ret stack cleanup
+// Generic raw hook capture pool: precompiled detour slots per (cc, arity) so ret stack cleanup
 // matches the target (no runtime codegen). __cdecl + __thiscall, int/ptr return only (float needs installRawDetour).
 
 namespace game::gamehooks::rawpool
@@ -20,7 +20,7 @@ namespace game::gamehooks::rawpool
     {
         constexpr char kCategory[] = "rawhook";
 
-        // Per-slot in-flight counter; remove() drains it before freeing the slot's trampoline.
+        // Per slot in flight counter; remove() drains it before freeing the slot's trampoline.
         std::atomic<int> g_inFlight[kSlotMax];
 
         struct Slot
@@ -68,7 +68,7 @@ namespace game::gamehooks::rawpool
             return cancel;
         }
 
-        // __cdecl: caller-cleans, so one detour serves every arity (extra params are ignored via argCount).
+        // __cdecl: caller cleans, so one detour serves every arity (extra params are ignored via argCount).
         template <int SlotIndex>
         int32_t __cdecl cdeclDetour(int32_t a0, int32_t a1, int32_t a2, int32_t a3)
         {
@@ -85,7 +85,7 @@ namespace game::gamehooks::rawpool
             return call.overrideReturn ? call.returnI : real;
         }
 
-        // __thiscall (this in ECX, callee-cleans) == __fastcall with a dummy edx on mingw; one detour per arity so ret cleanup matches.
+        // __thiscall (this in ECX, callee cleans) == __fastcall with a dummy edx on mingw; one detour per arity so ret cleanup matches.
         template <int SlotIndex>
         int32_t __fastcall thiscall0(void* ecx, void* edx)
         {
@@ -278,7 +278,7 @@ namespace game::gamehooks::rawpool
         if (slot < 0)
             return false;
 
-        // Wait out any in-flight call through this slot before we free its trampoline, then remove.
+        // Wait out any in flight call through this slot before we free its trampoline, then remove.
         barrier::drain(g_inFlight[slot], "raw hook");
         hooks::detour::remove(reinterpret_cast<void*>(static_cast<uintptr_t>(address)));
         std::lock_guard<std::mutex> lock(g_mutex);

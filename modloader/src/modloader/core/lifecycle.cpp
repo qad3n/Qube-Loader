@@ -41,15 +41,15 @@ namespace modloader
         hooks::render::Token g_renderToken = hooks::render::kInvalidToken;
 
         // Arm the loader's game hooks now that at least one mod is present. Every one is a transparent
-        // pass-through: it changes vanilla behavior ONLY when a mod's own callback acts (subscribes and
-        // overrides, or opens its overlay). The observation reservations (attack/crit) stay pass-through
-        // until a mod hooks them; selection/pickup capture is read-only; the input/DI freeze is inert
+        // pass through: it changes vanilla behavior ONLY when a mod's own callback acts (subscribes and
+        // overrides, or opens its overlay). The observation reservations (attack/crit) stay pass through
+        // until a mod hooks them; selection/pickup capture is read only; the input/DI freeze is inert
         // until a mod calls input.setBlocked. With no mod loaded none of these are installed at all.
         void installModHooks(bool overlayEnabled)
         {
-            // Game-function detours target hard addresses from one Cube.exe build; on a mismatched
+            // Game function detours target hard addresses from one Cube.exe build; on a mismatched
             // binary they would corrupt code. Verify the build once (before any patch) and skip them
-            // if it differs - the overlay and guarded reads still run, so the user gets a working menu
+            // if it differs, the overlay and guarded reads still run, so the user gets a working menu
             // instead of an instant crash.
             if (game::signature::compatibleBuild())
             {
@@ -62,7 +62,7 @@ namespace modloader
             else
                 LOGC(Warn, kCategory, "game-function hooks skipped (Cube.exe build mismatch): attack/crit sampling, R-select and E-pickup capture are OFF; overlay and reads still work");
 
-            // The input freeze (user32 IAT by import name) and DI suspend (system-DLL vtable) drive the
+            // The input freeze (user32 IAT by import name) and DI suspend (system DLL vtable) drive the
             // overlay's input handoff. In safe mode (overlay off) there is no overlay to feed, so skip
             // them too and leave the game's own input untouched.
             if (overlayEnabled)
@@ -73,7 +73,7 @@ namespace modloader
         }
 
         // Reverse of installModHooks. Detour removals must precede MinHook shutdown (done by the caller
-        // after remove()); each remove no-ops if its install never ran.
+        // after remove()); each remove no ops if its install never ran.
         void removeModHooks()
         {
             game::assets::remove();
@@ -83,7 +83,7 @@ namespace modloader
             hooks::input_block::remove();
         }
 
-        // Per-mod teardown (no list erase): guarded shutdown, drop loader-side registrations, free the
+        // Per mod teardown (no list erase): guarded shutdown, drop loader side registrations, free the
         // DLL. Shared by remove() (bulk) and unloadOne (single) so there is exactly one teardown path.
         void teardownMod(LoadedMod* mod)
         {
@@ -96,8 +96,8 @@ namespace modloader
                 });
             }
 
-            // Drop any overlay menus this mod registered (drains an in-flight frame) before its code is
-            // freed. No-op after overlay::shutdown() already cleared the registry (bulk remove()).
+            // Drop any overlay menus this mod registered (drains an in flight frame) before its code is
+            // freed. no op after overlay::shutdown() already cleared the registry (bulk remove()).
             overlay::unregisterOwner(&mod->context.api);
             detachOwner(&mod->context.api);
             FreeLibrary(mod->module);
@@ -138,10 +138,10 @@ namespace modloader
             return 0;
         }
 
-        // Load the enable/disable + fault-strike registry so scan() can skip disabled mods.
+        // Load the enable/disable + fault strike registry so scan() can skip disabled mods.
         modregistry::load(dllDir);
 
-        // Root the per-mod config + storage + locale stores before scan(): a mod may read any of them
+        // Root the per mod config + storage + locale stores before scan(): a mod may read any of them
         // (a setting, save data, or a translated startup string) in its init.
         modconfig::init(dllDir);
         modstorage::init(dllDir);
@@ -156,7 +156,7 @@ namespace modloader
         }
 
         // Resolve dependencies before anything else looks at the mod set: unload mods with unmet hard
-        // deps (cascading) and topo-rank the survivors' dispatch order. Runs before READY so an unloaded
+        // deps (cascading) and topo rank the survivors' dispatch order. Runs before READY so an unloaded
         // mod never reaches READY nor registers a service.
         resolveDependencies();
 
@@ -170,10 +170,10 @@ namespace modloader
         // subscriptions below would muddy the index.
         reportCompatibility();
 
-        // Arm the loader's game hooks (all pass-through until a mod acts) now that a mod is present.
+        // Arm the loader's game hooks (all pass through until a mod acts) now that a mod is present.
         installModHooks(overlayEnabled);
 
-        // Attribute and detect contended game-memory writes across mods for the whole session.
+        // Attribute and detect contended game memory writes across mods for the whole session.
         writeguard::install();
 
         // Deliver STARTUP on this (mod) thread and drain it BEFORE arming the render dispatch, so a
@@ -185,7 +185,7 @@ namespace modloader
         gameevents::emitLifecycle(CUBE_EVENT_READY);
 
         // Arm the render dispatch (lazily installs the D3D9 hook + probe device on first subscribe).
-        // Safe mode skips this entirely: no overlay, no probe device, no render-driven events.
+        // Safe mode skips this entirely: no overlay, no probe device, no render driven events.
         if (overlayEnabled)
         {
             hooks::d3d9::Callbacks callbacks;
@@ -196,11 +196,11 @@ namespace modloader
             LOGC(Debug, kCategory, "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
 
             // The overlay lives in the game's D3D9 swapchain; in EXCLUSIVE fullscreen that window is
-            // topmost + non-minimizable and loses the device on every alt-tab (freeze risk). The D3D9
-            // hook forces borderless windowed on the next device Reset. Best-effort nudge here so that
-            // reset happens promptly instead of waiting for the user's first alt-tab: if the game reads
+            // topmost + non minimizable and loses the device on every alt tab (freeze risk). The D3D9
+            // hook forces borderless windowed on the next device Reset. Best effort nudge here so that
+            // reset happens promptly instead of waiting for the user's first alt tab: if the game reads
             // as fullscreen, write its display setting to windowed (guarded by a compatible build so the
-            // offset is valid). Harmless if the game ignores it - the Reset rewrite still catches every
+            // offset is valid). Harmless if the game ignores it, the Reset rewrite still catches every
             // real reset. Only fires when a valid build resolved the setting global.
             CubeDisplay disp = {};
             if (game::signature::compatibleBuild() && game::readDisplay(disp) && disp.fullscreen)
@@ -219,11 +219,11 @@ namespace modloader
 
     void remove()
     {
-        // Stop per-frame delivery first so no mod code runs on the render thread while we free the DLLs.
+        // Stop per frame delivery first so no mod code runs on the render thread while we free the DLLs.
         hooks::render::unsubscribe(g_renderToken);
         g_renderToken = hooks::render::kInvalidToken;
 
-        // Tear the overlay down next: unsubscribes its own render dispatch (draining an in-flight frame),
+        // Tear the overlay down next: unsubscribes its own render dispatch (draining an in flight frame),
         // releases the input freeze and destroys the shared ImGui context, so no menu draw can run on the
         // render thread once we start freeing mod DLLs below.
         overlay::shutdown();
@@ -236,7 +236,7 @@ namespace modloader
         for (size_t i = g_mods.size(); i > 0; --i)
             teardownMod(g_mods[i - 1].get());
 
-        // Remove the loader's own game hooks (detours + input/DI IAT). No-ops if installModHooks never
+        // Remove the loader's own game hooks (detours + input/DI IAT). no ops if installModHooks never
         // ran (no mods). The IMPACT/CRIT reservations are torn down by gamehooks::shutdown afterward.
         removeModHooks();
 

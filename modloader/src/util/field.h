@@ -36,7 +36,7 @@ namespace field
             std::memcpy(&out, &value, sizeof(out));
     }
 
-    // Reads a signed 16.16-style int64 fixed-point field and scales to float.
+    // Reads a signed 16.16 style int64 fixed point field and scales to float.
     inline void fixed64(uintptr_t base, uintptr_t fieldOff, double scale, float& out)
     {
         int64_t raw = 0;
@@ -44,7 +44,7 @@ namespace field
             out = static_cast<float>(static_cast<double>(raw) / scale);
     }
 
-    // Reads three contiguous int64 fixed-point fields (a position triple) to floats.
+    // Reads three contiguous int64 fixed point fields (a position triple) to floats.
     inline void vec3Fixed64(uintptr_t base, uintptr_t baseOff, double scale, float& x, float& y, float& z)
     {
         fixed64(base, baseOff, scale, x);
@@ -52,7 +52,7 @@ namespace field
         fixed64(base, baseOff + sizeof(int64_t) * 2, scale, z);
     }
 
-    // Reads a 32-bit MSVC std::vector header (begin@+0, end@+4): yields the begin pointer + count
+    // Reads a 32 bit MSVC std::vector header (begin@+0, end@+4): yields the begin pointer + count
     // capped at maxElems. Shared by every std::vector walk (inventory/structures/corruption scan).
     inline bool vectorSpan(uintptr_t vecAddr, uintptr_t stride, int32_t maxElems, uint32_t& begin, int32_t& count)
     {
@@ -91,7 +91,7 @@ namespace field
         return fieldOff && mem::write(base + fieldOff, raw);
     }
 
-    // Reads a narrow or wide null-terminated string into a char buffer of
+    // Reads a narrow or wide null terminated string into a char buffer of
     // capacity maxChars+1. Returns true if at least one char was read.
     inline bool cstr(uintptr_t base, uintptr_t fieldOff, bool wide, uint32_t maxChars, char* out)
     {
@@ -105,8 +105,8 @@ namespace field
             maxChars = static_cast<uint32_t>(kMaxCstrBytes / stride);
         const uintptr_t addr = base + fieldOff;
 
-        // One guarded copy of the whole span (readBytes VirtualQuery-gates once), then scan the buffer,
-        // instead of a per-byte guarded read that re-validates the same page maxChars times.
+        // One guarded copy of the whole span (readBytes VirtualQuery gates once), then scan the buffer,
+        // instead of a per byte guarded read that re validates the same page maxChars times.
         uint8_t buf[kMaxCstrBytes];
         if (!mem::readBytes(addr, buf, maxChars * stride))
             return false;

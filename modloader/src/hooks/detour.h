@@ -1,5 +1,5 @@
 #pragma once
-// The loader's inline-hook layer, backed by MinHook, so init/teardown lives in one place. Hooking
+// The loader's inline hook layer, backed by MinHook, so init/teardown lives in one place. Hooking
 // is by function address: create() installs a trampoline + jmp at the target's prologue.
 
 namespace hooks::detour

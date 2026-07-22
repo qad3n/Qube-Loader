@@ -11,14 +11,14 @@
 #include <vector>
 
 // longjmp out of a vectored handler is only safe with DWARF-2 EH (static unwind tables). Under SjLj
-// EH it would corrupt the thread's exception-registration chain, so refuse to build that way.
+// EH it would corrupt the thread's exception registration chain, so refuse to build that way.
 #ifdef __USING_SJLJ_EXCEPTIONS__
 #error "faultguard requires the DWARF-2 EH mingw toolchain, not SjLj (see comment above)."
 #endif
 
 // Only faults inside a live guard frame (g_top set) are isolated; a real crash falls through to
 // crash.cpp. longjmp skips C++ destructors up to the setjmp boundary (ok, the mod is disabled).
-// Heap-corruption faults are undetectable.
+// Heap corruption faults are undetectable.
 namespace faultguard
 {
     namespace
@@ -44,7 +44,7 @@ namespace faultguard
         std::atomic<bool> g_enabled{false};
         PVOID g_handle = nullptr;
 
-        // Quarantine set. g_count gives the hot dispatch path a lock-free fast exit when empty.
+        // Quarantine set. g_count gives the hot dispatch path a lock free fast exit when empty.
         std::mutex g_quarMutex;
         std::vector<const CubeApi*> g_quarantined;
         std::atomic<int> g_count{0};
@@ -91,7 +91,7 @@ namespace faultguard
         {
             if (!owner)
             {
-                // Loader's own game-thread detour (no mod to disable): recover and log so it is never a
+                // Loader's own game thread detour (no mod to disable): recover and log so it is never a
                 // silent crash; the caller applies its safe fallback (e.g. the vanilla result).
                 LOGC(Error, kCategory, "loader detour '%s' faulted (%s @0x%08X) - recovered; the game continues",
                      what ? what : "?", core::exceptionName(code), static_cast<unsigned>(addr));
@@ -101,7 +101,7 @@ namespace faultguard
             addQuarantine(owner);
             LOGC(Error, kCategory, "mod '%s' faulted (%s @0x%08X) - disabling it; the game continues",
                  ownerName(owner), core::exceptionName(code), static_cast<unsigned>(addr));
-            // Persist a strike so a mod that faults every launch is auto-disabled instead of crash-looping.
+            // Persist a strike so a mod that faults every launch is auto disabled instead of crash looping.
             modloader::modregistry::recordFault(ownerStem(owner));
         }
 
@@ -113,7 +113,7 @@ namespace faultguard
 
             GuardFrame* frame = g_top;
             if (!frame)
-                return EXCEPTION_CONTINUE_SEARCH; // not inside a mod callback: real crash -> crash.cpp
+                return EXCEPTION_CONTINUE_SEARCH; // not inside a mod callback: real crash goes to crash.cpp
 
             frame->faultCode = static_cast<uint32_t>(code);
             frame->faultAddr = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(ep->ExceptionRecord->ExceptionAddress));

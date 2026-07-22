@@ -14,8 +14,8 @@ namespace game
 
         constexpr char kCategory[] = "resolve";
 
-        // Last-logged resolution, so the chain walk is logged only when it CHANGES (resolves, is
-        // lost, or the base pointer moves) instead of every frame - full addresses without the flood.
+        // Last logged resolution, so the chain walk is logged only when it CHANGES (resolves, is
+        // lost, or the base pointer moves) instead of every frame, full addresses without the flood.
         struct ResolveState
         {
             bool valid;
@@ -61,7 +61,7 @@ namespace game
             }
 
             // Real Creature has its vftable at offset 0; rejects the uninitialized
-            // title-screen slot (would read garbage otherwise).
+            // title screen slot (would read garbage otherwise).
             uint32_t vtable = 0;
             if (!mem::read(creature, vtable) || vtable != static_cast<uint32_t>(mem::rebase(off::kCreatureVtable)))
             {
@@ -172,8 +172,8 @@ namespace game
         return ok;
     }
 
-    // Uncached identity check: is `address` the local player's Creature? Used from game-thread hooks
-    // (e.g. the crit detour) that must NOT touch the render-thread frame cache.
+    // Uncached identity check: is `address` the local player's Creature? Used from game thread hooks
+    // (e.g. the crit detour) that must NOT touch the render thread frame cache.
     bool isLocalPlayerCreature(uint32_t address)
     {
         if (!address)

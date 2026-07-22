@@ -57,7 +57,7 @@ namespace modloader::services
         if (!owner || !name || !name[0] || version == 0 || !impl)
             return false;
 
-        // Replace an existing same-name service from this owner so a re-register updates in place.
+        // Replace an existing same name service from this owner so a reregister updates in place.
         const std::string wanted = name;
         g_services.removeIf([owner, &wanted](const Service& s) { return s.owner == owner && s.name == wanted; });
 

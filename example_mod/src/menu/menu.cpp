@@ -57,7 +57,7 @@ namespace exmod::menu
             Tab* const m_tabs[kMainTabCount] = {&m_hero, &m_combat, &m_items, &m_world, &m_entities,
                                                 &m_view, &m_session, &m_events, &m_hooks, &m_mod};
             int m_active = 0;
-            ImVec2 m_lastDisplay = {0.0f, 0.0f}; // re-fit the window when the resolution changes
+            ImVec2 m_lastDisplay = {0.0f, 0.0f}; // refit the window when the resolution changes
         };
 
         void Menu::drawSidebar()
@@ -85,8 +85,8 @@ namespace exmod::menu
             ImGui::SetNextWindowSize(ImVec2(Tab::sc(kWindowWidth), Tab::sc(kWindowHeight)), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSizeConstraints(ImVec2(minW, minH), ImVec2(maxW, maxH));
 
-            // On a resolution change (device reset) re-center into the new bounds so a downscale can
-            // never leave the window stranded off-screen.
+            // On a resolution change (device reset) recenter into the new bounds so a downscale can
+            // never leave the window stranded off screen.
             if (haveDisp && (disp.x != m_lastDisplay.x || disp.y != m_lastDisplay.y))
             {
                 m_lastDisplay = disp;
@@ -98,7 +98,7 @@ namespace exmod::menu
             if (ImGui::Begin(kWindowTitle))
             {
                 // The loader toggles visibility by not submitting our draw fn while hidden, so ImGui
-                // treats the window as (re)appearing on open - focus it then so the keyboard works at once.
+                // treats the window as (re)appearing on open, so focus it then so the keyboard works at once.
                 if (ImGui::IsWindowAppearing())
                     ImGui::SetWindowFocus();
                 drawSidebar();
@@ -122,7 +122,7 @@ namespace exmod::menu
 
     void draw()
     {
-        // The loader-owned overlay hands the draw callback no per-frame args, so synthesize the small
+        // The loader owned overlay hands the draw callback no per frame args, so synthesize the small
         // slice the tabs read (just the frame index, shown on the Mod > Info tab) straight from ImGui.
         // Everything else the tabs need comes from the CubeApi accessors, not the frame.
         CubeEventArgs frame = {};

@@ -1,5 +1,5 @@
 #pragma once
-// Nearby-entity enumeration + creature-by-id lookup.
+// Nearby entity enumeration + creature by id lookup.
 
 #include "cube_sdk.h"
 #include <cstdint>
@@ -12,7 +12,7 @@ namespace game
     // Resolves the crosshair aim/hover target to a live entity.
     bool aimTargetEntity(CubeEntity& out);
     bool findCreatureById(uintptr_t gc, uint64_t id, uintptr_t& creatureOut);
-    // Counts player-category creatures in the entity map (includes the local player).
+    // Counts player category creatures in the entity map (includes the local player).
     int32_t countPlayers(uintptr_t gc);
     // True if the creature at address is a tameable passive critter (game predicate FUN_00444680).
     bool isCreatureTameable(uint32_t address);

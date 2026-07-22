@@ -29,7 +29,7 @@ namespace hooks::dinput
         // Runs on the game thread every input poll. Let the real read fill the buffer, then (while the
         // overlay owns input) zero it so the game's keyboard (movement/actions) and mouse (camera look/
         // buttons) reads see nothing. Zero is "no keys down / no mouse delta / no buttons" for both the
-        // 256-byte keyboard state and the DIMOUSESTATE, so one memset covers every device.
+        // 256 byte keyboard state and the DIMOUSESTATE, so one memset covers every device.
         HRESULT WINAPI hkGetDeviceState(IDirectInputDevice8W* device, DWORD cbData, LPVOID lpvData)
         {
             g_inFlight.fetch_add(1);
@@ -42,7 +42,7 @@ namespace hooks::dinput
             return hr;
         }
 
-        // Grab the shared IDirectInputDevice8W vtable from a throwaway device (the d3d9-probe pattern);
+        // Grab the shared IDirectInputDevice8W vtable from a throwaway device (the d3d9 probe pattern);
         // all mouse/keyboard devices share it, so hooking one slot intercepts the game's devices too.
         void** acquireVtable()
         {
@@ -107,7 +107,7 @@ namespace hooks::dinput
         g_blocked.store(false); // never leave the game's input zeroed if we unload while a menu is open
 
         // Close the hook path, then drain before MinHook frees the trampoline. mingw has no SEH, so an
-        // in-flight GetDeviceState call is an inherent (tiny) window.
+        // in flight GetDeviceState call is an inherent (tiny) window.
         detour::remove(g_getDeviceStateTarget);
         while (g_inFlight.load() > 0)
             Sleep(kTeardownDrainMs);

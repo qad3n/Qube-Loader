@@ -109,8 +109,8 @@ namespace game
         out.hitStun = timer;
         out.stunned = (timer > 0) ? 1 : 0;
 
-        // A dodge-roll shares the +0x128 lock but is not a hit-stun: for the classified local player,
-        // report not-stunned while rolling (the raw timer stays readable via hitStun).
+        // A dodge roll shares the +0x128 lock but is not a hit stun: for the classified local player,
+        // report not stunned while rolling (the raw timer stays readable via hitStun).
         if (actionlock::rolling() && obj == actionlock::subject())
             out.stunned = 0;
         out.hitStunPercent = (timer > 0) ? static_cast<float>(timer) / static_cast<float>(off::kHitStunMax) * off::kPercentScale : 0.0f;

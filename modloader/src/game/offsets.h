@@ -23,14 +23,14 @@ namespace off
     constexpr uintptr_t kSqlitePLogArg = 0x007666c8;
 
     // Asset injection (data1-4.db blob stores, schema blobs(key TEXT, value BLOB); key = filename).
-    // db::loadBlobByKey is the shared read choke-point: __thiscall(Database* this, std::string* key,
+    // db::loadBlobByKey is the shared read choke point: __thiscall(Database* this, std::string* key,
     // void** outBlob, size_t* outSize), runs "SELECT value FROM blobs WHERE key = ?", allocates outBlob
     // via operator new and returns 1 on a row. For encoded DBs the caller then runs blob_deobfuscate
-    // (a keyed reverse-shuffle + byte-complement over the returned bytes); data1 .cub is stored raw.
-    // Names from source/cube/RENAMES.tsv (attribution.tsv MISlabels these via caller-dominance; trust
-    // RENAMES). Detoured to override a blob by key; the loader re-encodes non-.cub data so the game's
+    // (a keyed reverse shuffle + byte complement over the returned bytes); data1 .cub is stored raw.
+    // Names from source/cube/RENAMES.tsv (attribution.tsv MISlabels these via caller dominance; trust
+    // RENAMES). Detoured to override a blob by key; the loader reencodes non-.cub data so the game's
     // own decode reconstructs the mod's plaintext.
-    constexpr uintptr_t kDbLoadBlobByKey = 0x00449810; // read choke-point (detour target)
+    constexpr uintptr_t kDbLoadBlobByKey = 0x00449810; // read choke point (detour target)
     constexpr uintptr_t kOperatorNew = 0x0068d652;     // operator new wrapper: void* __cdecl(size_t)
     constexpr uintptr_t kBlobShuffleKey = 0x006ffa68;  // .rdata: 44 int32 key table for the shuffle
     constexpr int32_t kBlobShuffleKeyCount = 44;       // 0x2c entries, indexed by i % count
@@ -40,11 +40,11 @@ namespace off
     constexpr uintptr_t kStdStringCapOff = 0x14;
     constexpr uint32_t kStdStringSsoCap = 16;
 
-    // Local player: [kLocalPlayerPtr] -> GameController*; GC + kLocalPlayerChain -> Creature*.
+    // Local player: [kLocalPlayerPtr] to GameController*; GC + kLocalPlayerChain to Creature*.
     // A 0 field offset means the field is not located and is skipped.
     constexpr uintptr_t kNoChain = 0xFFFFFFFF;
     constexpr uintptr_t kLocalPlayerPtr = 0x0076b1c8; // GameController* global
-    constexpr uintptr_t kLocalPlayerChain = 0x008006d0; // GC -> local Creature*
+    constexpr uintptr_t kLocalPlayerChain = 0x008006d0; // GC to local Creature*
     // Creature vftable at object+0; GC+0x8006d0 is uninitialized on the title screen, so confirm it first.
     constexpr uintptr_t kCreatureVtable = 0x006fd8cc;
     constexpr uintptr_t kPlayerHealthOff = 0x16c; // float HP
@@ -53,65 +53,65 @@ namespace off
     constexpr uintptr_t kPlayerTypeOff = 0x64; // int entity/model type
     constexpr uintptr_t kPlayerClassOff = 0x140; // byte class 1..4
     constexpr uintptr_t kPlayerSpecOff = 0x141; // byte specialization
-    constexpr uintptr_t kPlayerNameOff = 0x1168; // inline null-terminated name
+    constexpr uintptr_t kPlayerNameOff = 0x1168; // inline null terminated name
     constexpr bool kPlayerNameIsWide = false; // narrow (not wide) string
-    constexpr uintptr_t kPlayerPosXOff = 0x10; // int64 fixed-point, /65536
+    constexpr uintptr_t kPlayerPosXOff = 0x10; // int64 fixed point, /65536
     constexpr uintptr_t kPlayerPosYOff = 0x18; // int64
     constexpr uintptr_t kPlayerPosZOff = 0x20; // int64 (height)
-    constexpr double kPlayerPosScale = 65536.0; // 2^16 fixed-point divisor
+    constexpr double kPlayerPosScale = 65536.0; // 2^16 fixed point divisor
     constexpr uint32_t kPlayerStructMinSize = 0x1a0; // core fields; name guarded separately
 
-    // Player action-state, drives the polled PLAYER_ATTACK / PLAYER_JUMP edges.
-    // +0x68 is the current action/animation id; +0x6c is elapsed-ms in that action (resets to 0 on
+    // Player action state, drives the polled PLAYER_ATTACK / PLAYER_JUMP edges.
+    // +0x68 is the current action/animation id; +0x6c is elapsed ms in that action (resets to 0 on
     // any action change). The combat state machine (CombatBehavior::vfunc_0 0x42cb20) writes +0x68
     // for every swing/shot/cast/ability; the exact id is weapon/class dependent, so instead of an
-    // attack-id whitelist we use the game's own windup switch (getAttackWindup 0x43caa0): it returns
+    // attack id whitelist we use the game's own windup switch (getAttackWindup 0x43caa0): it returns
     // 0 only for these idle/locomotion ids plus the block/eat/downed/knockdown states below. Any
-    // other id is an in-progress combat action. (Old kActionAttackA/B 0x50/0x51 were MONSTER-ONLY
+    // other id is an in progress combat action. (Old kActionAttackA/B 0x50/0x51 were MONSTER ONLY
     // melee ids the local player never uses, so the attack edge could never fire.)
     constexpr uintptr_t kPlayerActionOff = 0x68; // byte action/animation id
     constexpr uintptr_t kPlayerActionElapsedOff = 0x6c; // s32 ms elapsed in the current action; the
-    // game re-zeroes it at the START of every individual swing/shot, so a reset while +0x68 is an
+    // game re zeroes it at the START of every individual swing/shot, so a reset while +0x68 is an
     // attack id is the reliable "a new attack just began" edge (survives chained combos, where +0x68
     // never returns to idle between swings).
     constexpr uint8_t kActionIdle = 0x00;
     constexpr uint8_t kActionEat = 0x6a; // set while eating a consumable/food
-    // NOTE: 0x30 and 0x65 are NOT downed states - the game's icon map names them Intercept and
+    // NOTE: 0x30 and 0x65 are NOT downed states, the game's icon map names them Intercept and
     // Bulwark (abilities). The real downed/knockdown state is kActionKnockdown (0x6e).
-    // The player's attack ids are weapon/class dependent, so rather than guess an attack-id
+    // The player's attack ids are weapon/class dependent, so rather than guess an attack id
     // whitelist we use the game's own classifier: getAttackWindup(creature, kUseCurrentAction)
     // returns 0 only for idle/locomotion ids and nonzero for any real swing/shot/cast/ability.
     // int __thiscall(Creature* this, int action); action < 0 means "use current +0x68".
     constexpr uintptr_t kGetAttackWindupFn = 0x0043caa0;
     constexpr int32_t kUseCurrentAction = -1;
-    // Equipped-weapon type cache on the Creature, used to classify melee/ranged/cast.
+    // Equipped weapon type cache on the Creature, used to classify melee/ranged/cast.
     constexpr uintptr_t kWeaponSubtypeOff = 0xaa9; // u8 weapon subtype
     constexpr uint8_t kWeaponSubStaff = 0x05; // cast
-    // Contact-flags byte; bit0 = floor contact (clear = airborne).
+    // Contact flags byte; bit0 = floor contact (clear = airborne).
     constexpr uintptr_t kPlayerContactFlagsOff = 0x5c;
     constexpr uint8_t kGroundContactBit = 0x01; // bit0 = on floor
-    // Movement mode resolved from the contact byte (+0x5c) and state-flags u16 (+0x124).
+    // Movement mode resolved from the contact byte (+0x5c) and state flags u16 (+0x124).
     constexpr uint8_t kContactSwimBit = 0x02; // +0x5c bit1 = in fluid
-    constexpr uint8_t kContactClimbBit = 0x04; // +0x5c bit2 = climbable-surface contact
+    constexpr uint8_t kContactClimbBit = 0x04; // +0x5c bit2 = climbable surface contact
     constexpr uintptr_t kPlayerStateFlagsOff = 0x124; // u16 state flags
     constexpr uint16_t kClimbEnableBit = 0x0001; // +0x124 bit0 = climb/grab active
-    // +0x124 bit4 = hang-glider deployed: the movement handler (FUN_004a6b50 @0x4a824x) gates its
-    // airborne stamina-draining air-control branch on (state & 0x10) && airborne && stamina>0, which is
-    // the glide state (SkillHangGliding). UNTESTED live: the bit has no traceable set-site in the static
-    // dump, so confirm in-game before trusting GLIDING (it is gated to airborne, so a miss reads AIRBORNE).
+    // +0x124 bit4 = hang glider deployed: the movement handler (FUN_004a6b50 @0x4a824x) gates its
+    // airborne stamina draining air control branch on (state & 0x10) && airborne && stamina>0, which is
+    // the glide state (SkillHangGliding). UNTESTED live: the bit has no traceable set site in the static
+    // dump, so confirm in game before trusting GLIDING (it is gated to airborne, so a miss reads AIRBORNE).
     constexpr uint16_t kGlideActiveBit = 0x0010;
     constexpr uint8_t kActionBlock = 0x6b; // block/guard action; unmapped ids resolve to UNKNOWN
 
     // Item POD (0x118 bytes).
     constexpr uintptr_t kItemStructSize = 0x118;
-    // Item type ids (value @kItemTypeOff). From the item-name registry populated in the World ctor.
+    // Item type ids (value @kItemTypeOff). From the item name registry populated in the World ctor.
     constexpr int32_t kItemTypeEmpty = 0x0;
     constexpr int32_t kItemTypeConsumable = 0x1; // potions + edible consumables (Cookie/LifePotion/...)
     constexpr int32_t kItemTypeWeapon = 0x3;
     constexpr int32_t kItemTypeSpecial = 0xb; // crafting material / monster part
     constexpr int32_t kItemTypeCoins = 0xc;
     constexpr int32_t kItemTypeCurrency = 0xd;
-    constexpr int32_t kItemTypeFood = 0x14; // food; also the pet-taming / pet-food item
+    constexpr int32_t kItemTypeFood = 0x14; // food; also the pet taming / pet food item
     constexpr int32_t kItemTypeAccessory = 0x15; // accessory / medical (Medicine/Antivenom/Bandage/...)
     constexpr int32_t kItemTypeVehicle = 0x17; // HangGlider / Boat
     // Valid types per item_icon_id @0x4ec400: raw byte 0x1..0x15 and 0x17..0x19 (0 empty, 0x16
@@ -122,12 +122,12 @@ namespace off
     constexpr int32_t kItemTypeUnused = 0x16;
     constexpr int32_t kWeaponSubtypeMax = 0x14;
     // Food/consumable magnitude (heal or nourishment) is the level field @0x10; eating sets the
-    // action byte to kActionEat. Pet-taming uses a Food item (type 0x14) on a passive tameable
+    // action byte to kActionEat. Pet taming uses a Food item (type 0x14) on a passive tameable
     // species (game predicate FUN_00444680: species in kPassiveSpecies AND state +0x7e & 0x1a00 == 0).
     constexpr uintptr_t kItemTypeOff = 0x0; // u8 type/category
     constexpr uintptr_t kItemSubtypeOff = 0x1; // u8 subtype
-    constexpr uintptr_t kItemSeedOff = 0x4; // u32 seed / stat-roll variance
-    constexpr uintptr_t kItemModifierOff = 0xc; // u8 modifier / plus-enchant (numeric)
+    constexpr uintptr_t kItemSeedOff = 0x4; // u32 seed / stat roll variance
+    constexpr uintptr_t kItemModifierOff = 0xc; // u8 modifier / plus enchant (numeric)
     constexpr uintptr_t kItemMaterialOff = 0xd; // u8 material (Iron/Wood/Gold/...)
     constexpr uintptr_t kItemLevelOff = 0x10; // s16 level (or stack count for consumables)
     constexpr uintptr_t kItemUpgradeCountOff = 0x114; // s32 upgrade/spirit count
@@ -148,7 +148,7 @@ namespace off
     constexpr uintptr_t kHeldItemOff = 0x11ec; // Item body held on the cursor
     // An item whose type/subtype/material has no model renders as "?" and crashes the game on draw;
     // editors clamp/reject to keep every edit renderable.
-    constexpr int32_t kItemDefaultSubtype = 0; // non-weapon items are single-variant
+    constexpr int32_t kItemDefaultSubtype = 0; // non weapon items are single variant
     constexpr int32_t kItemModifierMin = 0;
     constexpr int32_t kItemModifierMax = 4;
     constexpr int32_t kItemLevelMin = 1;
@@ -159,7 +159,7 @@ namespace off
     constexpr int32_t kItemStackMin = 1; // a 0/negative stack empties or corrupts the cell
     constexpr int32_t kItemStackMax = 99;
     constexpr int32_t kTwoHandedWeaponSubtypes[] = {5, 6, 7, 8, 10, 11, 15, 16, 17, 18};
-    constexpr uintptr_t kSkillRanksOff = 0x1138; // int32[11] skill points-spent array
+    constexpr uintptr_t kSkillRanksOff = 0x1138; // int32[11] skill points spent array
     constexpr int32_t kSkillRankCount = 11;
     // Item coin value: int __thiscall(Item* this). Buy price = value; sell price = value/2 (min 1).
     constexpr uintptr_t kItemValueFn = 0x004c76e0;
@@ -175,11 +175,11 @@ namespace off
     constexpr uintptr_t kPlayerSpiritOff = 0x188; // float spirit base
     constexpr uintptr_t kPlayerComboOff = 0x1164; // int combo / rune counter
     constexpr uintptr_t kPlayerAttackCooldownOff = 0x144; // float attack windup (ready <= 0)
-    constexpr uintptr_t kPlayerHitStunOff = 0x128; // int control-lock timer 0..600 (shared)
-    // +0x128 is a SHARED "cannot act" lock, NOT hit-stun alone: the dodge-roll (FUN_004a6b50) sets it
+    constexpr uintptr_t kPlayerHitStunOff = 0x128; // int control lock timer 0..600 (shared)
+    // +0x128 is a SHARED "cannot act" lock, NOT hit stun alone: the dodge roll (FUN_004a6b50) sets it
     // to the max too, on top of spending stamina and applying a dash + upward pop, with the action
-    // byte left idle. So timer > 0 does NOT imply a hit - game::actionlock classifies the rising edge
-    // (health lost -> stun, no damage from the ground -> roll). Set to this max on a heavy hit / roll,
+    // byte left idle. So timer > 0 does NOT imply a hit, game::actionlock classifies the rising edge
+    // (health lost gives stun, no damage from the ground gives roll). Set to this max on a heavy hit / roll,
     // counts down; gates acting while > 0.
     constexpr int32_t kHitStunMax = 600;
     constexpr uintptr_t kPlayerAttackSpeedOff = 0x17c; // float attack timescale (higher = faster)
@@ -188,13 +188,13 @@ namespace off
     // field backs both "sneaking" and the crit contribution. There is no separate stored crit stat.
     constexpr uintptr_t kPlayerStealthOff = 0x1190; // float stealth/sneak stat (also feeds crit)
     constexpr float kStealthMax = 1.0f; // full stealth (normalized 0..1); written to toggle sneak on
-    constexpr float kCritChancePerPoint = 0.15f; // crit-chance contribution of one stealth point
-    constexpr float kPercentScale = 100.0f; // fraction (0..1) -> percent
+    constexpr float kCritChancePerPoint = 0.15f; // crit chance contribution of one stealth point
+    constexpr float kPercentScale = 100.0f; // fraction (0..1) to percent
 
     // Status/buff intrusive circular list: head @+0x1178, count @+0x117c; node next@+0, type@+8,
     // magnitude f32@+0xc, duration ms@+0x10.
     constexpr uintptr_t kBuffListHeadOff = 0x1178;
-    // The inline name field is exactly 16 bytes (bounded by the buff-list head that follows it);
+    // The inline name field is exactly 16 bytes (bounded by the buff list head that follows it);
     // name writes MUST clamp to this or they corrupt the buff list.
     constexpr uintptr_t kPlayerNameCapacity = kBuffListHeadOff - kPlayerNameOff; // 16 bytes
     constexpr uintptr_t kBuffNodeNextOff = 0x0;
@@ -203,14 +203,14 @@ namespace off
     constexpr uintptr_t kBuffNodeDurationOff = 0x10;
     constexpr int32_t kMaxBuffWalk = 64; // safety cap on the effect list
 
-    // State word @+0x7e is a u16 flag field. Bit 0x200 is the LANTERN / held-light RENDER flag
+    // State word @+0x7e is a u16 flag field. Bit 0x200 is the LANTERN / held light RENDER flag
     // (read by render vfunc_11 0x4ac260 + getScaleVec4 0x4460f0), NOT crouch/sneak. Cube World has
     // no crouch bit; "sneak" is the Rogue stealth ability whose stealth magnitude is a float at
     // kPlayerStealthOff. The 0x1a00 mask on this word gates the passive/wildlife faction.
     constexpr uintptr_t kStateWordOff = 0x7e;
     constexpr uint16_t kLanternBit = 0x200;
 
-    // World is embedded in the GameController at +0x2e4. Climate walks World->Region->Zone->ZoneTile
+    // World is embedded in the GameController at +0x2e4. Climate walks World to Region to Zone to ZoneTile
     // from the player tile; no biome name is stored (biome is computed from temp/humidity).
     constexpr uintptr_t kWorldPtr = 0x0076b1c8; // GameController* global
     constexpr uint32_t kWorldStructMinSize = 0x2c8;
@@ -218,36 +218,36 @@ namespace off
     constexpr int32_t kPosToTileShift = 16; // int64 pos >> 16 = tile coord
     constexpr int32_t kTileToZoneShift = 8; // tile >> 8 = zone (256 tiles/zone)
     constexpr int32_t kZoneToRegionShift = 6; // zone >> 6 = region (64 zones/region)
-    constexpr uintptr_t kRegionGridOff = 0xbc; // World + this + idx*4 -> Region*
+    constexpr uintptr_t kRegionGridOff = 0xbc; // World + this + idx*4 gives Region*
     constexpr int32_t kRegionGridDim = 0x400; // 1024x1024 region grid
-    constexpr uintptr_t kZoneGridOff = 0x10018; // Region + this + idx*4 -> Zone*
+    constexpr uintptr_t kZoneGridOff = 0x10018; // Region + this + idx*4 gives Zone*
     constexpr int32_t kZoneGridDim = 0x40; // 64x64 zone grid (mask 0x3f)
     constexpr uintptr_t kZoneTileBaseOff = 0xa8; // *(Zone + this) = tile array base
     constexpr int32_t kTileDim = 0x100; // 256x256 tiles/zone (mask 0xff)
     constexpr uintptr_t kTileStride = 0x20; // ZoneTile size
-    constexpr uintptr_t kTileTerrainOff = 0x0; // byte terrain-type id
+    constexpr uintptr_t kTileTerrainOff = 0x0; // byte terrain type id
     constexpr uintptr_t kTileTempOff = 0x4; // float temperature
     constexpr uintptr_t kTileHumidityOff = 0x8; // float humidity
     constexpr uintptr_t kTileElevationOff = 0x10; // int32 base terrain height
-    constexpr uintptr_t kTimeOfDayOff = 0x800440; // GC-relative: time-of-day ms
+    constexpr uintptr_t kTimeOfDayOff = 0x800440; // GC relative: time of day ms
     constexpr int32_t kDayStartHour = 6; // [6,20) counts as daytime
     constexpr int32_t kNightStartHour = 20;
-    // Bound spawn on the player Creature: int32 zone-coord pair (>>6 == region), no stored Z.
-    // Two candidate pairs exist; flag-gated.
+    // Bound spawn on the player Creature: int32 zone coord pair (>>6 == region), no stored Z.
+    // Two candidate pairs exist; flag gated.
     constexpr uintptr_t kSpawnFlagOff = 0x1d8; // byte: spawn bound / type flag
     constexpr uintptr_t kSpawnZoneXOff = 0x1dc; // int32 zone X (candidate B)
     constexpr uintptr_t kSpawnZoneYOff = 0x1e0; // int32 zone Y (candidate B)
     constexpr uintptr_t kSpawnZoneXAltOff = 0x1b0; // int32 zone X (candidate A)
     constexpr uintptr_t kSpawnZoneYAltOff = 0x1b4; // int32 zone Y (candidate A)
-    constexpr uintptr_t kWorldSeedOff = 0x800448; // GC-relative world seed
-    // Per-zone placed-structure vector: begin @Zone+0xc (end +4), stride 0x188; record type@+0,
+    constexpr uintptr_t kWorldSeedOff = 0x800448; // GC relative world seed
+    // Per zone placed structure vector: begin @Zone+0xc (end +4), stride 0x188; record type@+0,
     // int64 pos@+8. Raw type id.
     constexpr uintptr_t kZoneStructVecOff = 0xc;
     constexpr uintptr_t kZoneStructStride = 0x188;
     constexpr int32_t kZoneStructMaxWalk = 256; // safety cap
     constexpr uintptr_t kStructTypeOff = 0x0; // int kind/type id
-    constexpr uintptr_t kStructPosXOff = 0x8; // int64 fixed-point (y=+0x10, z=+0x18)
-    // Camera view/projection 4x4 float matrices (GC-relative).
+    constexpr uintptr_t kStructPosXOff = 0x8; // int64 fixed point (y=+0x10, z=+0x18)
+    // Camera view/projection 4x4 float matrices (GC relative).
     constexpr uintptr_t kViewMatrixOff = 0x800d48;
     constexpr uintptr_t kProjMatrixOff = 0x800d88;
     constexpr int32_t kMatrixFloats = 16;
@@ -261,14 +261,14 @@ namespace off
     constexpr uintptr_t kRbKey = 0x10; // node key (uint64 entity id)
     constexpr uintptr_t kRbValue = 0x18; // node value (Creature*)
     constexpr uint32_t kMaxEntityWalk = 4096; // safety cap on tree traversal
-    // Creature "kind" byte +0x60 (entity-role): 0 player, 1 monster, 5 pet, 6 npc. Value 3 exists
+    // Creature "kind" byte +0x60 (entity role): 0 player, 1 monster, 5 pet, 6 npc. Value 3 exists
     // but is unlabelled in the binary, so it is left unclassified.
     constexpr uintptr_t kEntityKindOff = 0x60;
     constexpr int32_t kKindPlayer = 0;
     constexpr int32_t kKindMonster = 1; // creature faction (monsters AND passive animals)
     constexpr int32_t kKindPet = 5;
-    constexpr int32_t kKindNpc = 6; // non-combatant / passive (never hostile)
-    // Species the game treats as the peaceful-critter faction: a kind==1 in this set is passive
+    constexpr int32_t kKindNpc = 6; // non combatant / passive (never hostile)
+    // Species the game treats as the peaceful critter faction: a kind==1 in this set is passive
     // wildlife, not a hostile monster (gated on state word +0x7e & 0x1a00 == 0).
     constexpr uint16_t kPassiveFactionStateMask = 0x1a00;
     constexpr int32_t kSpeciesCollie = 0x13;
@@ -312,13 +312,13 @@ namespace off
         kSpeciesMole, kSpeciesOwl, kSpeciesPenguin, kSpeciesHorse, kSpeciesCow, kSpeciesCrab,
         kSpeciesSeaCrab, kSpeciesKoala, kSpeciesSapphireFish, kSpeciesLemonFish, kSpeciesSeahorse
     };
-    // Star/power rank +0x1a8 (byte): stat-scaling magnitude ("stars"). There is no rarity/elite
+    // Star/power rank +0x1a8 (byte): stat scaling magnitude ("stars"). There is no rarity/elite
     // field; +0x140 is the class byte for every creature.
     constexpr uintptr_t kEntityRankOff = 0x1a8;
     // Body yaw (radians) +0x118c grows unbounded (never wrapped by the game); readers MUST
     // mathutil::wrapRadians it. Player facing uses the camera yaw, which stays live while airborne.
     constexpr uintptr_t kCreatureBodyYawOff = 0x118c;
-    // Species the game treats as boss/large creatures (single-lookup membership table).
+    // Species the game treats as boss/large creatures (single lookup membership table).
     constexpr int32_t kBossSpeciesA = 0x65;
     constexpr int32_t kBossSpeciesB = 0x6b;
     constexpr int32_t kBossSpeciesC = 0x6c;
@@ -332,13 +332,13 @@ namespace off
     constexpr int32_t kBossSpecies[] = {
         kBossSpeciesA, kBossSpeciesB, kBossSpeciesC, kBossSpeciesD, kBossSpeciesE,
         kBossSpeciesF, kBossSpeciesG, kBossSpeciesH, kBossSpeciesI, kBossSpeciesJ};
-    constexpr uintptr_t kSelectedEntityOff = 0x8008d8; // GC: selected/use-target Creature*
+    constexpr uintptr_t kSelectedEntityOff = 0x8008d8; // GC: selected/use target Creature*
 
     // Active pet's entity id (0 = none); resolve against the entity map.
     constexpr uintptr_t kPetIdOff = 0x11c8;
 
-    // Camera + display, GameController-relative.
-    constexpr uintptr_t kCamDistanceOff = 0x1c0; // float 3rd-person zoom [0,14], def 5
+    // Camera + display, GameController relative.
+    constexpr uintptr_t kCamDistanceOff = 0x1c0; // float third person zoom [0,14], def 5
     constexpr uintptr_t kCamPitchOff = 0x1b0; // float pitch [0,180] degrees
     constexpr uintptr_t kCamYawOff = 0x1b8; // float yaw (degrees); also the stable facing
     constexpr float kCamFovRadians = 0.785398f; // hardcoded pi/4 (45 deg), not stored
@@ -357,19 +357,19 @@ namespace off
     constexpr uintptr_t kNetModeOff = 0x8009b0; // byte: 0 singleplayer, 1 multiplayer
     constexpr uintptr_t kConnectedOff = 0x800585; // byte: networking active
 
-    // UI widget-open: Widget* -> (+0x3c) -> (+0x68 index, +0x94 array); array[index] != 0 = visible.
+    // UI widget open: Widget* then (+0x3c) then (+0x68 index, +0x94 array); array[index] != 0 = visible.
     constexpr uintptr_t kWidgetInventoryOff = 0x8008c0; // GC: InventoryWidget*
     constexpr uintptr_t kWidgetCharacterOff = 0x8008bc; // GC: Character/Skill widget*
     constexpr uintptr_t kWidgetMapOff = 0x800910; // GC: map/skill widget*
     constexpr uintptr_t kObjectiveOpenByteOff = 0x8008f1; // GC: objective panel open byte
-    constexpr uintptr_t kWidgetStateOff = 0x3c; // Widget -> state object
-    constexpr uintptr_t kWidgetIndexOff = 0x68; // state -> current index
-    constexpr uintptr_t kWidgetArrayOff = 0x94; // state -> visibility array base
+    constexpr uintptr_t kWidgetStateOff = 0x3c; // Widget to state object
+    constexpr uintptr_t kWidgetIndexOff = 0x68; // state to current index
+    constexpr uintptr_t kWidgetArrayOff = 0x94; // state to visibility array base
     constexpr int32_t kWidgetMaxIndex = 256; // sanity bound on a garbage index
 
     // Crosshair aim/hover target entity id (what the player is looking at), distinct from the
     // committed selection @kSelectedEntityOff.
-    constexpr uintptr_t kAimTargetIdOff = 0x800a70; // GC-relative uint64
+    constexpr uintptr_t kAimTargetIdOff = 0x800a70; // GC relative uint64
 
     // Select/use action (R key): __thiscall GameController::updateSelectedEntity; resolves the aim id
     // to a creature, commits it to kSelectedEntityOff, then dispatches on the target's +0x140
@@ -382,31 +382,31 @@ namespace off
     constexpr int32_t kSelectDialog = 0x83; // dialog / select widget
     constexpr int32_t kSelectWidget = 0x89; // other select widget
 
-    // Item pickup (E / hold-to-pickup): __thiscall GameController::onItemPickup, fired once when the
+    // Item pickup (E / hold to pickup): __thiscall GameController::onItemPickup, fired once when the
     // hold completes. Reads the staged item POD the game copied in before the call, moves it into the
     // player inventory (or credits coins), plays pickup.wav.
     constexpr uintptr_t kOnItemPickupFn = 0x004709c0;
-    // Staged pickup buffer, GC-relative: a cell with the item POD @+0, stack count @+kItemStructSize
+    // Staged pickup buffer, GC relative: a cell with the item POD @+0, stack count @+kItemStructSize
     // (0x118), a contents vector @+0x11c. Valid to read for the duration of the onItemPickup call.
     constexpr uintptr_t kStagedPickupItemOff = 0x1000e7c;
 
-    // Game-function hook targets (mod-facing interception via src/game/gamehooks).
+    // Game function hook targets (mod facing interception via src/game/gamehooks).
     // CombatBehavior::vfunc_0 impact handler; __thiscall(self, victim, hitCtx, damage, flags) void.
-    // Cancel negates the whole hit; damage-rescale is best-effort.
+    // Cancel negates the whole hit; damage rescale is best effort.
     constexpr uintptr_t kImpactFn = 0x0042cb20;
     // Crit roll on the attacker. __thiscall, no args, returns a crit bool in AL.
     constexpr uintptr_t kCritRollFn = 0x004444a0;
-    // Compute-max-health; __thiscall returns max-HP FLOAT in ST0 (detour MUST be typed float).
+    // Compute max health; __thiscall returns max HP FLOAT in ST0 (detour MUST be typed float).
     constexpr uintptr_t kMaxHealthFn = 0x00444db0;
 
-    constexpr uintptr_t kPlayerBaseDamageOff = 0x178; // float base-damage input (pre-multiplier)
+    constexpr uintptr_t kPlayerBaseDamageOff = 0x178; // float base damage input (pre multiplier)
 
-    // Per-Creature ability cooldown map std::map<int,int> at +0x139c (_Myhead ptr, _Mysize @+0x13a0);
+    // Per Creature ability cooldown map std::map<int,int> at +0x139c (_Myhead ptr, _Mysize @+0x13a0);
     // key abilityId @+0x10, value remaining ms @+0x14. Populated only after an ability is used.
     constexpr uintptr_t kAbilityCdMapHeadOff = 0x139c;
     constexpr uintptr_t kAbilityCdKeyOff = 0x10;
     constexpr uintptr_t kAbilityCdValueOff = 0x14;
-    constexpr uint32_t kMaxAbilityWalk = 256; // safety cap on the cooldown-map traversal
+    constexpr uint32_t kMaxAbilityWalk = 256; // safety cap on the cooldown map traversal
 
     // Knockdown = action id 0x6e; stagger timer is hitStun @+0x128; knockback velocity floats
     // @+0x11d0/+0x11d4.
@@ -420,20 +420,20 @@ namespace off
     // A monster is surfaced as "elite" at this star rank or above, or if a boss species (derived).
     constexpr int32_t kEliteStarRank = 3;
 
-    // Sound-effect playback (GameController methods, __thiscall this=GC):
+    // Sound effect playback (GameController methods, __thiscall this=GC):
     // 2D at the listener: void(int sfxId); positional: void(int sfxId, int64* pos, float vol, float pitch).
-    // pos is an int64[3] world position (fixed-point, kPlayerPosScale). ids: CUBE_CATALOG_SOUND (0..100).
+    // pos is an int64[3] world position (fixed point, kPlayerPosScale). ids: CUBE_CATALOG_SOUND (0..100).
     constexpr uintptr_t kPlaySound2DFn = 0x00484320;
     constexpr uintptr_t kPlaySoundPosFn = 0x00484350;
     constexpr int32_t kSoundIdMin = 0;
-    constexpr int32_t kSoundIdMax = 100; // 101 built-in sfx ids (0x00..0x64)
+    constexpr int32_t kSoundIdMax = 100; // 101 built in sfx ids (0x00..0x64)
     // XAudio2Engine vtable slots (methods on GC+kAudioEngineOff), __thiscall this=engine.
     constexpr uintptr_t kAudioVtblStopMusic = 0x0c; // slot 3: void() stop both music streamers
     constexpr uintptr_t kAudioVtblSetMusicVolume = 0x14; // slot 5: void(float a, float b) live music volume
     // Audio: XAudio2Engine* @GC+0x800714; live music state on a Music streamer at engine+0x24.
-    // Play/stop/setVolume are engine-vtable game-calls.
-    constexpr uintptr_t kAudioEngineOff = 0x800714; // GC-relative XAudio2Engine*
-    constexpr uintptr_t kAudioStreamerAOff = 0x24; // engine-relative primary Music streamer*
+    // Play/stop/setVolume are engine vtable game calls.
+    constexpr uintptr_t kAudioEngineOff = 0x800714; // GC relative XAudio2Engine*
+    constexpr uintptr_t kAudioStreamerAOff = 0x24; // engine relative primary Music streamer*
     constexpr uintptr_t kMusicPlayingOff = 0x1e0010; // Music streamer: playing u8
     constexpr uintptr_t kMusicLoopingOff = 0x1e0011; // Music streamer: looping u8
     constexpr uintptr_t kMusicVolumeOff = 0x1e0018; // Music streamer: live volume f32

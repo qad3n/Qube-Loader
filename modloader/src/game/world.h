@@ -1,5 +1,5 @@
 #pragma once
-// Current world/area -> CubeWorld for the world API.
+// Current world/area into CubeWorld for the world API.
 
 #include "cube_sdk.h"
 
@@ -8,7 +8,7 @@ namespace game
     bool readWorld(CubeWorld& out);
     // Fills placed structures / POIs from the player's current zone; returns count.
     int32_t listStructures(CubeStructure* out, int32_t maxCount);
-    // Sets the time-of-day in milliseconds (wrapped into a 24h day). False if no world.
+    // Sets the time of day in milliseconds (wrapped into a 24h day). False if no world.
     bool setWorldTime(int32_t ms);
     // Writes a CubeTileField on the player's current ZoneTile. False if not resident.
     bool setWorldTile(int32_t fieldId, double value);

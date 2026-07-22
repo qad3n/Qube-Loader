@@ -26,7 +26,7 @@ namespace game
             if (contact & off::kGroundContactBit)
                 return sneaking ? CUBE_MOVE_SNEAKING : CUBE_MOVE_GROUNDED;
             if (stateFlags & off::kGlideActiveBit)
-                return CUBE_MOVE_GLIDING; // airborne with the hang-glider deployed (see kGlideActiveBit)
+                return CUBE_MOVE_GLIDING; // airborne with the hang glider deployed (see kGlideActiveBit)
             return CUBE_MOVE_AIRBORNE; // off the ground and not climbing/swimming/gliding
         }
 
@@ -37,7 +37,7 @@ namespace game
             if (!combat)
                 return (action == off::kActionIdle) ? CUBE_ACTION_IDLE : CUBE_ACTION_UNKNOWN;
 
-            // A staff-equipped combat action is a spell cast; anything else is an attack/shot.
+            // A staff equipped combat action is a spell cast; anything else is an attack/shot.
             uint8_t weaponSub = 0;
             mem::read(creature + off::kWeaponSubtypeOff, weaponSub);
             return (weaponSub == off::kWeaponSubStaff) ? CUBE_ACTION_CASTING : CUBE_ACTION_ATTACKING;

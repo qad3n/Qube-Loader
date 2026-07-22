@@ -23,7 +23,7 @@ namespace cube
         bool isFirstPerson() const { return m_data.firstPerson != 0; }
         unsigned getAddress() const { return m_data.address; } // GameController base (raw)
         const CubeCamera& raw() const { return m_data; }
-        // Live edits to the 3rd-person camera scalars.
+        // Live edits to the third person camera scalars.
         bool set(CameraField field, double value) const { return m_api && m_api->camera.set(m_api, static_cast<int32_t>(field), value) != 0; }
         bool setDistance(float distance) const { return set(CameraField::Distance, distance); }
         bool setPitch(float pitch) const { return set(CameraField::Pitch, pitch); }
@@ -69,7 +69,7 @@ namespace cube
         bool m_valid;
     };
 
-    // Live audio state + sound/music playback (client only). Playback methods are game-calls: call
+    // Live audio state + sound/music playback (client only). Playback methods are game calls: call
     // them from an event callback / hook (the game thread). Edit saved volume via Display::setSoundVolume.
     class Audio
     {
@@ -89,9 +89,9 @@ namespace cube
         float getMusicVolumeLive() const { return m_data.musicVolumeLive; }
         unsigned getAddress() const { return m_data.address; } // XAudio2Engine base (raw)
         const CubeAudio& raw() const { return m_data; }
-        // Play any built-in sound effect (CUBE_CATALOG_SOUND id, 0..100), 2D at the listener.
+        // Play any built in sound effect (CUBE_CATALOG_SOUND id, 0..100), 2D at the listener.
         bool playSound(int soundId) const { return m_api && m_api->audio.playSound(m_api, soundId) != 0; }
-        // Play a built-in sound at a world position with volume/pitch multipliers.
+        // Play a built in sound at a world position with volume/pitch multipliers.
         bool playSoundAt(int soundId, const Vec3& at, float volume = kFullVolume, float pitch = kNormalPitch) const
         {
             return m_api && m_api->audio.playSoundAt(m_api, soundId, at.x, at.y, at.z, volume, pitch) != 0;

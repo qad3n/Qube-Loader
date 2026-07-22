@@ -31,7 +31,7 @@ namespace cube
         int getHitStun() const { return m_data.hitStun; }
         bool isStaggered() const { return m_data.hitStun > 0; }
         bool isKnockedDown() const { return m_data.knockedDown != 0; }
-        // Consolidated stun snapshot for this creature, plus a one-call break-free.
+        // Consolidated stun snapshot for this creature, plus a one call break free.
         Stun getStun() const { return Stun(m_api, m_data.address); }
         bool clearStun() const { return m_api && m_data.address && m_api->status.clearStun(m_api, m_data.address) != 0; }
         unsigned getOwnerAddress() const { return m_data.ownerAddress; }
@@ -191,7 +191,7 @@ namespace cube
         return detail::fillList<CubeBuff, Buff, CUBE_BUFFS_MAX>(api, api ? api->status.effects : nullptr);
     }
 
-    // An entity's own status effects, read through the generic per-creature status list.
+    // An entity's own status effects, read through the generic per creature status list.
     inline std::vector<Buff> Entity::buffs() const
     {
         return detail::fillListAt<CubeBuff, Buff, CUBE_BUFFS_MAX>(m_api, m_api ? m_api->entities.effects : nullptr, m_data.address);

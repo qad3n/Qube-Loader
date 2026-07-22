@@ -11,7 +11,7 @@ namespace hooks::render
     namespace
     {
         constexpr char kCategory[] = "render";
-        constexpr DWORD kDrainMs = 32; // let an in-flight frame finish before a removed callback is freed
+        constexpr DWORD kDrainMs = 32; // let an in flight frame finish before a removed callback is freed
         constexpr int kMaxRenderFaults = 3; // after this many render faults, stop drawing for the session
 
         struct Entry
@@ -24,9 +24,9 @@ namespace hooks::render
         std::vector<Entry> g_subscribers;
         Token g_nextToken = 0;
 
-        // Render thread only: fault-isolation bookkeeping. The loader's own per-frame scaffolding
+        // Render thread only: fault isolation bookkeeping. The loader's own per frame scaffolding
         // (gameevents polling) runs here without a mod owner; a CPU fault in it would otherwise crash
-        // the game. Mod event handlers are already owner-isolated inside events::emit.
+        // the game. Mod event handlers are already owner isolated inside events::emit.
         int g_renderFaults = 0;
         bool g_renderDisarmed = false;
 

@@ -23,8 +23,8 @@ namespace hooks::input_block
         SetCursorPosFn g_origSetCursorPos = nullptr;
         void** g_setCursorPosSlot = nullptr;
 
-        // The game recenters the cursor to the client center every frame for infinite mouse-look (its
-        // focused-and-no-UI recenter). Swallow it while the overlay owns input so the pointer stays put
+        // The game recenters the cursor to the client center every frame for infinite mouse look (its
+        // focused and no UI recenter). Swallow it while the overlay owns input so the pointer stays put
         // for the menu; otherwise the game warps it back to center on every frame.
         BOOL WINAPI hkSetCursorPos(int x, int y)
         {
@@ -41,7 +41,7 @@ namespace hooks::input_block
             if (visible)
                 while (ShowCursor(TRUE) < 0);
             else
-                ShowCursor(FALSE); // restore the game's hidden-cursor state (it did ShowCursor(0))
+                ShowCursor(FALSE); // restore the game's hidden cursor state (it did ShowCursor(0))
         }
 
         // Patch the user32 SetCursorPos IAT slot the game imports (original via outOrig); false if absent.

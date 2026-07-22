@@ -8,7 +8,7 @@ namespace exmod
     namespace
     {
 
-        // Indexed by CubeEvent value; the name doubles as the log/counter label. Per-event payload
+        // Indexed by CubeEvent value; the name doubles as the log/counter label. Per event payload
         // semantics (subject/param/param2/amount) are documented in the SDK event catalog (enums.h).
         const char* const kEventNames[CUBE_EVENT_COUNT] =
         {
@@ -40,7 +40,7 @@ namespace exmod
     GameEvents::GameEvents()
     {
         // Every event echoes to the console by default; each is still toggleable in the Events tab
-        // (the high-frequency ones like MOVEMENT_CHANGED / ENTITY_DAMAGED can be muted there).
+        // (the high frequency ones like MOVEMENT_CHANGED / ENTITY_DAMAGED can be muted there).
         for (int i = 0; i < CUBE_EVENT_COUNT; ++i)
             m_console[i] = true;
     }
@@ -227,7 +227,7 @@ namespace exmod
             record(CUBE_EVENT_ITEM_PICKUP, detail);
         });
         // Lifecycle edges (ABI 22): READY fires once after all mods load + deps resolve; WorldEnter/Exit
-        // on the title/menu <-> in-world crossing (distinct from AreaChange's zone-to-zone).
+        // on the title/menu and in world crossing (distinct from AreaChange's zone to zone).
         listener.onReady([this] { record(CUBE_EVENT_READY); });
         listener.onWorldEnter([this] { record(CUBE_EVENT_WORLD_ENTER); });
         listener.onWorldExit([this] { record(CUBE_EVENT_WORLD_EXIT); });

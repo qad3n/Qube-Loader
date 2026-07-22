@@ -12,7 +12,7 @@ namespace exmod
     constexpr int kHexRadix = 16; // addresses/values are parsed and shown as hexadecimal
     constexpr float kFullResource = 1.0f; // a normalized 0..1 resource/stat is full at 1.0
 
-    // Null-guarded wrapper over g_api->log.write, shared by the overlay and the menu tabs.
+    // Null guarded wrapper over the loader's log write, shared by the overlay and the menu tabs.
     void logLine(CubeLogLevel level, const char* message);
 
 }

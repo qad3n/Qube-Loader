@@ -3,7 +3,7 @@
 #include <cstring>
 
 // g_active is thread_local, true on the render thread alone; other threads miss getX()
-// and no-op putX(). So the cache state below is render-thread-only and needs no lock.
+// and no op putX(). So the cache state below is render thread only and needs no lock.
 namespace game::framecache
 {
     namespace

@@ -1,5 +1,5 @@
 #pragma once
-// Win32 structured-exception code to a short display name (shared by crash + faultguard).
+// Win32 structured exception code to a short display name (shared by crash + faultguard).
 
 #include <windows.h>
 

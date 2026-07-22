@@ -29,8 +29,9 @@ namespace paths
     }
 
     // Sanitizes an untrusted string (mod id, config/storage key or scope) into a single safe path
-    // component: keeps [A-Za-z0-9._-], maps everything else to '_', and neutralizes any "." / ".."
-    // so it can never escape its parent directory. Empty/dot-only input returns a single underscore.
+    // component: keeps letters, digits, dot, underscore and hyphen, maps everything else to '_', and
+    // neutralizes any "." / ".." so it can never escape its parent directory. Empty or dot only input
+    // returns a single underscore.
     std::string sanitizeComponent(const std::string& raw);
 
     // Recursively creates dir (and any missing parents). Returns true if it exists afterward.

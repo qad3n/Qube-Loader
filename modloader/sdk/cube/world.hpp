@@ -1,11 +1,11 @@
 #pragma once
-// World + placed-structure accessors: World, Structure.
+// World + placed structure accessors: World, Structure.
 
 #include "cube/common.hpp"
 
 namespace cube
 {
-    // Day-clock conversion for World::setTimeOfDay (the game stores time as ms/day).
+    // Day clock conversion for World::setTimeOfDay (the game stores time as ms/day).
     constexpr int kMinutesPerHour = 60;
     constexpr int kSecondsPerMinute = 60;
     constexpr int kMillisPerSecond = 1000;
@@ -36,7 +36,7 @@ namespace cube
         bool hasSeed() const { return m_data.hasSeed != 0; }
         unsigned getSeed() const { return m_data.seed; }
         const CubeWorld& raw() const { return m_data; }
-        // Live edits: time-of-day and the player's current ZoneTile (climate/terrain).
+        // Live edits: time of day and the player's current ZoneTile (climate/terrain).
         bool setTime(int ms) const { return m_api && m_api->world.setTime(m_api, ms) != 0; }
         bool setTimeOfDay(int hour, int minute) const { return setTime((hour * kMinutesPerHour + minute) * kSecondsPerMinute * kMillisPerSecond); }
         bool setTile(TileField field, double value) const { return m_api && m_api->world.setTile(m_api, static_cast<int32_t>(field), value) != 0; }

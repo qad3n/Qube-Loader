@@ -8,7 +8,7 @@
 
 namespace guard
 {
-    // Loader-internal guard: catches C++ exceptions only (mingw has no SEH). A fault here is a
+    // Loader internal guard: catches C++ exceptions only (mingw has no SEH). A fault here is a
     // loader bug and is left to crash.cpp, not silently swallowed.
     template <typename Fn>
     bool tryRun(const char* what, Fn&& fn)
@@ -30,7 +30,7 @@ namespace guard
         }
     }
 
-    // Mod-callback guard: attributes work to owner and, when fault isolation is on, recovers from a
+    // Mod callback guard: attributes work to owner and, when fault isolation is on, recovers from a
     // CPU fault by quarantining that mod. Falls back to the plain guard when owner==null or off.
     template <typename Fn>
     bool tryRun(const char* what, const CubeApi* owner, Fn&& fn)
@@ -43,7 +43,7 @@ namespace guard
         return faultguard::runGuarded(what, owner,[](void* ctx) { (*static_cast<Fn*>(ctx))(); }, fnPtr);
     }
 
-    // Loader game-thread guard: isolates a CPU fault in the loader's OWN game-thread detour bodies
+    // Loader game thread guard: isolates a CPU fault in the loader's OWN game thread detour bodies
     // (no mod owner) so the game thread recovers instead of dying silently. Returns false on fault so
     // the caller can apply a safe fallback (e.g. the vanilla result). Falls back to the C++-only guard
     // when isolation is off. Distinct from the owner form: no quarantine/strike, just recover + log.

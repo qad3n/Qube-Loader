@@ -1,5 +1,5 @@
 #pragma once
-// Thread-safe, color-coded logging to a console and cube_mod.log.
+// Thread safe, color coded logging to a console and cube_mod.log.
 
 namespace logger
 {

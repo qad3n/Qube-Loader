@@ -95,8 +95,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // LoadLibraryA's signature differs from LPTHREAD_START_ROUTINE but is ABI-compatible for
-    // CreateRemoteThread; cast through void* so -Wcast-function-type does not flag the intended idiom.
+    // LoadLibraryA's signature differs from LPTHREAD_START_ROUTINE but is ABI compatible for
+    // CreateRemoteThread; cast through void* so -Wcast function type does not flag the intended idiom.
     LPTHREAD_START_ROUTINE loadLibrary = reinterpret_cast<LPTHREAD_START_ROUTINE>(
         reinterpret_cast<void*>(GetProcAddress(GetModuleHandleA(kKernel32), kLoadLibraryProc)));
     if (!loadLibrary)

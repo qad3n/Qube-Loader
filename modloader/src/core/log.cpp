@@ -101,7 +101,7 @@ namespace logger
             return ntdll != nullptr && GetProcAddress(ntdll, "wine_get_version") != nullptr;
         }
 
-        // Enable QuickEdit mouse selection. wine: already on but its conhost lacks click-drag
+        // Enable QuickEdit mouse selection. wine: already on but its conhost lacks click drag
         // selection, so this only helps real Windows; under Wine read the log file in a native terminal.
         void enableConsoleSelection()
         {
@@ -286,11 +286,11 @@ namespace logger
             if (AllocConsole())
             {
                 SetConsoleTitleA(kConsoleTitle);
-                // Non-activating tool window: dropped from the alt-tab/taskbar list so it can never take
-                // foreground and minimize an exclusive-fullscreen game (device lost) nor block alt-tab back.
-                // Windows only: Wine forwards WS_EX_NOACTIVATE to the host WM, where a non-focusable window
-                // cannot be moved (tiling compositors especially), and Wine has no exclusive-fullscreen
-                // focus-steal problem to guard against, so the console stays a normal movable window there.
+                // Non activating tool window: dropped from the alt tab/taskbar list so it can never take
+                // foreground and minimize an exclusive fullscreen game (device lost) nor block alt tab back.
+                // Windows only: Wine forwards WS_EX_NOACTIVATE to the host WM, where a non focusable window
+                // cannot be moved (tiling compositors especially), and Wine has no exclusive fullscreen
+                // focus steal problem to guard against, so the console stays a normal movable window there.
                 if (HWND con = GetConsoleWindow(); con && !isWine())
                 {
                     LONG_PTR ex = GetWindowLongPtrA(con, GWL_EXSTYLE);

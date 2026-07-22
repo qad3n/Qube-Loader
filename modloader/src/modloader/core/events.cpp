@@ -17,7 +17,7 @@ namespace modloader::events
     {
 
         constexpr char kCategory[] = "events";
-        constexpr int kLabelMax = 96; // stack buffer for a per-callback guard label (no heap alloc)
+        constexpr int kLabelMax = 96; // stack buffer for a per callback guard label (no heap alloc)
 
         struct Subscription
         {
@@ -30,7 +30,7 @@ namespace modloader::events
 
         OwnerRegistry<Subscription> g_registry;
 
-        // Per-frame/per-message events fire constantly; logging each delivery would flood the log.
+        // Per frame/per message events fire constantly; logging each delivery would flood the log.
         bool isHighFrequency(CubeEvent event)
         {
             switch (event)
@@ -184,8 +184,8 @@ namespace modloader::events
 
     int32_t emit(const CubeEventArgs& args)
     {
-        // Reused per-thread snapshot buffer so a hot event does not heap-allocate each frame. A
-        // synchronous re-emit would clobber it, so an in-use flag falls back to a fresh local vector.
+        // Reused per thread snapshot buffer so a hot event does not heap allocate each frame. A
+        // synchronous re emit would clobber it, so an in use flag falls back to a fresh local vector.
         static thread_local std::vector<Subscription> shared;
         static thread_local bool sharedInUse = false;
         std::vector<Subscription> local;
@@ -194,7 +194,7 @@ namespace modloader::events
         sharedInUse = true;
         g_registry.snapshotInto(matched, [&](const Subscription& sub) { return sub.event == args.event; });
 
-        // Dispatch low-to-high priority so the highest-priority mod runs last (final say on swallow);
+        // Dispatch low to high priority so the highest priority mod runs last (final say on swallow);
         // within one priority, a dependency's lower topological rank runs before its dependents;
         // stable_sort keeps load order when both are equal.
         std::stable_sort(matched.begin(), matched.end(), [](const Subscription& a, const Subscription& b)

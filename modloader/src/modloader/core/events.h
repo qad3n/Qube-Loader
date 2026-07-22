@@ -16,10 +16,10 @@ namespace modloader::events
     // Dispatches to every subscriber of args.event; returns 1 if any callback set args.swallow.
     int32_t emit(const CubeEventArgs& args);
     void clear();
-    // Human-readable event name for logs (shared with the api bridge).
+    // Human readable event name for logs (shared with the api bridge).
     const char* eventName(CubeEvent event);
-    // Comma-joined names of the events a mod is subscribed to (empty if none), for load-time logging.
+    // Comma joined names of the events a mod is subscribed to (empty if none), for load time logging.
     std::string describeOwner(const CubeApi* owner);
-    // Enumerate all subscriptions as (owner, event-name) pairs; feeds the compatibility report's index.
+    // Enumerate all subscriptions as (owner, event name) pairs; feeds the compatibility report's index.
     void forEachSubscription(const std::function<void(const CubeApi*, const char*)>& fn);
 }

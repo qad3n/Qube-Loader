@@ -1,9 +1,9 @@
 #pragma once
-// Shared scaffolding for a "capture-on-game-thread, poll-on-render-thread" detour over a no-arg
-// __thiscall GameController function (mingw: ABI-identical to __fastcall). The detour runs the
+// Shared scaffolding for a "capture on game thread, poll on render thread" detour over a no arg
+// __thiscall GameController function (mingw: ABI identical to __fastcall). The detour runs the
 // original, then (while armed) captures a Record on the game thread and publishes it through a seq
-// fence; the render thread reads the latest via readLast()/poll(). remove() flips to pass-through and
-// drains in-flight calls before MinHook frees the trampoline (mingw has no SEH for the race).
+// fence; the render thread reads the latest via readLast()/poll(). remove() flips to pass through and
+// drains in flight calls before MinHook frees the trampoline (mingw has no SEH for the race).
 
 #include "hooks/detour.h"
 #include "game/signature.h"
@@ -17,7 +17,7 @@
 
 namespace game
 {
-    // A no-arg __thiscall is ABI-identical to __fastcall(self, edx) on mingw.
+    // A no arg __thiscall is ABI identical to __fastcall(self, edx) on mingw.
     typedef void(__fastcall* NoArgThiscallFn)(void* self, void* edx);
 
     template <typename Record>
@@ -61,8 +61,8 @@ namespace game
             if (!m_installed)
                 return;
 
-            m_active.store(false, std::memory_order_release); // flip to pass-through first
-            barrier::drain(m_inFlight, m_category); // wait out in-flight calls before freeing the trampoline
+            m_active.store(false, std::memory_order_release); // flip to pass through first
+            barrier::drain(m_inFlight, m_category); // wait out in flight calls before freeing the trampoline
             hooks::detour::remove(target());
 
             m_original = nullptr;

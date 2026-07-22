@@ -1,5 +1,5 @@
 #pragma once
-// The top-level CubeApi struct, CubeModInfo, the mod entry/shutdown typedefs, and cubeLogf.
+// The top level CubeApi struct, CubeModInfo, the mod entry/shutdown typedefs, and cubeLogf.
 
 #include "cube_sdk/apis.h"
 
@@ -26,23 +26,23 @@ typedef struct CubeApi
     CubeUiApi ui; // client only
     CubeCatalogApi catalog;
     CubeInputApi input; // client only: freeze game input while an overlay is open
-    CubeSelectionApi selection; // client only: last-selected record (R / use key), detour-backed
-    CubePickupApi pickup; // client only: last-picked-up item (E key), detour-backed
-    CubeHooksApi hooks; // game-function interception (cancel/modify/override), separate from events
+    CubeSelectionApi selection; // client only: last selected record (R / use key), detour backed
+    CubePickupApi pickup; // client only: last picked up item (E key), detour backed
+    CubeHooksApi hooks; // game function interception (cancel/modify/override), separate from events
     // --- appended in ABI 21 (persistence); older mods never read past here, so growth stays additive ---
-    CubeConfigApi config; // per-mod user-editable settings (<dllDir>/config/<stem>.ini)
-    CubeStorageApi storage; // per-mod binary save data (<dllDir>/data/<stem>/)
+    CubeConfigApi config; // per mod user editable settings (<dllDir>/config/<stem>.ini)
+    CubeStorageApi storage; // per mod binary save data (<dllDir>/data/<stem>/)
     // --- appended in ABI 22 (ecosystem) ---
-    CubeServicesApi services; // shared-service registry + directed inter-mod messaging (by manifest id)
+    CubeServicesApi services; // shared service registry + directed inter mod messaging (by manifest id)
     // --- appended in ABI 23 (localization) ---
-    CubeLocaleApi locale; // per-mod string translation (<dllDir>/lang/<stem>/<locale>.ini)
+    CubeLocaleApi locale; // per mod string translation (<dllDir>/lang/<stem>/<locale>.ini)
     // --- appended in ABI 24 (asset overrides) ---
-    CubeAssetsApi assets; // client only: override a game asset blob by filename key (detour-backed)
-    // --- appended in ABI 26 (loader-owned ImGui overlay) ---
+    CubeAssetsApi assets; // client only: override a game asset blob by filename key (detour backed)
+    // --- appended in ABI 26 (loader owned ImGui overlay) ---
     CubeOverlayApi overlay; // client only: register a draw callback; the loader owns the ImGui context + lifecycle
 } CubeApi;
 
-// One declared dependency on another mod (CubeModInfo::deps, a null-terminated array). The loader
+// One declared dependency on another mod (CubeModInfo::deps, a null terminated array). The loader
 // resolves these by id after all mods load and before CUBE_EVENT_READY.
 typedef struct CubeModDep
 {
@@ -57,15 +57,15 @@ typedef struct CubeModInfo
     const char* name;
     const char* version;
     const char* author;
-    // Dispatch priority: higher runs LAST in every event/hook reduce (final say on last-writer-wins
+    // Dispatch priority: higher runs LAST in every event/hook reduce (final say on last writer wins
     // returns); ties keep load order. Set via Mod::setPriority in the mod body; 0 = default.
     int32_t priority;
     // --- appended in ABI 20; each read only under a structSize gate so older mods still load ---
     const char* id;         // stable machine id (unique); loader falls back to the DLL stem if NULL
     uint32_t requiredAbi;   // ABI the mod was built against (CUBE_MOD sets it automatically); 0 = unspecified
     uint32_t capabilities;  // CubeModCapability bitset; 0 = unrestricted
-    const CubeModDep* deps; // null-terminated dependency array; NULL = none
-    // --- appended in ABI 24; structSize-gated like the ABI 20 fields above ---
+    const CubeModDep* deps; // null terminated dependency array; NULL = none
+    // --- appended in ABI 24; structSize gated like the ABI 20 fields above ---
     const char* updateUrl;  // optional home/version URL, reported in the load banner; NULL = none
 } CubeModInfo;
 

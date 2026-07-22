@@ -1,5 +1,5 @@
 #pragma once
-// Flat key=value ini read/write + small string helpers, shared by the loader config and per-mod files.
+// Flat key=value ini read/write + small string helpers, shared by the loader config and per mod files.
 #include <map>
 #include <string>
 

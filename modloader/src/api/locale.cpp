@@ -10,7 +10,7 @@ namespace modloader::api
 {
     namespace
     {
-        // Copies text into out (capped, always null-terminated) and returns the copied length.
+        // Copies text into out (capped, always null terminated) and returns the copied length.
         int32_t copyOut(const std::string& text, char* out, int32_t size)
         {
             const int32_t copyLen = text.size() < static_cast<size_t>(size - 1)

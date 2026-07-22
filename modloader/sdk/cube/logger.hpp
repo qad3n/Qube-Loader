@@ -1,5 +1,5 @@
 #pragma once
-// Logger: the mod-facing logging facade.
+// Logger: the mod facing logging facade.
 
 #include "cube/common.hpp"
 

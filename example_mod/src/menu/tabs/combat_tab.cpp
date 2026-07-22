@@ -68,7 +68,7 @@ namespace exmod::menu
         addressHeader("Creature", combat.raw().address);
 
         // Occurrences are events, not state: these are session counts from the event listener, not
-        // fields on the combat snapshot. See the Events tab for the full per-event tally.
+        // fields on the combat snapshot. See the Events tab for the full per event tally.
         if (beginTable("cmb_tel"))
         {
             const GameEvents& events = gameEvents();

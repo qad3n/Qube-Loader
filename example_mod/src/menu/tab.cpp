@@ -21,8 +21,8 @@ namespace exmod::menu
 
     float Tab::sc(float px)
     {
-        // Effective scale (monitor DPI * user UI scale) now lives in the loader-owned overlay; read it
-        // through the mod's menu handle. The loader already scales ImGui's built-in style + font, so
+        // Effective scale (monitor DPI * user UI scale) now lives in the loader owned overlay; read it
+        // through the mod's menu handle. The loader already scales ImGui's built in style + font, so
         // this is only for our explicit pixel widths (SetNextItemWidth etc).
         return cube::mod().menu().scale(px);
     }

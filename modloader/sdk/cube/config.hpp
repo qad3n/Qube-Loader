@@ -1,6 +1,6 @@
 #pragma once
-// Config: the mod-facing settings facade. Reads/writes this mod's own <dllDir>/config/<stem>.ini
-// (the loader keys it by the mod's DLL stem); every call is a guarded one-liner returning the fallback
+// Config: the mod facing settings facade. Reads/writes this mod's own <dllDir>/config/<stem>.ini
+// (the loader keys it by the mod's DLL stem); every call is a guarded one liner returning the fallback
 // if the loader is unavailable. Get with mod.config(); no offsets, no file I/O.
 
 #include "cube/common.hpp"

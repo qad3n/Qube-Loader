@@ -14,7 +14,7 @@ namespace cube
         bool valid() const { return m_valid; }
         bool isStunned() const { return m_data.stunned != 0; } // cannot act while true
         bool isKnockedDown() const { return m_data.knockedDown != 0; } // on the ground, "stars"
-        int getHitStun() const { return m_data.hitStun; } // stun-lock timer, 0..600
+        int getHitStun() const { return m_data.hitStun; } // stun lock timer, 0..600
         float getHitStunPercent() const { return m_data.hitStunPercent; } // 0..100 for a bar
         Vec3 getKnockback() const { return Vec3{m_data.knockbackX, m_data.knockbackY, 0.0f}; }
         unsigned getAddress() const { return m_data.address; }
@@ -35,7 +35,7 @@ namespace cube
         explicit Hero(const CubeApi* api) : m_api(api), m_valid(api && api->player.get(api, &m_data) != 0) {}
 
         bool valid() const { return m_valid; }
-        // Re-pull the snapshot from live memory; call after a setter, else a get reads the pre-set value.
+        // Re pull the snapshot from live memory; call after a setter, else a get reads the pre set value.
         bool refresh() { m_valid = m_api && m_api->player.get(m_api, &m_data) != 0; return m_valid; }
         bool isAlive() const { return m_data.alive != 0; }
         float getHealth() const { return m_data.health; }
@@ -57,7 +57,7 @@ namespace cube
         float getFacing() const { return m_data.facing; }
         Vec3 getVelocity() const { return Vec3{m_data.velX, m_data.velY, m_data.velZ}; }
         float getSpeed() const { return m_data.speed; }
-        // Consolidated state (resolved by the loader) - prefer these over the booleans.
+        // Consolidated state (resolved by the loader). Prefer these over the booleans.
         Movement getMovement() const { return static_cast<Movement>(m_data.movement); }
         Action getAction() const { return static_cast<Action>(m_data.action); }
         const char* getMovementText() const { return movementName(getMovement()); }
@@ -76,7 +76,7 @@ namespace cube
         int getActionElapsedMs() const { return m_data.actionElapsedMs; }
         bool isCasting() const { return getAction() == Action::Casting; }
         bool isKnockedDown() const { return m_data.knockedDown != 0; }
-        // Consolidated stun snapshot (timer + downed + knockback), plus a one-call break-free.
+        // Consolidated stun snapshot (timer + downed + knockback), plus a one call break free.
         Stun getStun() const { return Stun(m_api, 0); } // 0 = the local player
         bool clearStun() const { return m_api && m_api->status.clearStun(m_api, 0) != 0; }
         int getActionId() const { return m_data.actionId; }
@@ -125,7 +125,7 @@ namespace cube
 
     typedef Hero Player;
 
-    // Local-player combat snapshot: stored Creature combat stats (all direct reads). For damage and
+    // Local player combat snapshot: stored Creature combat stats (all direct reads). For damage and
     // crit occurrences use the PLAYER_DAMAGED / PLAYER_CRIT events or the IMPACT / CRIT_ROLL hooks.
     class Combat
     {

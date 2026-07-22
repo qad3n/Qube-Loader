@@ -9,7 +9,7 @@
 #include <atomic>
 #include <cstdint>
 
-// Hand-written detour behind CUBE_HOOK_CRIT_ROLL; __thiscall == __fastcall with a dummy edx on mingw.
+// Hand written detour behind CUBE_HOOK_CRIT_ROLL; __thiscall == __fastcall with a dummy edx on mingw.
 namespace game::gamehooks
 {
     namespace
@@ -39,9 +39,9 @@ namespace game::gamehooks
                     result = call.returnI ? 1 : 0;
             }
 
-            // Feed the observe-side counter for the LOCAL player's crits whether or not a mod is
+            // Feed the observe side counter for the LOCAL player's crits whether or not a mod is
             // intercepting, so PLAYER_CRIT / getCrits() mean "the player crit" and not "any creature on
-            // the map rolled a crit". Pass-through (no subscriber) still counts; it never alters the roll.
+            // the map rolled a crit". Pass through (no subscriber) still counts; it never alters the roll.
             if (result && game::isLocalPlayerCreature(reinterpret_cast<uint32_t>(self)))
                 game::noteCrit();
             return result;

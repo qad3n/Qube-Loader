@@ -37,8 +37,8 @@ namespace hooks::d3d9
         bool g_windowHooked = false; // render thread only
 
         // Borderless coercion state (render thread only). The game runs in D3D9 EXCLUSIVE fullscreen,
-        // which makes its window topmost + non-minimizable and loses the device on every alt-tab. We
-        // force it to borderless windowed so alt-tab / minimize work and no exclusive device loss can
+        // which makes its window topmost + non minimizable and loses the device on every alt tab. We
+        // force it to borderless windowed so alt tab / minimize work and no exclusive device loss can
         // freeze it. Cache the original style ONCE so eject can restore the game's own window.
         bool g_styleSaved = false;
         LONG_PTR g_savedStyle = 0;
@@ -50,7 +50,7 @@ namespace hooks::d3d9
             return static_cast<std::size_t>(slot);
         }
 
-        // Convert the game window to borderless covering its monitor: not topmost (alt-tab works),
+        // Convert the game window to borderless covering its monitor: not topmost (alt tab works),
         // WS_POPUP (minimizable, no title bar), sized to the monitor. Idempotent; caches the original
         // style the first time so restoreWindowStyle can put it back on eject.
         void applyBorderless(HWND hwnd)
@@ -80,7 +80,7 @@ namespace hooks::d3d9
             if (hm != nullptr && GetMonitorInfoA(hm, &mi))
                 mon = mi.rcMonitor;
 
-            // HWND_NOTOPMOST drops the exclusive-fullscreen topmost band; SWP_NOACTIVATE so we do not
+            // HWND_NOTOPMOST drops the exclusive fullscreen topmost band; SWP_NOACTIVATE so we do not
             // steal focus, SWP_FRAMECHANGED so the style change takes effect.
             SetWindowPos(hwnd, HWND_NOTOPMOST, mon.left, mon.top, mon.right - mon.left, mon.bottom - mon.top,
                          SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
@@ -124,10 +124,10 @@ namespace hooks::d3d9
                 ensureWindowHook(device);
                 // Gate ONLY the draw on the cooperative level. In exclusive fullscreen the device goes
                 // D3DERR_DEVICELOST / D3DERR_DEVICENOTRESET on focus loss / mode change; drawing ImGui
-                // (default-pool resources) on a lost device is what freezes/crashes the game. When lost
-                // we simply drop the overlay frame - the game's own loop performs the Reset, which
-                // hkReset catches (invalidate -> reset -> recreate). Skipping the draw (not the hook)
-                // keeps a wrapper false-positive cheap: one dropped frame, never a permanently hidden
+                // (default pool resources) on a lost device is what freezes/crashes the game. When lost
+                // we simply drop the overlay frame, the game's own loop performs the Reset, which
+                // hkReset catches (invalidate then reset then recreate). Skipping the draw (not the hook)
+                // keeps a wrapper false positive cheap: one dropped frame, never a permanently hidden
                 // overlay. The trampoline below still runs every call so the game frame is untouched.
                 if (g_cb.onRender != nullptr && device->TestCooperativeLevel() == D3D_OK)
                     g_cb.onRender(device);
@@ -141,8 +141,8 @@ namespace hooks::d3d9
             // present params to windowed so the device never takes exclusive mode again. The game already
             // sized the back buffer to the target resolution, so we leave BackBufferWidth/Height alone and
             // only clear the fullscreen bits. The matching borderless window restyle happens after the
-            // reset succeeds (below). This catches every reset: startup settings-apply, alt-tab device-loss
-            // recovery, and in-game resolution/mode changes.
+            // reset succeeds (below). This catches every reset: startup settings apply, alt tab device loss
+            // recovery, and in game resolution/mode changes.
             bool coerced = false;
             if (g_active.load() && pp != nullptr && pp->Windowed == FALSE)
             {
@@ -223,10 +223,10 @@ namespace hooks::d3d9
                 void** vtable = *reinterpret_cast<void***>(probeDev);
                 g_vtable = vtable;
                 // Capture the EndScene/Reset addresses WHILE the probe device is alive. Some d3d9
-                // wrappers (DXVK / dgVoodoo / injected overlays) heap-allocate a per-device vtable and
+                // wrappers (DXVK / dgVoodoo / injected overlays) heap allocate a per device vtable and
                 // free it on Release, so reading a slot after Release dereferences freed memory (observed
                 // AV reading slot 42). Guard the read too, in case the vtable is shorter than the
-                // standard layout - a nonstandard d3d9 then disables the overlay instead of crashing.
+                // standard layout, a nonstandard d3d9 then disables the overlay instead of crashing.
                 const size_t needed = sizeof(void*) * (slotIndex(Slot::EndScene) + 1);
                 if (vtable != nullptr && mem::readable(vtable, needed))
                 {
@@ -264,7 +264,7 @@ namespace hooks::d3d9
              fmt::ptr(g_vtable), fmt::ptr(g_endSceneTarget), fmt::ptr(g_resetTarget));
 
         // g_endSceneTarget / g_resetTarget were captured in acquireVtable while the probe device was
-        // alive. The probe shares these function addresses with the game's device, so inline-hooking
+        // alive. The probe shares these function addresses with the game's device, so inline hooking
         // them intercepts the game too.
         const bool endSceneOk = detour::create(g_endSceneTarget, reinterpret_cast<void*>(&hkEndScene),
                                                reinterpret_cast<void**>(&g_origEndScene));
@@ -295,8 +295,8 @@ namespace hooks::d3d9
         if (!g_active.load())
             return;
 
-        // Close the hook path, then drain before MinHook frees the trampolines (hooks still tail-call
-        // the trampoline when inactive). wine: mingw has no SEH, so the in-flight window is inherent.
+        // Close the hook path, then drain before MinHook frees the trampolines (hooks still tail call
+        // the trampoline when inactive). wine: mingw has no SEH, so the in flight window is inherent.
         g_active.store(false);
         restoreWindowStyle(); // put the game's own window style back before we drop the WndProc hook
         hooks::window::restore();

@@ -39,8 +39,8 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
 
     mod.log.info("example_mod: init; menu on INSERT/DELETE, listening for game events");
 
-    // storage() holds mod-owned save data (this launch counter survives restarts); config() holds
-    // user-editable settings (see Mod > Persist). Both key on the DLL stem, so they work here in init.
+    // storage() holds mod owned save data (this launch counter survives restarts); config() holds
+    // user editable settings (see Mod > Persist). Both key on the DLL stem, so they work here in init.
     const int launches = mod.storage().getValue<int>("launches", 0) + 1;
     mod.storage().putValue<int>("launches", launches);
     if (mod.config().getBool("greet_on_load", true))
@@ -48,12 +48,12 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
                      mod.config().getString("greeting", "welcome back").c_str());
 
     // The whole menu: one call. The loader owns the D3D9 hook, the ImGui context + backends, the
-    // per-frame New/Render, the INSERT toggle, the DPI/scale, device-reset recreate and the game input
+    // per frame New/Render, the INSERT toggle, the DPI/scale, device reset recreate and the game input
     // freeze. We just hand it a draw callback and write ImGui inside it. onDraw (not window) because
     // this menu draws its own sidebar + tab layout; a simple mod would use mod.menu().window(title, fn).
     mod.menu().onDraw([] { exmod::menu::draw(); });
 
-    // Plain per-frame work (runs on the loader's FRAME event, independent of whether the menu is open).
+    // Plain per frame work (runs on the loader's FRAME event, independent of whether the menu is open).
     cube::EventListener& eventListener = mod.eventListener;
     eventListener.onFrame([]
     {

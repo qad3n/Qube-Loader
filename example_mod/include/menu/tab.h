@@ -59,7 +59,7 @@ namespace exmod::menu
         // Edits an opaque game id as a named dropdown (when the catalog has names) or a
         // clamped numeric field (when it does not). Returns true and fills outId on a change.
         static bool idEditor(const char* label, CubeCatalog catalog, int currentId, int& outId);
-        // Fixed-width (kInputWidth) clamped drag editors: the SetNextItemWidth + Drag + AlwaysClamp
+        // Fixed width (kInputWidth) clamped drag editors: the SetNextItemWidth + Drag + AlwaysClamp
         // idiom repeated across every editor tab, in one call returning true on change.
         static bool dragFloat(const char* label, float& value, float speed, float min, float max, const char* fmt = "%.2f");
         static bool dragInt(const char* label, int& value, float speed, int min, int max);
