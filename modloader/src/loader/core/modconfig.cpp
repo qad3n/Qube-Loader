@@ -1,4 +1,4 @@
-#include "modloader/core/modconfig.h"
+#include "loader/core/modconfig.h"
 #include "core/ini.h"
 #include "core/log.h"
 #include "core/paths.h"

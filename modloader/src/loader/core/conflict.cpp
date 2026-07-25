@@ -1,4 +1,4 @@
-#include "modloader/core/conflict.h"
+#include "loader/core/conflict.h"
 #include "core/log.h"
 
 #include <cstdarg>

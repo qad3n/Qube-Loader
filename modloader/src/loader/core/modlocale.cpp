@@ -1,4 +1,4 @@
-#include "modloader/core/modlocale.h"
+#include "loader/core/modlocale.h"
 #include "core/ini.h"
 #include "core/log.h"
 #include "core/paths.h"

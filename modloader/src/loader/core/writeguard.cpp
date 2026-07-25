@@ -1,7 +1,7 @@
-#include "modloader/core/writeguard.h"
-#include "modloader/core/conflict.h"
-#include "modloader/core/owner_name.h"
-#include "modloader/game/gameevents.h"
+#include "loader/core/writeguard.h"
+#include "loader/core/conflict.h"
+#include "loader/core/owner_name.h"
+#include "loader/game/gameevents.h"
 #include "core/mem.h"
 
 #include <cstddef>

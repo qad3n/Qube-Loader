@@ -1,8 +1,8 @@
 #include "core/faultguard.h"
 #include "core/log.h"
 #include "core/exception_name.h"
-#include "modloader/core/owner_name.h"
-#include "modloader/core/modregistry.h"
+#include "loader/core/owner_name.h"
+#include "loader/core/modregistry.h"
 
 #include <windows.h>
 #include <atomic>

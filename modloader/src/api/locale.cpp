@@ -1,6 +1,6 @@
 #include "api/bridge.h"
-#include "modloader/core/modlocale.h"
-#include "modloader/core/owner_name.h"
+#include "loader/core/modlocale.h"
+#include "loader/core/owner_name.h"
 #include "cube_sdk.h"
 
 #include <cstring>

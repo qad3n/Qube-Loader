@@ -1,7 +1,7 @@
 #pragma once
 // Shared internals for the api bridge: each api/<domain>.cpp exposes one fillX(CubeApi&).
-#include "modloader/core/owner_name.h"
-#include "modloader/core/writeguard.h"
+#include "loader/core/owner_name.h"
+#include "loader/core/writeguard.h"
 #include "core/log.h"
 #include "cube_sdk.h"
 

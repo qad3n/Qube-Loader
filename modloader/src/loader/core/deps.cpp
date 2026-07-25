@@ -1,5 +1,5 @@
-#include "modloader/core/internal.h"
-#include "modloader/core/conflict.h"
+#include "loader/core/internal.h"
+#include "loader/core/conflict.h"
 #include "core/log.h"
 
 #include <algorithm>

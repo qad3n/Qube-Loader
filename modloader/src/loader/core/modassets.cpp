@@ -1,5 +1,5 @@
-#include "modloader/core/modassets.h"
-#include "modloader/core/conflict.h"
+#include "loader/core/modassets.h"
+#include "loader/core/conflict.h"
 #include "game/assets.h"
 #include "core/log.h"
 

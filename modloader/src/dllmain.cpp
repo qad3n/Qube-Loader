@@ -8,7 +8,7 @@
 #include "game/diag.h"
 #include "game/gamehooks/gamehooks.h"
 #include "hooks/detour.h"
-#include "modloader/modloader.h"
+#include "loader/loader.h"
 #include "util/guard.h"
 
 #include <windows.h>

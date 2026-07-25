@@ -1,5 +1,5 @@
-#include "modloader/game/gameevents.h"
-#include "modloader/core/events.h"
+#include "loader/game/gameevents.h"
+#include "loader/core/events.h"
 #include "hooks/d3d9_hook.h"
 #include "core/log.h"
 #include "core/mem.h"

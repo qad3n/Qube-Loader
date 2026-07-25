@@ -1,6 +1,6 @@
 #include "api/bridge.h"
-#include "modloader/core/services.h"
-#include "modloader/core/owner_name.h"
+#include "loader/core/services.h"
+#include "loader/core/owner_name.h"
 #include "cube_sdk.h"
 
 namespace modloader::api
