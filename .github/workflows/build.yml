@@ -1,0 +1,64 @@
+name: build
+
+# Every push and pull request has to build on both supported toolchains before it
+# lands. A directory rename once shipped to master with stale include paths: the
+# loader DLL failed to compile while the mods still built, so the tree looked fine
+# locally and broke on a fresh clone. These jobs are the gate against that.
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows-msvc:
+    name: Windows (MSVC, Win32)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake -S . -B build -A Win32 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Check artifacts
+        shell: pwsh
+        run: |
+          $expected = @(
+            'build/cube_mod.dll',
+            'build/inject.exe',
+            'build/mods/example_mod.dll',
+            'build/mods/example_lib.dll'
+          )
+          $missing = $expected | Where-Object { -not (Test-Path $_) }
+          if ($missing) { throw "missing artifacts: $($missing -join ', ')" }
+
+  linux-mingw:
+    name: Linux (mingw-w64 cross, i686)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install mingw-w64
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-mingw-w64-i686
+          # The loader uses std::mutex / std::thread, which the win32-threads
+          # variant of the cross compiler does not provide.
+          sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-posix
+          sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-posix
+
+      - name: Build
+        run: ./build.sh
+
+      - name: Check artifacts
+        run: |
+          for f in build/cube_mod.dll build/inject.exe build/mods/example_mod.dll build/mods/example_lib.dll; do
+            test -f "$f" || { echo "missing $f"; exit 1; }
+          done
