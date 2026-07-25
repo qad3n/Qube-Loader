@@ -272,19 +272,24 @@ typedef struct CubeInputApi
 } CubeInputApi;
 
 // Selection (client only). The loader detours the R / use key (GameController::updateSelectedEntity);
-// subscribe to CUBE_EVENT_ENTITY_SELECTED or poll getLast().
+// subscribe to CUBE_EVENT_ENTITY_SELECTED or poll getLast(). The detour is installed ON DEMAND: the
+// first subscription or the first getLast() call arms it, so a session where no mod asks leaves the
+// game unpatched.
 typedef struct CubeSelectionApi
 {
-    // Fills the most recent selection; returns 1 if any selection has happened, else 0.
+    // Fills the most recent selection; returns 1 if any selection has happened, else 0. The FIRST call
+    // arms the capture and so always returns 0: nothing has been captured yet.
     int32_t (CUBE_CALL* getLast)(const struct CubeApi* api, CubeSelection* out);
 } CubeSelectionApi;
 
 // Item pickup (client only). The loader detours the E / hold to pickup action
-// (GameController::onItemPickup); subscribe to CUBE_EVENT_ITEM_PICKUP or poll getLast().
+// (GameController::onItemPickup); subscribe to CUBE_EVENT_ITEM_PICKUP or poll getLast(). Installed on
+// demand, same rule as selection above.
 typedef struct CubePickupApi
 {
     // Fills the most recently picked up item (out.stack = count); returns 1 if any pickup has
-    // happened, else 0. out.address is 0 (the picked item is a transient staging copy).
+    // happened, else 0. out.address is 0 (the picked item is a transient staging copy). The FIRST call
+    // arms the capture and so always returns 0: nothing has been captured yet.
     int32_t (CUBE_CALL* getLast)(const struct CubeApi* api, CubeItem* out);
 } CubePickupApi;
 

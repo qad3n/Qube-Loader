@@ -10,8 +10,6 @@
 #include "loader/core/writeguard.h"
 #include "game/gamehooks/gamehooks.h"
 #include "game/signature.h"
-#include "game/selection.h"
-#include "game/pickup.h"
 #include "game/assets.h"
 #include "game/view.h"
 #include "hooks/render_dispatch.h"
@@ -40,27 +38,16 @@ namespace modloader
         std::vector<std::unique_ptr<LoadedMod>> g_mods;
         hooks::render::Token g_renderToken = hooks::render::kInvalidToken;
 
-        // Arm the loader's game hooks now that at least one mod is present. Every one is a transparent
-        // pass through: it changes vanilla behavior ONLY when a mod's own callback acts (subscribes and
-        // overrides, or opens its overlay). The observation reservations (attack/crit) stay pass through
-        // until a mod hooks them; selection/pickup capture is read only; the input/DI freeze is inert
-        // until a mod calls input.setBlocked. With no mod loaded none of these are installed at all.
+        // Wire the loader's non game side hooks. NOTHING here patches a game function: every game
+        // function detour is now demand driven (a mod subscribes to a detour backed event, calls a pull
+        // API, or registers an asset override), so with no mod loaded, or a mod that only reads state,
+        // the game binary is untouched. The build guard moved down into each arm path
+        // (CaptureDetour::install / armBuiltin / assets::install all call signature::verifyTarget), so a
+        // mismatched Cube.exe refuses the arm instead of the whole setup.
         void installModHooks(bool overlayEnabled)
         {
-            // Game function detours target hard addresses from one Cube.exe build; on a mismatched
-            // binary they would corrupt code. Verify the build once (before any patch) and skip them
-            // if it differs, the overlay and guarded reads still run, so the user gets a working menu
-            // instead of an instant crash.
-            if (game::signature::compatibleBuild())
-            {
-                game::gamehooks::armAttackWatch();
-                game::gamehooks::armCritCounter();
-                game::selection::install();
-                game::pickup::install();
-                game::assets::install();
-            }
-            else
-                LOGC(Warn, kCategory, "game-function hooks skipped (Cube.exe build mismatch): attack/crit sampling, R-select and E-pickup capture are OFF; overlay and reads still work");
+            if (!game::signature::compatibleBuild())
+                LOGC(Warn, kCategory, "Cube.exe build mismatch: game-function hooks will refuse to arm (R-select, E-pickup, asset overrides, hook subscriptions); overlay and guarded reads still work");
 
             // The input freeze (user32 IAT by import name) and DI suspend (system DLL vtable) drive the
             // overlay's input handoff. In safe mode (overlay off) there is no overlay to feed, so skip
@@ -73,12 +60,12 @@ namespace modloader
         }
 
         // Reverse of installModHooks. Detour removals must precede MinHook shutdown (done by the caller
-        // after remove()); each remove no ops if its install never ran.
+        // after remove()); each remove no ops if its install never ran. The demand driven game detours
+        // come down through eventbacking::releaseAll (from events::clear) and gamehooks::shutdown;
+        // assets::remove is here because its holder is the per mod override table, not an event.
         void removeModHooks()
         {
             game::assets::remove();
-            game::pickup::remove();
-            game::selection::remove();
             hooks::dinput::remove();
             hooks::input_block::remove();
         }
@@ -236,8 +223,9 @@ namespace modloader
         for (size_t i = g_mods.size(); i > 0; --i)
             teardownMod(g_mods[i - 1].get());
 
-        // Remove the loader's own game hooks (detours + input/DI IAT). no ops if installModHooks never
-        // ran (no mods). The IMPACT/CRIT reservations are torn down by gamehooks::shutdown afterward.
+        // Remove the loader's own non game hooks (input/DI IAT) and the asset detour. no ops if
+        // installModHooks never ran (no mods). The demand driven detours come down just below, in
+        // events::clear (eventbacking::releaseAll) and gamehooks::clear.
         removeModHooks();
 
         g_mods.clear();

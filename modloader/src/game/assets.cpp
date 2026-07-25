@@ -228,14 +228,31 @@ namespace game::assets
         if (key.empty() || !data || size <= 0 || size > kMaxBlobBytes)
             return false;
         const uint8_t* bytes = static_cast<const uint8_t*>(data);
-        std::lock_guard<std::mutex> lock(g_mutex);
-        g_overrides[key].assign(bytes, bytes + size);
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            g_overrides[key].assign(bytes, bytes + size);
+        }
+
+        // Demand driven: the loadBlobByKey detour goes in when the FIRST override exists, not at setup,
+        // so a session with no asset override leaves the game unpatched. install() is idempotent.
+        install();
         return true;
     }
 
     bool removeOverride(const std::string& key)
     {
-        std::lock_guard<std::mutex> lock(g_mutex);
-        return g_overrides.erase(key) != 0;
+        bool erased = false;
+        bool empty = false;
+        {
+            std::lock_guard<std::mutex> lock(g_mutex);
+            erased = g_overrides.erase(key) != 0;
+            empty = g_overrides.empty();
+        }
+
+        // Symmetric with setOverride: dropping the last override unpatches the game rather than leaving
+        // a detour that can only ever pass through. remove() clears the (already empty) table.
+        if (erased && empty)
+            remove();
+        return erased;
     }
 }

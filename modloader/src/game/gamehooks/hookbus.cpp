@@ -1,7 +1,6 @@
 #include "game/gamehooks/gamehooks.h"
 #include "game/gamehooks/builtin/builtin.h"
 #include "game/gamehooks/rawpool.h"
-#include "game/attackwatch.h"
 #include "hooks/detour.h"
 #include "loader/core/owner_name.h"
 #include "loader/core/conflict.h"
@@ -301,35 +300,33 @@ namespace game::gamehooks
         }
     }
 
-    void armAttackWatch()
+    bool acquireObservation(CubeHook hook)
     {
-        // Reserve the AI_BEHAVIOR_TICK detour installed for the whole session so the attack watcher can
-        // sample the local player's action every tick, WITHOUT activating dispatch. With no mod
-        // subscribed the detour stays pass through (runs the original untouched) and only reads state;
-        // a mod that hooks it flips it active, this reservation never does. Released at shutdown by
-        // shutdownBuiltin.
-        if (!acquireInstall(CUBE_HOOK_AI_BEHAVIOR_TICK))
+        if (!validHook(hook))
+            return false;
+
+        // Take an install hold WITHOUT activating dispatch: the detour runs the original untouched and
+        // only reads its side channel. Shares the refcount with subscribe(), so a mod hooking the same
+        // function does not double patch it, and the trampoline survives until both are done.
+        if (!acquireInstall(hook))
         {
-            LOGC(Warn, kCategory, "attack watcher could not arm AI_BEHAVIOR_TICK detour; PLAYER_ATTACK falls back to polling");
-            return;
+            LOGC(Warn, kCategory, "observation of %s could not arm its detour", hookName(hook));
+            return false;
         }
 
-        attackwatch::setActive(true);
-        LOGC(Debug, kCategory, "attack watcher active (AI_BEHAVIOR_TICK detour installed, pass-through until a mod subscribes)");
+        LOGC(Debug, kCategory, "observing %s (detour installed, pass-through until a mod subscribes)", hookName(hook));
+        return true;
     }
 
-    void armCritCounter()
+    void releaseObservation(CubeHook hook)
     {
-        // Reserve the CRIT_ROLL detour installed so the loader can count the local player's crits,
-        // WITHOUT activating dispatch. Pass through returns the real roll untouched and only increments
-        // the counter; a mod that hooks CRIT_ROLL flips it active. Released at shutdown by shutdownBuiltin.
-        if (!acquireInstall(CUBE_HOOK_CRIT_ROLL))
-        {
-            LOGC(Warn, kCategory, "crit counter could not arm CRIT_ROLL detour; crits will not be counted");
+        if (!validHook(hook))
             return;
-        }
 
-        LOGC(Debug, kCategory, "crit counter active (CRIT_ROLL detour installed, pass-through until a mod subscribes)");
+        // Drop only the observation hold; releaseInstall disarms once nothing (observer or subscriber)
+        // holds the detour, and never touches the dispatch gate a subscriber owns.
+        releaseInstall(hook, 1);
+        LOGC(Debug, kCategory, "stopped observing %s", hookName(hook));
     }
 
     void subscribe(const CubeApi* owner, CubeHook hook, CubeHookFn fn, void* user)

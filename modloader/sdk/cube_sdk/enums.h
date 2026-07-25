@@ -63,7 +63,9 @@ typedef enum CubeEvent
                               // reset, so sub frame shots are not missed). Hotbar abilities are NOT this
                               // event, see CUBE_EVENT_ABILITY_USED. subject = player, param = raw action id
                               // at the edge, param2 = the selected target address (0 if none; not a
-                              // confirmed victim, the swing has not landed yet).
+                              // confirmed victim, the swing has not landed yet). Detour backed: the AI
+                              // behavior tick detour that gives sub frame fidelity is installed only
+                              // while at least one mod subscribes to this event.
     CUBE_EVENT_PLAYER_JUMP, // local player left the ground (polled edge). subject = player,
                             // amount = vertical velocity (velZ) read at the edge
     CUBE_EVENT_AREA_CHANGE, // local player entered a different zone (polled edge). param = new zoneX,
@@ -78,7 +80,9 @@ typedef enum CubeEvent
                            // param2 = victim remaining health (int). Fires once per damaged creature; the
                            // attacker is NOT attributed (a monster hitting a monster fires this too). For
                            // the player's own confirmed, attributed hits use eventHook().onImpact instead.
-    CUBE_EVENT_PLAYER_CRIT, // local player landed a critical hit (detour backed; no extra payload)
+    CUBE_EVENT_PLAYER_CRIT, // local player landed a critical hit (no extra payload). Detour backed: the
+                            // crit roll detour is installed only while at least one mod subscribes to
+                            // this event or hooks CUBE_HOOK_CRIT_ROLL.
     CUBE_EVENT_MENU_OPEN, // a tracked UI menu opened (polled edge). param = CubeUiMenuMask of open panels
     CUBE_EVENT_MENU_CLOSE, // all tracked UI menus closed (polled edge). param = CubeUiMenuMask (0 when all closed)
     CUBE_EVENT_PLAYER_LEVELUP, // local player's level increased. subject = player, param = new level,

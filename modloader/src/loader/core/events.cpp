@@ -1,6 +1,7 @@
 #include "loader/core/events.h"
 #include "loader/core/owner_name.h"
 #include "loader/core/registry.h"
+#include "loader/game/eventbacking.h"
 #include "core/log.h"
 #include "core/faultguard.h"
 #include "util/guard.h"
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -29,6 +31,45 @@ namespace modloader::events
         };
 
         OwnerRegistry<Subscription> g_registry;
+
+        // Live subscriber count per event, so a detour backed event can arm its backing on the zero to
+        // one edge and drop it on the one to zero edge. Guarded by its own mutex: the registry's lock is
+        // held while it erases, and eventbacking patches the game, which must not run under that lock.
+        std::mutex g_countMutex;
+        int32_t g_eventSubs[CUBE_EVENT_COUNT] = {};
+
+        bool validEvent(CubeEvent event)
+        {
+            return event >= 0 && event < CUBE_EVENT_COUNT;
+        }
+
+        // Bump the count for `event`; arms its backing when it becomes the first subscriber.
+        void noteSubscribed(CubeEvent event)
+        {
+            bool first = false;
+            {
+                std::lock_guard<std::mutex> lock(g_countMutex);
+                first = (g_eventSubs[event]++ == 0);
+            }
+            if (first)
+                eventbacking::retainEvent(event);
+        }
+
+        // Drop the counts for a batch of removed subs; releases each backing whose last subscriber went.
+        void noteUnsubscribed(const std::vector<CubeEvent>& removed)
+        {
+            for (const CubeEvent event : removed)
+            {
+                bool last = false;
+                {
+                    std::lock_guard<std::mutex> lock(g_countMutex);
+                    if (g_eventSubs[event] > 0)
+                        last = (--g_eventSubs[event] == 0);
+                }
+                if (last)
+                    eventbacking::releaseEvent(event);
+            }
+        }
 
         // Per frame/per message events fire constantly; logging each delivery would flood the log.
         bool isHighFrequency(CubeEvent event)
@@ -153,10 +194,11 @@ namespace modloader::events
 
     uint32_t subscribe(const CubeApi* owner, CubeEvent event, CubeEventFn fn, void* user)
     {
-        if (!owner || !fn || event < 0 || event >= CUBE_EVENT_COUNT)
+        if (!owner || !fn || !validEvent(event))
             return 0;
 
         const uint32_t token = g_registry.add(Subscription{owner, 0, event, fn, user});
+        noteSubscribed(event);
         LOGC(Trace, kCategory, "'%s' subscribed %s (token %u, %zu total)", ownerName(owner), eventName(event), token, g_registry.size());
 
         return token;
@@ -167,7 +209,10 @@ namespace modloader::events
         if (!token)
             return 0;
 
-        const std::size_t dropped = g_registry.removeToken(token);
+        std::vector<CubeEvent> removed;
+        const std::size_t dropped = g_registry.removeToken(token,
+            [&removed](const Subscription& sub) { removed.push_back(sub.event); });
+        noteUnsubscribed(removed);
         if (dropped)
             LOGC(Debug, kCategory, "unsubscribed token %u", token);
 
@@ -176,7 +221,10 @@ namespace modloader::events
 
     void unsubscribeOwner(const CubeApi* owner)
     {
-        const std::size_t dropped = g_registry.removeOwner(owner);
+        std::vector<CubeEvent> removed;
+        const std::size_t dropped = g_registry.removeOwner(owner,
+            [&removed](const Subscription& sub) { removed.push_back(sub.event); });
+        noteUnsubscribed(removed);
 
         if (dropped)
             LOGC(Debug, kCategory, "dropped %zu subscription(s) for an unloaded mod", dropped);
@@ -248,6 +296,13 @@ namespace modloader::events
             LOGC(Trace, kCategory, "cleared %zu subscription(s)", n);
 
         g_registry.clear();
+        {
+            std::lock_guard<std::mutex> lock(g_countMutex);
+            for (int32_t i = 0; i < CUBE_EVENT_COUNT; ++i)
+                g_eventSubs[i] = 0;
+        }
+        // Every subscription is gone, so nothing can still want a detour armed on its behalf.
+        eventbacking::releaseAll();
     }
 
     std::string describeOwner(const CubeApi* owner)

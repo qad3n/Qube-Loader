@@ -36,7 +36,9 @@ modloader/
     loader/             mod management (kept distinct from src/core to avoid the modloader/ name echo)
       core/             mod discovery + loading, registry, lifecycle, deps/conflict, services, per-mod
                         config/storage/locale/assets, the host-to-mod event bus, writeguard
-      game/             gameevents: per-frame event sourcing (diffs game state, emits events to mods)
+      game/             gameevents: per-frame event sourcing (diffs game state, emits events to mods);
+                        eventbacking: refcounts which game detours each event / pull API needs armed,
+                        so nothing is patched until a mod asks for it
     api/                the CubeApi bridge: one file per domain; bridge.h holds the shared reducers
     overlay/            the loader-owned ImGui overlay (context + DX9/Win32 backends + lifecycle + CubeOverlayApi)
     util/               small header-only helpers: field (guarded field IO), math, fmt, guard, inflight

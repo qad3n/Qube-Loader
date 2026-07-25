@@ -38,9 +38,17 @@ namespace modloader
             }
         }
 
+        // Default sink for the remove* calls that only want the count.
+        struct NoSink
+        {
+            void operator()(const Sub&) const {}
+        };
+
         // Removes every sub matching pred (reverse iteration so erase stays valid); returns the count.
-        template <typename Pred>
-        std::size_t removeIf(Pred pred)
+        // sink(s) sees each matching sub just before it is erased, still under the lock, so it must stay
+        // cheap: copy out what you need and act on it after this returns.
+        template <typename Pred, typename Sink = NoSink>
+        std::size_t removeIf(Pred pred, Sink sink = Sink{})
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             std::size_t removed = 0;
@@ -48,20 +56,23 @@ namespace modloader
             {
                 if (!pred(m_subs[i - 1]))
                     continue;
+                sink(static_cast<const Sub&>(m_subs[i - 1]));
                 m_subs.erase(m_subs.begin() + static_cast<std::ptrdiff_t>(i - 1));
                 ++removed;
             }
             return removed;
         }
 
-        std::size_t removeToken(uint32_t token)
+        template <typename Sink = NoSink>
+        std::size_t removeToken(uint32_t token, Sink sink = Sink{})
         {
-            return removeIf([token](const Sub& s) { return s.token == token; });
+            return removeIf([token](const Sub& s) { return s.token == token; }, sink);
         }
 
-        std::size_t removeOwner(const CubeApi* owner)
+        template <typename Sink = NoSink>
+        std::size_t removeOwner(const CubeApi* owner, Sink sink = Sink{})
         {
-            return removeIf([owner](const Sub& s) { return s.owner == owner; });
+            return removeIf([owner](const Sub& s) { return s.owner == owner; }, sink);
         }
 
         template <typename Fn>

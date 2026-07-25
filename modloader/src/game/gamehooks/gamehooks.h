@@ -15,17 +15,14 @@ namespace game::gamehooks
     // Enumerate all subscriptions as (owner, hook label) pairs; feeds the compatibility report's index.
     void forEachSubscription(const std::function<void(const CubeApi*, const char*)>& fn);
 
-    // Loader internal: reserve the IMPACT detour (CombatBehavior::vfunc_0) installed for the whole
-    // session so the attack watcher samples every tick, independent of any mod subscription. The
-    // reservation keeps the detour PASS THROUGH (it never activates dispatch), so with no mod hooking
-    // IMPACT the game runs vanilla. Coexists with the mod facing IMPACT hook via the install refcount
-    // (no double hook). Released at shutdown.
-    void armAttackWatch();
-
-    // Loader internal: reserve the CRIT_ROLL detour installed so the local player's crits are counted
-    // even with no mod hooked. Like armAttackWatch, the reservation is PASS THROUGH (returns the real
-    // roll untouched); only a mod that hooks CRIT_ROLL can change it. Released at shutdown.
-    void armCritCounter();
+    // Loader internal: reserve a built in detour installed so the loader can OBSERVE what it carries
+    // (crit rolls, the game thread attack edge) without a mod hooking it. The reservation keeps the
+    // detour PASS THROUGH: it never flips the dispatch gate, so the observed function runs vanilla and
+    // only its side channel is read. It shares one refcount with mod subscriptions, so a detour is
+    // never installed twice and stays armed until BOTH the last subscriber and the last observer are
+    // gone. Returns whether the detour is installed afterwards.
+    bool acquireObservation(CubeHook hook);
+    void releaseObservation(CubeHook hook);
 
     // `owner` is the mod's CubeApi pointer; first subscriber arms the detour, last disarms.
     void subscribe(const CubeApi* owner, CubeHook hook, CubeHookFn fn, void* user);
