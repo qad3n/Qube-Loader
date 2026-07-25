@@ -37,7 +37,7 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
                         cube::Capability::Assets);
     mod.setUpdateUrl("https://github.com/cube-world-mods/example_mod");
 
-    mod.log.info("example_mod: init; menu on INSERT/DELETE, listening for game events");
+    mod.log.info("example_mod: init; menu on INSERT, listening for game events");
 
     // storage() holds mod owned save data (this launch counter survives restarts); config() holds
     // user editable settings (see Mod > Persist). Both key on the DLL stem, so they work here in init.

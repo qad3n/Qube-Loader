@@ -15,11 +15,28 @@ namespace hooks::window
         d3d9::WndProcFn g_onWndProc = nullptr;
         std::atomic<bool> g_active{false};
 
+        // What a swallowed message must report back to the game. Win32 defines a meaningful non zero
+        // result for only a few of the messages the overlay eats: TRUE means "handled, stop here" for
+        // WM_SETCURSOR and the XBUTTON pair. Every other input message documents 0 as "processed".
+        LRESULT swallowResult(UINT msg)
+        {
+            switch (msg)
+            {
+                case WM_SETCURSOR:
+                case WM_XBUTTONDOWN:
+                case WM_XBUTTONUP:
+                case WM_XBUTTONDBLCLK:
+                    return TRUE;
+                default:
+                    return 0;
+            }
+        }
+
         LRESULT CALLBACK wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             const d3d9::WndProcFn cb = g_onWndProc;
             if (g_active.load() && cb != nullptr && cb(hwnd, msg, wParam, lParam))
-                return 1;
+                return swallowResult(msg);
             // Snapshot: restore() on the eject thread can null g_origWndProc mid message here
             // (mingw has no SEH to guard the window).
             const WNDPROC orig = g_origWndProc;

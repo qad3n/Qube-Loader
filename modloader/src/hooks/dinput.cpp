@@ -17,10 +17,23 @@ namespace hooks::dinput
         constexpr char kCategory[] = "dinput";
         constexpr std::size_t kGetDeviceStateSlot = 9; // IDirectInputDevice8 vtable: Acquire 7, Unacquire 8, GetDeviceState 9
         constexpr DWORD kTeardownDrainMs = 30;
+        // Buffer size tells the devices apart: the game reads its keyboard as 256 bytes and its mouse as
+        // a DIMOUSESTATE (0x10) / DIMOUSESTATE2 (0x14). Nothing else is polled.
+        constexpr DWORD kMouseStateMaxBytes = 0x14;
+        // Mouse reads to keep swallowing after unblocking. The game's look mode recenter (SetCursorPos
+        // to the client center, once per frame) is suppressed the whole time the menu is open, so the
+        // frame after it closes warps the pointer from wherever the user left it on the menu back to
+        // the center in one step. Where DirectInput derives its relative axes from cursor motion (Wine),
+        // that warp is reported as a single delta of hundreds of units, which lands straight in
+        // GameController::vfunc_6: yaw spins to a random heading and pitch saturates against its [0,180]
+        // clamp and stays there. Dropping the handful of reads it takes for the recenter to land keeps
+        // the camera exactly where the player left it. Keyboard reads go live immediately.
+        constexpr int kMouseSettleReads = 4;
 
         typedef HRESULT(WINAPI* GetDeviceStateFn)(IDirectInputDevice8W*, DWORD, LPVOID);
 
         std::atomic<bool> g_blocked{false};
+        std::atomic<int> g_mouseSettle{0};
         std::atomic<int> g_inFlight{0};
         bool g_installed = false;
         void* g_getDeviceStateTarget = nullptr;
@@ -35,8 +48,27 @@ namespace hooks::dinput
             g_inFlight.fetch_add(1);
             const HRESULT hr = g_origGetDeviceState(device, cbData, lpvData);
 
-            if (g_blocked.load() && SUCCEEDED(hr) && lpvData && cbData)
-                std::memset(lpvData, 0, cbData);
+            if (SUCCEEDED(hr) && lpvData && cbData)
+            {
+                bool zero = g_blocked.load();
+                // Just unblocked: eat the recenter catch up delta off the mouse only (see kMouseSettleReads).
+                if (!zero && cbData <= kMouseStateMaxBytes && g_mouseSettle.load() > 0)
+                {
+                    const int remaining = g_mouseSettle.fetch_sub(1);
+                    zero = true;
+                    // DIMOUSESTATE opens with the two relative axes. Logging what was swallowed makes the
+                    // size of the catch up jump visible instead of a guess if the camera ever misbehaves
+                    // on close again.
+                    if (cbData >= 2 * sizeof(LONG))
+                    {
+                        const LONG* axes = static_cast<const LONG*>(lpvData);
+                        LOGC(Debug, kCategory, "settle read %d: swallowed mouse delta (%ld, %ld)",
+                             kMouseSettleReads - remaining + 1, axes[0], axes[1]);
+                    }
+                }
+                if (zero)
+                    std::memset(lpvData, 0, cbData);
+            }
 
             g_inFlight.fetch_sub(1);
             return hr;
@@ -105,6 +137,7 @@ namespace hooks::dinput
             return;
 
         g_blocked.store(false); // never leave the game's input zeroed if we unload while a menu is open
+        g_mouseSettle.store(0);
 
         // Close the hook path, then drain before MinHook frees the trampoline. mingw has no SEH, so an
         // in flight GetDeviceState call is an inherent (tiny) window.
@@ -121,6 +154,10 @@ namespace hooks::dinput
 
     void setBlocked(bool blocked)
     {
-        g_blocked.store(blocked);
+        if (g_blocked.exchange(blocked) == blocked)
+            return;
+        // Arm the settle on release, clear it on block (a menu reopened inside the window must not leave
+        // a countdown running into the next release).
+        g_mouseSettle.store(blocked ? 0 : kMouseSettleReads);
     }
 }

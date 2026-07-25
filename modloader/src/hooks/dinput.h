@@ -5,6 +5,11 @@
 // That freezes movement and camera at the exact point the game reads them, WITHOUT unacquiring the
 // device, so on Windows (where the game holds the mouse non exclusively) window messages still reach
 // the overlay's normal WndProc input path.
+//
+// Unblocking swallows a few more MOUSE reads before letting the camera move again (see the settle
+// comment in the .cpp): the game recenters the pointer every look mode frame, that recenter is
+// suppressed for as long as the menu is open, and the catch up warp on the frame after it closes
+// arrives as one huge relative delta that would otherwise spin the camera and pin its pitch clamp.
 
 namespace hooks::dinput
 {
