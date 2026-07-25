@@ -144,7 +144,6 @@ namespace cube
         Impact = CUBE_HOOK_IMPACT, // a melee hit lands; cancel() to negate it, setDamage() to rescale
         CritRoll = CUBE_HOOK_CRIT_ROLL, // a crit roll; setReturnInt(1/0) to force/deny it
         AttackDamage = CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed; setReturnFloat to rescale
-        AiBehaviorTick = CUBE_HOOK_AI_BEHAVIOR_TICK, // per tick AI update for EVERY creature; keep the handler tiny
         MaxHealth = CUBE_HOOK_ATTACK_DAMAGE // deprecated alias of AttackDamage; the address never computed max HP
     };
 

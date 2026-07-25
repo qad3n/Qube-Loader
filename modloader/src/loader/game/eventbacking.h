@@ -20,7 +20,6 @@ namespace modloader::eventbacking
         Selection, // game::selection capture (R / use key)
         Pickup, // game::pickup capture (E / hold to pickup)
         CritRoll, // CUBE_HOOK_CRIT_ROLL observation (pass through crit counting)
-        BehaviorTick, // CUBE_HOOK_AI_BEHAVIOR_TICK observation (game thread attack sampling)
         Count
     };
 

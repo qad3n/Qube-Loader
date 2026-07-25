@@ -5,7 +5,6 @@
 #include "core/mem.h"
 #include "game/player.h"
 #include "game/gamecontroller.h"
-#include "game/attackwatch.h"
 #include "game/actionlock.h"
 #include "game/combat.h"
 #include "game/world.h"
@@ -360,9 +359,6 @@ namespace modloader::gameevents
 
             if (okPlayer && player.hasState)
             {
-                // Tell the game thread attack watcher who the local player is (cheap per tick filter).
-                game::attackwatch::setLocalPlayer(player.address);
-
                 // The +0x128 control lock is SHARED by hit stun and the dodge roll. game::actionlock
                 // (sampled in readPlayer) tells the two apart; hitStun carries the raw timer for the
                 // STUNNED payload. While rolling, the roll's upward pop and lock must not misfire as a
@@ -373,11 +369,13 @@ namespace modloader::gameevents
                 const bool rolling = lockCause == game::actionlock::Cause::Rolling;
                 if (g_prev.valid)
                 {
-                    // PLAYER_ATTACK is detected on the game thread by the attack watcher (it catches a
-                    // sub frame shot/ability action pulse the frame poll misses). Only fall back to the
-                    // frame poll edge (a rising edge into an attack/cast action) if the watcher could not
-                    // arm its detour.
-                    if (!game::attackwatch::active() && !isAttackAction(g_prev.action) && isAttackAction(player.action))
+                    // PLAYER_ATTACK is a once per frame POLL edge: a rising edge into an attack/cast
+                    // action. KNOWN LIMIT: an attack that starts and ends inside one frame (a quick bow
+                    // shot, an instant ability) is missed, and a chained combo whose action byte never
+                    // returns to idle reads as ONE attack. There used to be a game thread sampler that
+                    // caught those, driven off a detour on the AI behavior tick at 0x42cb20; that detour
+                    // froze all friendly AI (measured), so it is gone and this is the honest fidelity.
+                    if (!isAttackAction(g_prev.action) && isAttackAction(player.action))
                     {
                         // param = action id, param2 = the selected target at the edge (0 if none)
                         emitEvent(CUBE_EVENT_PLAYER_ATTACK, player.address, player.actionId, static_cast<int32_t>(player.target));
@@ -439,19 +437,6 @@ namespace modloader::gameevents
                     }
                 }
 
-                // Game thread attack watcher: emit PLAYER_ATTACK for the attack/shot/ability edge(s) the
-                // behavior detour captured since the last frame, reliable for the sub frame action pulses
-                // the poll above cannot see. param = action id at the edge, param2 = current selected target.
-                if (game::attackwatch::active())
-                {
-                    int32_t attackAction = 0;
-                    uint32_t attackCount = 0;
-                    if (game::attackwatch::pollAttack(attackAction, attackCount))
-                    {
-                        emitEvent(CUBE_EVENT_PLAYER_ATTACK, player.address, attackAction, static_cast<int32_t>(player.target));
-                    }
-                }
-
                 // Calibration trace: log every action id change (with the loader's attack/movement
                 // classification) so a live test run confirms which ids each weapon actually uses.
                 if (player.actionId != g_prev.lastActionId)
@@ -477,7 +462,6 @@ namespace modloader::gameevents
             else
             {
                 // Player gone (title/menu); do not diff across the gap.
-                game::attackwatch::setLocalPlayer(0);
                 g_prev.valid = false;
                 g_prev.hadBuffs = false;
                 g_prev.hadEquip = false;

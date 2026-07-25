@@ -248,8 +248,6 @@ namespace game::gamehooks
                 return "CRIT_ROLL";
             case CUBE_HOOK_ATTACK_DAMAGE:
                 return "ATTACK_DAMAGE";
-            case CUBE_HOOK_AI_BEHAVIOR_TICK:
-                return "AI_BEHAVIOR_TICK";
             case CUBE_HOOK_RAW:
                 return "RAW";
             default:

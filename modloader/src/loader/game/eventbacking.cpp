@@ -1,6 +1,5 @@
 #include "loader/game/eventbacking.h"
 #include "game/gamehooks/gamehooks.h"
-#include "game/attackwatch.h"
 #include "game/selection.h"
 #include "game/pickup.h"
 #include "core/log.h"
@@ -29,8 +28,6 @@ namespace modloader::eventbacking
                     return "pickup capture";
                 case Backing::CritRoll:
                     return "CRIT_ROLL observation";
-                case Backing::BehaviorTick:
-                    return "AI_BEHAVIOR_TICK observation";
                 default:
                     return "?";
             }
@@ -49,11 +46,6 @@ namespace modloader::eventbacking
                     return game::pickup::install();
                 case Backing::CritRoll:
                     return game::gamehooks::acquireObservation(CUBE_HOOK_CRIT_ROLL);
-                case Backing::BehaviorTick:
-                    if (!game::gamehooks::acquireObservation(CUBE_HOOK_AI_BEHAVIOR_TICK))
-                        return false;
-                    game::attackwatch::setActive(true);
-                    return true;
                 default:
                     return false;
             }
@@ -71,10 +63,6 @@ namespace modloader::eventbacking
                     return;
                 case Backing::CritRoll:
                     game::gamehooks::releaseObservation(CUBE_HOOK_CRIT_ROLL);
-                    return;
-                case Backing::BehaviorTick:
-                    game::attackwatch::setActive(false);
-                    game::gamehooks::releaseObservation(CUBE_HOOK_AI_BEHAVIOR_TICK);
                     return;
                 default:
                     return;
@@ -95,9 +83,6 @@ namespace modloader::eventbacking
                     return 1;
                 case CUBE_EVENT_PLAYER_CRIT:
                     out[0] = Backing::CritRoll;
-                    return 1;
-                case CUBE_EVENT_PLAYER_ATTACK:
-                    out[0] = Backing::BehaviorTick;
                     return 1;
                 default:
                     return 0;

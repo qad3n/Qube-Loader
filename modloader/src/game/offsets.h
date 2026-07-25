@@ -399,10 +399,14 @@ namespace off
     // `mov edi,ecx` @595a8e reads ECX on entry and `ret 0xc` @596c67 cleans the three stack args, so
     // it is __thiscall. Cancel negates the whole hit.
     constexpr uintptr_t kApplyMeleeHitFn = 0x00595a60;
-    // cube::CombatBehavior::vfunc_0 @ 0042cb20: the per tick AI BEHAVIOR update (cooldowns, aiState,
-    // distance, deltaTime), NOT an impact handler. __thiscall(self, float, float, int, void* world);
-    // `mov [esp+0x30],ecx` @42cb60 plus `ret 0x10` @42eee3. Sampled by attackwatch only.
-    constexpr uintptr_t kCombatBehaviorTickFn = 0x0042cb20;
+    // DO NOT DETOUR 0x0042cb20. It is cube::CombatBehavior::vfunc_0, the per tick AI BEHAVIOR update
+    // (cooldowns, aiState, distance, deltaTime), reached only through a vtable so every behavior class
+    // sharing that slot runs through it. Detouring it FREEZES ALL FRIENDLY AI: measured live, with the
+    // detour armed pass through and no subscriber, creatures and NPCs stop moving entirely; removing
+    // just this one install (every other detour still armed) restores them. The likely reason is the
+    // SEH frame it sets up in its prologue (push 0xffffffff; push 0x6e21cc; mov eax,fs:0x0), which the
+    // loader cannot interpose safely from mingw (see ROADMAP principle 2, no SEH on this toolchain).
+    // No constant is defined on purpose: nothing should target this address.
     // Crit roll on the attacker. __thiscall, no args, returns the crit bool in AL.
     // The decomp labels this Global::combat_rollElementProc @ 004444a0, but that name is an
     // "[AUDIT] proposed ... confidence: med" guess. All six call sites (GameController.cpp lines

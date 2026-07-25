@@ -10,11 +10,11 @@
 // additive only), so a mod built against any ABI in [CUBE_MIN_ABI_VERSION, CUBE_ABI_VERSION] keeps
 // loading. Raised to 25 because that revision removed struct fields and renumbered enums, so older
 // mods are genuinely layout incompatible; only a non additive break should move it again.
-// NOTE for 27: no layout changed (every enum VALUE held, CUBE_HOOK_AI_BEHAVIOR_TICK was appended), so
-// the floor stays at 25. What did change is CUBE_HOOK_IMPACT's meaning: it now detours the real melee
-// hit resolver instead of the AI behavior tick, so self/target are victim/attacker and the damage
-// amount moved from argi[0] to argf[0]. An ABI <= 26 mod still loads, but its IMPACT handler reads
-// slots the loader no longer fills. It was reading a mistargeted hook before, so nothing regressed.
+// NOTE for 27: no layout changed and every existing enum VALUE held, so the floor stays at 25. What
+// did change is CUBE_HOOK_IMPACT's meaning: it now detours the real melee hit resolver instead of the
+// AI behavior tick, so self/target are victim/attacker and the damage amount moved from argi[0] to
+// argf[0]. An ABI <= 26 mod still loads, but its IMPACT handler reads slots the loader no longer
+// fills. It was reading a mistargeted hook before, so nothing regressed.
 #define CUBE_MIN_ABI_VERSION 25
 #define CUBE_LOG_BUFFER 1024
 #define CUBE_CONFIG_STRING_MAX 256

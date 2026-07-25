@@ -47,7 +47,6 @@ typedef enum CubeHook
     CUBE_HOOK_IMPACT = 0, // melee hit lands: self=victim, target=attacker, argf[0]=damage amount (FLOAT), argi[1]=hit context ptr; cancel negates, mutate argf[0] to rescale
     CUBE_HOOK_CRIT_ROLL, // attacker rolls a crit: self=attacker; returnI 1=force, 0=deny
     CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed: self=attacker; returnF rescales the hit (0 harmless, large one shot)
-    CUBE_HOOK_AI_BEHAVIOR_TICK, // per tick AI behavior update: self=behavior, argf[0..1]/argi[2]/argi[3] are its raw args; VERY hot (every creature, every tick), cancel freezes that creature's AI
     CUBE_HOOK_COUNT,
     CUBE_HOOK_RAW = 1000 // sentinel CubeHookCall.hook value for a raw (user address) hook
 } CubeHook;

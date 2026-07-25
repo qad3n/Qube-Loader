@@ -162,7 +162,6 @@ namespace cube
         void onImpact(std::function<void(HookCall&)> fn) { on(Hook::Impact, std::move(fn)); }
         void onCritRoll(std::function<void(HookCall&)> fn) { on(Hook::CritRoll, std::move(fn)); }
         void onAttackDamage(std::function<void(HookCall&)> fn) { on(Hook::AttackDamage, std::move(fn)); }
-        void onAiBehaviorTick(std::function<void(HookCall&)> fn) { on(Hook::AiBehaviorTick, std::move(fn)); }
         // Deprecated spelling of onAttackDamage; the hooked address never computed max health.
         void onMaxHealth(std::function<void(HookCall&)> fn) { onAttackDamage(std::move(fn)); }
         // Detach this mod's handlers for a built in hook (all of them). Returns true if any existed.
