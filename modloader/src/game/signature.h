@@ -1,6 +1,6 @@
 #pragma once
 // Build identity guard for the loader's pinned game function detours. Every inline hook targets a hard
-// address from one specific Cube.exe build (see CLAUDE.md "Target facts"); on any other build those
+// address from one specific Cube.exe build (the 2013 alpha, 32-bit); on any other build those
 // addresses land mid function and MinHook would corrupt unrelated code, crashing the game on launch.
 // This compares the prologue bytes at each detour target against the reference build and refuses to
 // hook a mismatch. Windows first: the reference bytes come straight from the shipped binary, so the
