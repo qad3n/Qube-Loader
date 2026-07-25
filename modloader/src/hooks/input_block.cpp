@@ -111,9 +111,4 @@ namespace hooks::input_block
         hooks::dinput::setBlocked(blocked);
         showCursor(blocked);
     }
-
-    bool blocked()
-    {
-        return g_blocked.load();
-    }
 }

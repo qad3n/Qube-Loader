@@ -13,23 +13,24 @@ namespace hooks::detour
     {
         constexpr char kCategory[] = "detour";
         std::atomic<bool> g_initialized{false};
-    }
 
-    bool init()
-    {
-        if (g_initialized.load())
-            return true;
-        const MH_STATUS status = MH_Initialize();
-
-        if (status != MH_OK && status != MH_ERROR_ALREADY_INITIALIZED)
+        // Idempotent; create() calls it so MinHook comes up on the first hook and nowhere else.
+        bool init()
         {
-            LOGC(Error, kCategory, "MH_Initialize failed: %s", MH_StatusToString(status));
-            return false;
-        }
+            if (g_initialized.load())
+                return true;
+            const MH_STATUS status = MH_Initialize();
 
-        g_initialized.store(true);
-        LOGC(Debug, kCategory, "MinHook initialized");
-        return true;
+            if (status != MH_OK && status != MH_ERROR_ALREADY_INITIALIZED)
+            {
+                LOGC(Error, kCategory, "MH_Initialize failed: %s", MH_StatusToString(status));
+                return false;
+            }
+
+            g_initialized.store(true);
+            LOGC(Debug, kCategory, "MinHook initialized");
+            return true;
+        }
     }
 
     void shutdown()

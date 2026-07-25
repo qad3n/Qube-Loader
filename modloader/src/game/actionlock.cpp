@@ -84,11 +84,6 @@ namespace game::actionlock
         return g_state.cause == Cause::Rolling;
     }
 
-    bool stunned()
-    {
-        return g_state.cause == Cause::Stunned;
-    }
-
     uintptr_t subject()
     {
         return g_state.player;

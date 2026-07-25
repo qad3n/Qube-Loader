@@ -10,6 +10,54 @@
 
 namespace game
 {
+    namespace
+    {
+        // Any creature's status list (generic Creature field: works for entity/pet too). Both public
+        // entry points below resolve to an address first and then land here.
+        int32_t listBuffsAt(uintptr_t creature, CubeBuff* out, int32_t maxCount)
+        {
+            if (!out || maxCount <= 0 || !creature)
+                return 0;
+
+            const uintptr_t headSlot = creature + off::kBuffListHeadOff;
+            uint32_t sentinel = 0;
+            if (!mem::read(headSlot, sentinel) || !sentinel)
+                return 0; // list empty / uninitialized
+
+            int32_t count = 0;
+            int32_t steps = 0;
+            uint32_t node = 0;
+
+            if (!mem::read(sentinel + off::kBuffNodeNextOff, node))
+                return 0;
+
+            while (node && node != sentinel && count < maxCount && steps < off::kMaxBuffWalk)
+            {
+                ++steps;
+                uint8_t type = 0;
+                if (mem::read(node + off::kBuffNodeTypeOff, type))
+                {
+                    CubeBuff& buff = out[count];
+
+                    buff.structSize = sizeof(CubeBuff);
+                    buff.address = node;
+                    buff.type = static_cast<int32_t>(type);
+                    buff.magnitude = 0.0f;
+                    buff.remainingMs = 0;
+
+                    mem::read(node + off::kBuffNodeMagnitudeOff, buff.magnitude);
+                    mem::read(node + off::kBuffNodeDurationOff, buff.remainingMs);
+
+                    ++count;
+                }
+
+                if (!mem::read(node + off::kBuffNodeNextOff, node))
+                    break;
+            }
+            return count;
+        }
+    }
+
     int32_t listBuffs(CubeBuff* out, int32_t maxCount)
     {
         uintptr_t gc = 0;
@@ -27,49 +75,6 @@ namespace game
             return 0;
 
         return listBuffsAt(obj, out, maxCount);
-    }
-
-    int32_t listBuffsAt(uintptr_t creature, CubeBuff* out, int32_t maxCount)
-    {
-        if (!out || maxCount <= 0 || !creature)
-            return 0;
-
-        const uintptr_t headSlot = creature + off::kBuffListHeadOff;
-        uint32_t sentinel = 0;
-        if (!mem::read(headSlot, sentinel) || !sentinel)
-            return 0; // list empty / uninitialized
-
-        int32_t count = 0;
-        int32_t steps = 0;
-        uint32_t node = 0;
-
-        if (!mem::read(sentinel + off::kBuffNodeNextOff, node))
-            return 0;
-
-        while (node && node != sentinel && count < maxCount && steps < off::kMaxBuffWalk)
-        {
-            ++steps;
-            uint8_t type = 0;
-            if (mem::read(node + off::kBuffNodeTypeOff, type))
-            {
-                CubeBuff& buff = out[count];
-
-                buff.structSize = sizeof(CubeBuff);
-                buff.address = node;
-                buff.type = static_cast<int32_t>(type);
-                buff.magnitude = 0.0f;
-                buff.remainingMs = 0;
-
-                mem::read(node + off::kBuffNodeMagnitudeOff, buff.magnitude);
-                mem::read(node + off::kBuffNodeDurationOff, buff.remainingMs);
-
-                ++count;
-            }
-
-            if (!mem::read(node + off::kBuffNodeNextOff, node))
-                break;
-        }
-        return count;
     }
 
     bool setBuffField(uint32_t address, int32_t fieldId, double value)

@@ -89,16 +89,6 @@ namespace modloader::modregistry
         }
     }
 
-    void setEnabled(const std::string& stem, bool enabled)
-    {
-        const std::string key = ini::lower(stem);
-        Entry& entry = g_entries[key];
-        if (entry.enabled != enabled)
-        {
-            entry.enabled = enabled;
-            persist();
-        }
-    }
 
     int32_t recordFault(const std::string& stem)
     {

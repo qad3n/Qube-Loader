@@ -4,10 +4,10 @@
 
 namespace hooks::detour
 {
-    bool init(); // idempotent; safe to call before every create()
     void shutdown(); // uninitialize MinHook once no hooks remain
 
     // Install and enable an inline hook. `original` receives the trampoline. False on error (logged).
+    // MinHook is initialized lazily on the first create(), so there is no separate init step.
     bool create(void* target, void* detourFn, void** original);
 
     // Disable and remove a hook previously installed on `target`.

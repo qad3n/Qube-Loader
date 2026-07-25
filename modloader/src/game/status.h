@@ -7,8 +7,6 @@
 namespace game
 {
     int32_t listBuffs(CubeBuff* out, int32_t maxCount);
-    // Any creature's status list (generic Creature field: works for entity/pet too).
-    int32_t listBuffsAt(uintptr_t creature, CubeBuff* out, int32_t maxCount);
     // Status effects of the creature at address (validated first).
     int32_t listBuffsOfAddress(uint32_t address, CubeBuff* out, int32_t maxCount);
     // Writes a CubeBuffField on the effect node at address.

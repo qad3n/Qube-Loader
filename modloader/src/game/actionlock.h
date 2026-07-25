@@ -24,9 +24,8 @@ namespace game::actionlock
 
     Cause cause();
     bool rolling();
-    bool stunned();
 
     // The creature base the current verdict belongs to (0 until first sampled); lets a reader confirm
-    // an address is the classified local player before trusting rolling()/stunned().
+    // an address is the classified local player before trusting rolling().
     uintptr_t subject();
 }

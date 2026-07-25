@@ -16,9 +16,6 @@ namespace modloader::modregistry
     // Record that a stem exists this session; a newly seen stem is added as enabled. Persists if changed.
     void noteSeen(const std::string& stem);
 
-    // Force a stem enabled/disabled. Persists if changed.
-    void setEnabled(const std::string& stem, bool enabled);
-
     // Increment a stem's fault strike count, disabling it once the count reaches the limit. Returns the
     // new count. Persists. Used by the disable on repeated fault policy.
     int32_t recordFault(const std::string& stem);

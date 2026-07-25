@@ -9,5 +9,4 @@ namespace hooks::input_block
     bool install(); // IAT hook SetCursorPos so the game's camera recenter is suppressed while blocked
     void remove(); // restore the IAT slot (call before detour::shutdown)
     void setBlocked(bool blocked); // true: freeze game input + free visible cursor; false: restore
-    bool blocked();
 }
