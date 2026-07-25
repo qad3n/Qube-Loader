@@ -255,7 +255,8 @@ namespace game::diag
     void logKnownGaps()
     {
         LOGC(Debug, kCategory, "known deferred fields (intentionally unavailable, NOT resolution failures):");
-        LOGC(Debug, kCategory, "  entity maxHealth = computed (FUN_00444db0); weather/season = absent in build;");
+        LOGC(Debug, kCategory, "  entity maxHealth = computed, producer NOT located (0x00444db0 is attack damage);");
+        LOGC(Debug, kCategory, "  weather/season = absent in build;");
         LOGC(Debug, kCategory, "  pet mood = absent; race/gender + quests = offset +0x1d28 contested (gated);");
         LOGC(Debug, kCategory, "  region name = needs game-call; crafting = recipe-walk pending.");
     }

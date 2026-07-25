@@ -247,8 +247,10 @@ namespace game::gamehooks
                 return "IMPACT";
             case CUBE_HOOK_CRIT_ROLL:
                 return "CRIT_ROLL";
-            case CUBE_HOOK_MAX_HEALTH:
-                return "MAX_HEALTH";
+            case CUBE_HOOK_ATTACK_DAMAGE:
+                return "ATTACK_DAMAGE";
+            case CUBE_HOOK_AI_BEHAVIOR_TICK:
+                return "AI_BEHAVIOR_TICK";
             case CUBE_HOOK_RAW:
                 return "RAW";
             default:
@@ -301,18 +303,19 @@ namespace game::gamehooks
 
     void armAttackWatch()
     {
-        // Reserve the IMPACT detour installed for the whole session so the attack watcher can sample
-        // the local player's action every tick, WITHOUT activating dispatch. With no mod subscribed the
-        // detour stays pass through (runs the original untouched) and only reads state; a mod that hooks
-        // IMPACT flips it active, this reservation never does. Released at shutdown by shutdownBuiltin.
-        if (!acquireInstall(CUBE_HOOK_IMPACT))
+        // Reserve the AI_BEHAVIOR_TICK detour installed for the whole session so the attack watcher can
+        // sample the local player's action every tick, WITHOUT activating dispatch. With no mod
+        // subscribed the detour stays pass through (runs the original untouched) and only reads state;
+        // a mod that hooks it flips it active, this reservation never does. Released at shutdown by
+        // shutdownBuiltin.
+        if (!acquireInstall(CUBE_HOOK_AI_BEHAVIOR_TICK))
         {
-            LOGC(Warn, kCategory, "attack watcher could not arm IMPACT detour; PLAYER_ATTACK falls back to polling");
+            LOGC(Warn, kCategory, "attack watcher could not arm AI_BEHAVIOR_TICK detour; PLAYER_ATTACK falls back to polling");
             return;
         }
 
         attackwatch::setActive(true);
-        LOGC(Debug, kCategory, "attack watcher active (IMPACT detour installed, pass-through until a mod subscribes)");
+        LOGC(Debug, kCategory, "attack watcher active (AI_BEHAVIOR_TICK detour installed, pass-through until a mod subscribes)");
     }
 
     void armCritCounter()

@@ -44,12 +44,17 @@ typedef void (CUBE_CALL* CubeMessageFn)(const struct CubeApi* api, CubeMessageAr
 // WARNING: the handler runs synchronously on the game thread, keep it small and do NOT touch the overlay.
 typedef enum CubeHook
 {
-    CUBE_HOOK_IMPACT = 0, // hit/hard fall lands: target=victim, argi[0]=damage, argi[1]=hit context ptr, argi[2]=hit flags; cancel negates, mutate argi[0] to rescale
+    CUBE_HOOK_IMPACT = 0, // melee hit lands: self=victim, target=attacker, argf[0]=damage amount (FLOAT), argi[1]=hit context ptr; cancel negates, mutate argf[0] to rescale
     CUBE_HOOK_CRIT_ROLL, // attacker rolls a crit: self=attacker; returnI 1=force, 0=deny
-    CUBE_HOOK_MAX_HEALTH, // max health computed: self=creature; returnF rescales max HP (0 one shot, large godmode)
+    CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed: self=attacker; returnF rescales the hit (0 harmless, large one shot)
+    CUBE_HOOK_AI_BEHAVIOR_TICK, // per tick AI behavior update: self=behavior, argf[0..1]/argi[2]/argi[3] are its raw args; VERY hot (every creature, every tick), cancel freezes that creature's AI
     CUBE_HOOK_COUNT,
     CUBE_HOOK_RAW = 1000 // sentinel CubeHookCall.hook value for a raw (user address) hook
 } CubeHook;
+
+// Deprecated spelling of CUBE_HOOK_ATTACK_DAMAGE, kept so sources built against ABI <= 26 still
+// compile. The address was always stat_calcAttackDamage; it never computed max health.
+#define CUBE_HOOK_MAX_HEALTH CUBE_HOOK_ATTACK_DAMAGE
 
 // Calling convention of a raw hook target, so the loader picks the matching generic capture
 // stub. The built in (semantic) hooks do not need this, the loader knows their convention.

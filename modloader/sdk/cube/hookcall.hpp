@@ -33,15 +33,14 @@ namespace cube
         void cancel() { m_call->cancel = 1; } // skip the original function entirely
         bool cancelled() const { return m_call->cancel != 0; }
 
-        // Named accessors for CUBE_HOOK_IMPACT (a real hit landing), so the participants read clearly.
-        // attacker = the CombatBehavior 'this', victim = the struck creature, damage = the game's own
-        // damage value (mutable), hitFlags = the hit flag word, hitContext = the hit context pointer.
-        unsigned attacker() const { return m_call->self; }
-        unsigned victim() const { return m_call->target; }
-        int damage() const { return m_call->argi[0]; }
-        void setDamage(int value) { m_call->argi[0] = value; } // rescale the hit before it applies
+        // Named accessors for CUBE_HOOK_IMPACT (a melee hit landing), so the participants read clearly.
+        // victim = the struck creature (the call's 'this'), attacker = the attacking creature, damage =
+        // the game's own damage amount as a FLOAT (mutable), hitContext = the hit context pointer.
+        unsigned victim() const { return m_call->self; }
+        unsigned attacker() const { return m_call->target; }
+        float damage() const { return m_call->argf[0]; }
+        void setDamage(float value) { m_call->argf[0] = value; } // rescale the hit before it applies
         unsigned hitContext() const { return static_cast<unsigned>(m_call->argi[1]); }
-        int hitFlags() const { return m_call->argi[2]; }
 
         int returnInt() const { return m_call->returnI; } // the original's return, unless overridden
         float returnFloat() const { return m_call->returnF; }

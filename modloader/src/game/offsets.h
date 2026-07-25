@@ -390,14 +390,30 @@ namespace off
     // (0x118), a contents vector @+0x11c. Valid to read for the duration of the onItemPickup call.
     constexpr uintptr_t kStagedPickupItemOff = 0x1000e7c;
 
-    // Game function hook targets (mod facing interception via src/game/gamehooks).
-    // CombatBehavior::vfunc_0 impact handler; __thiscall(self, victim, hitCtx, damage, flags) void.
-    // Cancel negates the whole hit; damage rescale is best effort.
-    constexpr uintptr_t kImpactFn = 0x0042cb20;
-    // Crit roll on the attacker. __thiscall, no args, returns a crit bool in AL.
+    // Game function hook targets (mod facing interception via src/game/gamehooks). Each carries the
+    // decompiled name from ../Reversal/decomp_source/cube so the claim stays checkable.
+
+    // Global::CombatBehavior_applyMeleeHit @ 00595a60: the melee hit resolver (damage, knockback,
+    // threat, hit cooldowns). __thiscall(self=victim, hitCtx, attacker, amount) void, `amount` is a
+    // FLOAT. Ghidra prints it as a free __cdecl with three params, but the disassembly disagrees:
+    // `mov edi,ecx` @595a8e reads ECX on entry and `ret 0xc` @596c67 cleans the three stack args, so
+    // it is __thiscall. Cancel negates the whole hit.
+    constexpr uintptr_t kApplyMeleeHitFn = 0x00595a60;
+    // cube::CombatBehavior::vfunc_0 @ 0042cb20: the per tick AI BEHAVIOR update (cooldowns, aiState,
+    // distance, deltaTime), NOT an impact handler. __thiscall(self, float, float, int, void* world);
+    // `mov [esp+0x30],ecx` @42cb60 plus `ret 0x10` @42eee3. Sampled by attackwatch only.
+    constexpr uintptr_t kCombatBehaviorTickFn = 0x0042cb20;
+    // Crit roll on the attacker. __thiscall, no args, returns the crit bool in AL.
+    // The decomp labels this Global::combat_rollElementProc @ 004444a0, but that name is an
+    // "[AUDIT] proposed ... confidence: med" guess. All six call sites (GameController.cpp lines
+    // 98158, 98295, 98674, 98929, 103083, 103376) feed its result into the char that doubles the
+    // damage (`local_2b24 * 2.0`) and becomes CombatBehavior_spawnProjectileHit @ 00596d30 arg 4.
+    // That is a critical hit, so the loader keeps the CRIT_ROLL name.
     constexpr uintptr_t kCritRollFn = 0x004444a0;
-    // Compute max health; __thiscall returns max HP FLOAT in ST0 (detour MUST be typed float).
-    constexpr uintptr_t kMaxHealthFn = 0x00444db0;
+    // Global::stat_calcAttackDamage @ 00444db0: compute the attacker's outgoing damage from the base
+    // damage float at kPlayerBaseDamageOff, scaled by level/rank/element/equipment. __thiscall
+    // returning a FLOAT in ST0 (the detour MUST be typed float). This is NOT max health.
+    constexpr uintptr_t kStatCalcAttackDamageFn = 0x00444db0;
 
     constexpr uintptr_t kPlayerBaseDamageOff = 0x178; // float base damage input (pre multiplier)
 

@@ -279,13 +279,13 @@ CUBE_MOD("Always Crit", "1.0.0", "you")
     // built-in hook: force every crit roll to succeed
     mod.eventHook().onCritRoll([](cube::HookCall& c) { c.setReturnInt(1); });
 
-    // built-in hook: soften or ignore incoming impacts
+    // built-in hook: soften or ignore incoming melee hits (the damage amount is a float)
     mod.eventHook().onImpact([](cube::HookCall& c)
     {
-        if (c.argInt(0) > 50)
+        if (c.damage() > 50.0f)
             c.cancel(); // ignore big hits
         else
-            c.setArgInt(0, c.argInt(0) / 2); // halve small ones
+            c.setDamage(c.damage() * 0.5f); // halve small ones
     });
 
     // raw hook: an address you found yourself

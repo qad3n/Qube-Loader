@@ -18,8 +18,9 @@ namespace game::signature
 
         // Byte offset of each site's absolute address operand within its 16 byte prologue (skipped in
         // the compare because base relocation patches it). Derived from the disassembly, see kSites.
-        constexpr int kImpactRelocOffset = 9;     // push 0x006e21cc
-        constexpr int kMaxHealthRelocOffset = 10; // movss xmm3, [0x00745dc0]
+        constexpr int kMeleeHitRelocOffset = 6;   // push 0x006f1c4b (SEH handler)
+        constexpr int kBehaviorTickRelocOffset = 9; // push 0x006e21cc (SEH handler)
+        constexpr int kAttackDamageRelocOffset = 10; // movss xmm3, [0x00745dc0]
         constexpr int kPickupRelocOffset = 6;     // push 0x006e5928
 
         struct Site
@@ -36,16 +37,19 @@ namespace game::signature
         // i686-w64-mingw32-objdump. Order matches the pinned detour targets in offsets.h. A mismatch on
         // the FIXED bytes means the loaded binary is a different build, so hooking would corrupt code;
         // the absolute address operand bytes are masked (relocOffset) so a rebased but correct image
-        // still verifies. Operands here: push 0x6e21cc (impact), movss [0x745dc0] (maxhealth), push
-        // 0x6e5928 (pickup); crit/selection use register relative operands that never relocate.
+        // still verifies. Operands here: push 0x6f1c4b (melee-hit), push 0x6e21cc (behavior-tick),
+        // movss [0x745dc0] (attackdamage), push 0x6e5928 (pickup); crit/selection use register relative
+        // operands that never relocate.
         constexpr Site kSites[] =
         {
-            {off::kImpactFn, "impact",
-                {0x55, 0x8b, 0xec, 0x83, 0xe4, 0xf8, 0x6a, 0xff, 0x68, 0xcc, 0x21, 0x6e, 0x00, 0x64, 0xa1, 0x00}, kImpactRelocOffset},
+            {off::kApplyMeleeHitFn, "melee-hit",
+                {0x55, 0x8b, 0xec, 0x6a, 0xff, 0x68, 0x4b, 0x1c, 0x6f, 0x00, 0x64, 0xa1, 0x00, 0x00, 0x00, 0x00}, kMeleeHitRelocOffset},
+            {off::kCombatBehaviorTickFn, "behavior-tick",
+                {0x55, 0x8b, 0xec, 0x83, 0xe4, 0xf8, 0x6a, 0xff, 0x68, 0xcc, 0x21, 0x6e, 0x00, 0x64, 0xa1, 0x00}, kBehaviorTickRelocOffset},
             {off::kCritRollFn, "crit",
                 {0x55, 0x8b, 0xec, 0x51, 0x56, 0x8b, 0xf1, 0x8b, 0x96, 0x78, 0x11, 0x00, 0x00, 0x8b, 0x02, 0x3b}, kNoReloc},
-            {off::kMaxHealthFn, "maxhealth",
-                {0x55, 0x8b, 0xec, 0x83, 0xec, 0x0c, 0xf3, 0x0f, 0x10, 0x1d, 0xc0, 0x5d, 0x74, 0x00, 0x56, 0x8b}, kMaxHealthRelocOffset},
+            {off::kStatCalcAttackDamageFn, "attackdamage",
+                {0x55, 0x8b, 0xec, 0x83, 0xec, 0x0c, 0xf3, 0x0f, 0x10, 0x1d, 0xc0, 0x5d, 0x74, 0x00, 0x56, 0x8b}, kAttackDamageRelocOffset},
             {off::kUpdateSelectedEntityFn, "selection",
                 {0x55, 0x8b, 0xec, 0x51, 0x53, 0x8b, 0xd9, 0x56, 0x8d, 0x83, 0x70, 0x0a, 0x80, 0x00, 0x50, 0x8d}, kNoReloc},
             {off::kOnItemPickupFn, "pickup",

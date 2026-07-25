@@ -141,9 +141,11 @@ namespace cube
     // Built in game function hook (interception): the handler gets a HookCall to cancel/mutate/override.
     enum class Hook
     {
-        Impact = CUBE_HOOK_IMPACT, // an incoming hit lands; cancel() to negate it, argInt(0)=damage
+        Impact = CUBE_HOOK_IMPACT, // a melee hit lands; cancel() to negate it, setDamage() to rescale
         CritRoll = CUBE_HOOK_CRIT_ROLL, // a crit roll; setReturnInt(1/0) to force/deny it
-        MaxHealth = CUBE_HOOK_MAX_HEALTH // a creature's max HP is computed; setReturnFloat to rescale
+        AttackDamage = CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed; setReturnFloat to rescale
+        AiBehaviorTick = CUBE_HOOK_AI_BEHAVIOR_TICK, // per tick AI update for EVERY creature; keep the handler tiny
+        MaxHealth = CUBE_HOOK_ATTACK_DAMAGE // deprecated alias of AttackDamage; the address never computed max HP
     };
 
     // Calling convention of a raw hook target, so the loader picks the matching capture stub.
