@@ -404,6 +404,27 @@ namespace off
     constexpr uintptr_t kWidgetArrayOff = 0x94; // state to visibility array base
     constexpr int32_t kWidgetMaxIndex = 256; // sanity bound on a garbage index
 
+    // Chat log widget. GC to ChatWidget* parked at construction (GameController.cpp:23814,
+    // puVar6[0x200285]). The widget (ui/ChatWidget.cpp) holds the last kChatMaxMessages received lines
+    // as a circular intrusive list; each line is a sub list of colored UTF-16 segments. Validated by
+    // the ChatWidget vftable at object+0 before any field read (GC widget block is garbage pre world).
+    constexpr uintptr_t kChatWidgetOff = 0x800a14; // GC: ChatWidget*
+    constexpr uintptr_t kChatWidgetVtableA = 0x006fd78c; // ChatWidget vftable (primary base, object+0)
+    constexpr uintptr_t kChatWidgetVtableB = 0x006fd83c; // ChatWidget vftable (second base)
+    constexpr uintptr_t kChatMsgListOff = 0x160; // ChatWidget: pointer to message list head sentinel
+    constexpr uintptr_t kChatMsgCountOff = 0x164; // ChatWidget: live message count (game caps at 10)
+    constexpr uintptr_t kChatInputOff = 0x168; // ChatWidget: input line std::u16string (SSO)
+    constexpr uintptr_t kChatInputActiveOff = 0x180; // ChatWidget: input open/cursor-visible byte
+    constexpr uintptr_t kChatMsgSegListOff = 0x8; // message node: pointer to its segment list head
+    constexpr uintptr_t kChatSegTextOff = 0x8; // segment node: std::u16string (SSO) text
+    constexpr uintptr_t kChatSegColorOff = 0x20; // segment node: R,G,B bytes (0x20,0x21,0x22)
+    constexpr int32_t kChatMaxMessages = 10; // the game's own history cap
+    // MSVC 32 bit std::basic_string layout, relative to the string base: [buf 16 bytes][size@0x10][cap@0x14].
+    // cap <= 7 (char16) means the text is inline at the base; otherwise the base holds a heap pointer.
+    constexpr uintptr_t kStringSizeOff = 0x10; // std::u16string _Mysize
+    constexpr uintptr_t kStringCapOff = 0x14; // std::u16string _Myres (capacity)
+    constexpr uint32_t kStringSsoCap = 7; // <= this capacity means inline (small string optimization)
+
     // Crosshair aim/hover target creature id (what the player is looking at), distinct from the
     // committed selection @kSelectedEntityOff.
     constexpr uintptr_t kAimTargetIdOff = 0x800a70; // GC relative uint64

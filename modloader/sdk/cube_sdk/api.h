@@ -40,6 +40,8 @@ typedef struct CubeApi
     CubeAssetsApi assets; // client only: override a game asset blob by filename key (detour backed)
     // --- appended in ABI 26 (loader owned ImGui overlay) ---
     CubeOverlayApi overlay; // client only: register a draw callback; the loader owns the ImGui context + lifecycle
+    // --- appended in ABI 28 (chat log) ---
+    CubeChatApi chat; // client only: read the local chat log; CUBE_EVENT_CHAT_MESSAGE signals new lines
 } CubeApi;
 
 // One declared dependency on another mod (CubeModInfo::deps, a null terminated array). The loader

@@ -16,6 +16,7 @@ namespace exmod::menu
         void drawState();
         void drawUi();
         void drawSelection();
+        void drawChat();
     };
 
 }

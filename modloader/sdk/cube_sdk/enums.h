@@ -147,6 +147,9 @@ typedef enum CubeEvent
     CUBE_EVENT_WORLD_ENTER, // the local player became resident in a world (title/menu to in world edge).
                             // subject = player. Distinct from AREA_CHANGE (zone to zone within a world).
     CUBE_EVENT_WORLD_EXIT, // the local player left the world (in world to title/menu edge). subject = 0.
+    // --- appended in ABI 28 ---
+    CUBE_EVENT_CHAT_MESSAGE, // a new line appeared in the local chat log (polled edge). param = current
+                             // message count (1..10); read the text via api->chat.messages(). Client only.
     CUBE_EVENT_COUNT
 } CubeEvent;
 

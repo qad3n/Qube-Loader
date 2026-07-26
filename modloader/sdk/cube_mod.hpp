@@ -14,6 +14,7 @@
 #include "cube/session.hpp"
 #include "cube/creature.hpp"
 #include "cube/selection.hpp"
+#include "cube/chat.hpp"
 #include "cube/hookcall.hpp"
 #include "cube/logger.hpp"
 #include "cube/config.hpp"

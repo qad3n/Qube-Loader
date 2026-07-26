@@ -297,3 +297,28 @@ typedef struct CubeAudio
     int32_t hasMusicState; // 1 if the engine to music streamer chain resolved
 } CubeAudio;
 
+// --- appended in ABI 28 (chat log) ---
+
+// One line from the local chat log (client only, read only). The game stores each line as a list of
+// colored UTF-16 segments; the loader concatenates them into `text` (downconverted to ASCII, matching
+// how player/item names are read) and reports the first segment's color. The game keeps only the last
+// CUBE_CHAT_MESSAGES_MAX lines. Sending a message is a networked game call and is NOT exposed here.
+typedef struct CubeChatMessage
+{
+    uint32_t structSize;
+    char text[CUBE_CHAT_TEXT_MAX]; // concatenated line text, null terminated
+    uint8_t colorR; // first segment color (valid if hasColor)
+    uint8_t colorG;
+    uint8_t colorB;
+    uint8_t hasColor; // 1 if a segment color was read
+} CubeChatMessage;
+
+// The chat input line: the text the local player is currently typing and whether chat input is open.
+typedef struct CubeChatInput
+{
+    uint32_t structSize;
+    char text[CUBE_CHAT_TEXT_MAX]; // the line being composed, null terminated (empty if not typing)
+    int32_t active; // 1 if the chat input is open/active
+    int32_t valid; // 1 if the chat widget resolved
+} CubeChatInput;
+

@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define CUBE_ABI_VERSION 27
+#define CUBE_ABI_VERSION 28
 // Oldest mod ABI this loader still accepts. Held FIXED as CUBE_ABI_VERSION grows (growth is
 // additive only), so a mod built against any ABI in [CUBE_MIN_ABI_VERSION, CUBE_ABI_VERSION] keeps
 // loading. Raised to 25 because that revision removed struct fields and renumbered enums, so older
@@ -15,6 +15,9 @@
 // AI behavior tick, so self/target are victim/attacker and the damage amount moved from argi[0] to
 // argf[0]. An ABI <= 26 mod still loads, but its IMPACT handler reads slots the loader no longer
 // fills. It was reading a mistargeted hook before, so nothing regressed.
+// NOTE for 28: pure additive growth (CubeChatApi appended to CubeApi, CubeChatMessage/CubeChatInput
+// PODs, CUBE_EVENT_CHAT_MESSAGE appended before CUBE_EVENT_COUNT). No layout or enum value changed,
+// so the floor stays at 25.
 #define CUBE_MIN_ABI_VERSION 25
 #define CUBE_LOG_BUFFER 1024
 #define CUBE_CONFIG_STRING_MAX 256
@@ -33,6 +36,8 @@
 #define CUBE_BUFFS_MAX 32
 #define CUBE_ABILITIES_MAX 32
 #define CUBE_CATALOG_MAX 192
+#define CUBE_CHAT_TEXT_MAX 256
+#define CUBE_CHAT_MESSAGES_MAX 10
 
 #define CUBE_CALL __cdecl
 

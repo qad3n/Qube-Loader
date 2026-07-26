@@ -21,7 +21,7 @@ namespace exmod
             "CompanionDied", "CompanionDismissed", "PlayerStunned", "PlayerKnockedDown", "PlayerRecovered",
             "EntityStunned", "EntityKnockedDown", "CompanionStunned", "CompanionKnockedDown", "EntitySelected",
             "EntityRecovered", "CompanionRecovered", "AbilityUsed", "ItemPickup", "PlayerRoll",
-            "Ready", "WorldEnter", "WorldExit"
+            "Ready", "WorldEnter", "WorldExit", "ChatMessage"
         };
 
         bool inRange(int index)
@@ -231,6 +231,14 @@ namespace exmod
         listener.onReady([this] { record(CUBE_EVENT_READY); });
         listener.onWorldEnter([this] { record(CUBE_EVENT_WORLD_ENTER); });
         listener.onWorldExit([this] { record(CUBE_EVENT_WORLD_EXIT); });
+        // A new line in the local chat log (ABI 28). Payload is the live message count; read the text
+        // itself with cube::Chat(api).newest().
+        listener.onChatMessage([this](int count)
+        {
+            char detail[32];
+            std::snprintf(detail, sizeof(detail), "count=%d", count);
+            record(CUBE_EVENT_CHAT_MESSAGE, detail);
+        });
     }
 
     void GameEvents::record(CubeEvent event)

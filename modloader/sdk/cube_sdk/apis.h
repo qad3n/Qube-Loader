@@ -456,3 +456,16 @@ typedef struct CubeOverlayApi
     void (CUBE_CALL* allocFuncs)(const struct CubeApi* api, void** allocFn, void** freeFn, void** userData);
 } CubeOverlayApi;
 
+// --- appended in ABI 28 ---
+// The local chat log (client only, read only). The game keeps the last CUBE_CHAT_MESSAGES_MAX lines.
+// A send path is a networked game call and is intentionally not exposed. Subscribe to
+// CUBE_EVENT_CHAT_MESSAGE to be notified when a new line arrives.
+typedef struct CubeChatApi
+{
+    // Fills out[0..count) with the chat log, newest last. Returns the count written
+    // (<= maxCount, <= CUBE_CHAT_MESSAGES_MAX). 0 if the widget is unavailable or the log is empty.
+    int32_t (CUBE_CALL* messages)(const struct CubeApi* api, CubeChatMessage* out, int32_t maxCount);
+    // Reads the current input line + whether chat input is active. Returns 1 if the widget resolved.
+    int32_t (CUBE_CALL* input)(const struct CubeApi* api, CubeChatInput* out);
+} CubeChatApi;
+

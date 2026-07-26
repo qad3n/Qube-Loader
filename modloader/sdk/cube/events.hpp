@@ -145,6 +145,10 @@ namespace cube
         // Payload: the skill index and its new rank.
         void onSkillRankChanged(std::function<void(int index, int newRank)> fn) { onRaw(Event::SkillRankChanged, [fn = std::move(fn)](EventArgs& a) { fn(a.param, a.param2); }); }
         void onAimTargetChanged(std::function<void(unsigned)> fn) { onRaw(Event::AimTargetChanged, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        // A new line arrived in the local chat log. The no arg form just signals; the int form hands you
+        // the live message count. Read the text itself with cube::Chat(api).messages(...).
+        void onChatMessage(std::function<void()> fn) { on(Event::ChatMessage, std::move(fn)); }
+        void onChatMessage(std::function<void(int messageCount)> fn) { onRaw(Event::ChatMessage, [fn = std::move(fn)](EventArgs& a) { fn(a.param); }); }
 
     private:
         Mod* m_mod;

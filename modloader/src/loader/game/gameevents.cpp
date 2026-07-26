@@ -15,6 +15,7 @@
 #include "game/framecache.h"
 #include "game/selection.h"
 #include "game/pickup.h"
+#include "game/chat.h"
 #include "game/offsets.h"
 #include "game/diag.h"
 
@@ -67,6 +68,8 @@ namespace modloader::gameevents
             int32_t cdCount = 0;
             int32_t cdIds[CUBE_ABILITIES_MAX] = {};
             int32_t cdMs[CUBE_ABILITIES_MAX] = {};
+            bool hadChat = false;
+            uint32_t chatSig = 0;
         };
 
         PrevGameState g_prev; // render thread only
@@ -239,6 +242,25 @@ namespace modloader::gameevents
 
         // Diff the aim/hover target id; on change emit AIM_TARGET_CHANGED with the resolved creature
         // address (0 if none). The tree walk to resolve the id runs only on a change edge.
+        // Diff the chat log's newest line signature; a change means a new line arrived. Reset when the
+        // widget is unresolved or empty, so re entering a world does not replay the last line as new and
+        // the first populated frame seeds the baseline without emitting.
+        void pollChat()
+        {
+            int32_t count = 0;
+            uint32_t sig = 0;
+            if (!game::chatProbe(count, sig) || count == 0)
+            {
+                g_prev.hadChat = false;
+                g_prev.chatSig = 0;
+                return;
+            }
+            if (g_prev.hadChat && sig != g_prev.chatSig)
+                emitEvent(CUBE_EVENT_CHAT_MESSAGE, 0, count);
+            g_prev.hadChat = true;
+            g_prev.chatSig = sig;
+        }
+
         void pollAimTarget()
         {
             uintptr_t gc = 0;
@@ -458,6 +480,7 @@ namespace modloader::gameevents
                 pollInventoryState();
                 pollAimTarget();
                 pollAbilityUse(player.address);
+                pollChat();
             }
             else
             {
@@ -468,6 +491,8 @@ namespace modloader::gameevents
                 g_prev.hadSkills = false;
                 g_prev.hadCooldowns = false;
                 g_prev.aimId = 0;
+                g_prev.hadChat = false;
+                g_prev.chatSig = 0;
             }
 
             // A single frame can spawn and despawn a full zone (mass reload) and also damage every

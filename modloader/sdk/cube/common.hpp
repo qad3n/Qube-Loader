@@ -97,7 +97,8 @@ namespace cube
         ItemPickup = CUBE_EVENT_ITEM_PICKUP,
         Ready = CUBE_EVENT_READY,
         WorldEnter = CUBE_EVENT_WORLD_ENTER,
-        WorldExit = CUBE_EVENT_WORLD_EXIT
+        WorldExit = CUBE_EVENT_WORLD_EXIT,
+        ChatMessage = CUBE_EVENT_CHAT_MESSAGE
     };
 
     enum class SelectionKind

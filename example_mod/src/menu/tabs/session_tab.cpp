@@ -78,6 +78,38 @@ namespace exmod::menu
         ImGui::TextDisabled("mods: mod.onEntitySelected([](unsigned addr, cube::SelectionKind k){...})");
     }
 
+    void SessionTab::drawChat()
+    {
+        ImGui::TextDisabled("the local chat log (last %d lines), read only", cube::Chat::kMaxMessages);
+
+        // Wrapper tier: cube::Chat over the C ABI.
+        cube::Chat chat(g_api);
+        CubeChatMessage buf[cube::Chat::kMaxMessages] = {};
+        const int count = chat.messages(buf, cube::Chat::kMaxMessages);
+        if (count <= 0)
+            ImGui::TextDisabled("(no messages, or chat unavailable)");
+        else if (beginTable("sess_chat"))
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                cube::ChatMessage line(buf[i]);
+                row(line.hasColor() ? "line*" : "line", "%s", line.getText());
+            }
+            ImGui::EndTable();
+        }
+
+        cube::ChatInput input = chat.input();
+        if (input.valid() && input.getText()[0] != '\0')
+            ImGui::TextDisabled("typing: \"%s\" %s", input.getText(), input.isActive() ? "(active)" : "");
+
+        // Raw tier: the same input straight off the C ABI, so a missing bridge wire fails to compile here.
+        CubeChatInput rawInput = {};
+        if (g_api->chat.input(g_api, &rawInput))
+            ImGui::TextDisabled("raw: input active = %s", rawInput.active ? "yes" : "no");
+
+        ImGui::TextDisabled("mods: mod.eventListener().onChatMessage([](int count){...})");
+    }
+
     void SessionTab::draw(const CubeEventArgs&)
     {
         if (!ImGui::BeginTabBar("##sesstabs"))
@@ -95,6 +127,11 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Selection"))
         {
             drawSelection();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Chat"))
+        {
+            drawChat();
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
