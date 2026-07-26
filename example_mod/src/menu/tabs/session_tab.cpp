@@ -78,6 +78,31 @@ namespace exmod::menu
         ImGui::TextDisabled("mods: mod.onEntitySelected([](unsigned addr, cube::SelectionKind k){...})");
     }
 
+    void SessionTab::drawPickup()
+    {
+        ImGui::TextDisabled("the last item picked up (E / hold to pickup), captured by a detour");
+        cube::Pickup pickup(g_api);
+        if (!pickup.valid())
+        {
+            ImGui::TextDisabled("Nothing picked up yet. Walk over an item and press E.");
+            return;
+        }
+        cube::Item item = pickup.item();
+        if (beginTable("sess_pick"))
+        {
+            row("Item", "%s", item.getName()[0] ? item.getName() : "(unresolved)");
+            row("Type", "%s (%d)", item.getTypeName(), item.getType());
+            row("Material / level", "%d / %d", item.getMaterial(), item.getLevel());
+            row("Stack", "%d", pickup.getStack());
+            ImGui::EndTable();
+        }
+        // Raw tier: same capture straight off the C ABI, so a missing bridge wire fails to compile here.
+        CubeItem rawPick = {};
+        if (g_api->pickup.getLast(g_api, &rawPick))
+            ImGui::TextDisabled("raw pickup.getLast -> type %d x%d", rawPick.type, rawPick.stack);
+        ImGui::TextDisabled("mods: mod.eventListener().onItemPickup([](const cube::Item& i){...})");
+    }
+
     void SessionTab::drawChat()
     {
         ImGui::TextDisabled("the local chat log (last %d lines), read only", cube::Chat::kMaxMessages);
@@ -127,6 +152,11 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Selection"))
         {
             drawSelection();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Pickup"))
+        {
+            drawPickup();
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Chat"))
