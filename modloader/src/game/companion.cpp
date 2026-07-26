@@ -1,7 +1,7 @@
 #include "game/companion.h"
 #include "game/creature.h"
 #include "game/gamecontroller.h"
-#include "game/entities.h"
+#include "game/creatures.h"
 #include "game/offsets.h"
 #include "util/field.h"
 #include "core/mem.h"
@@ -37,7 +37,7 @@ namespace game
         readCreaturePosition(pet, out.x, out.y, out.z);
 
         out.hasPosition = 1;
-        out.entityState = (out.health > kDeadHealth) ? CUBE_ENTSTATE_ALIVE : CUBE_ENTSTATE_DEAD;
+        out.creatureState = (out.health > kDeadHealth) ? CUBE_CREATURESTATE_ALIVE : CUBE_CREATURESTATE_DEAD;
 
         readCreatureFacing(pet, out.facing);
         readCreatureVelocity(pet, out.velX, out.velY, out.velZ);

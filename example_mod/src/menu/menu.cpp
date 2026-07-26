@@ -4,7 +4,7 @@
 #include "menu/tabs/combat_tab.h"
 #include "menu/tabs/items_tab.h"
 #include "menu/tabs/world_tab.h"
-#include "menu/tabs/entities_tab.h"
+#include "menu/tabs/creatures_tab.h"
 #include "menu/tabs/view_tab.h"
 #include "menu/tabs/session_tab.h"
 #include "menu/tabs/events_tab.h"
@@ -48,7 +48,7 @@ namespace exmod::menu
             CombatTab m_combat;
             ItemsTab m_items;
             WorldTab m_world;
-            EntitiesTab m_entities;
+            CreaturesTab m_entities;
             ViewTab m_view;
             SessionTab m_session;
             EventsTab m_events;

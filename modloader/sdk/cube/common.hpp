@@ -37,7 +37,7 @@ namespace cube
             return wrapList<CObj, Wrapper>(api, buffer, list(api, buffer, static_cast<int32_t>(Max)));
         }
 
-        // Same, for a list keyed by a creature address (stockOf / an entity's own buffs).
+        // Same, for a list keyed by a creature address (stockOf / an creature's own buffs).
         template <typename CObj, typename Wrapper, size_t Max>
         inline std::vector<Wrapper> fillListAt(const CubeApi* api, int32_t (CUBE_CALL* list)(const CubeApi*, uint32_t, CObj*, int32_t), uint32_t address)
         {
@@ -59,7 +59,7 @@ namespace cube
         Jump = CUBE_EVENT_PLAYER_JUMP,
         AreaChange = CUBE_EVENT_AREA_CHANGE,
         Damaged = CUBE_EVENT_PLAYER_DAMAGED,
-        EntityDamaged = CUBE_EVENT_ENTITY_DAMAGED,
+        EntityDamaged = CUBE_EVENT_CREATURE_DAMAGED,
         Crit = CUBE_EVENT_PLAYER_CRIT,
         MenuOpen = CUBE_EVENT_MENU_OPEN,
         MenuClose = CUBE_EVENT_MENU_CLOSE,
@@ -70,8 +70,8 @@ namespace cube
         Roll = CUBE_EVENT_PLAYER_ROLL,
         MovementChanged = CUBE_EVENT_MOVEMENT_CHANGED,
         TargetChanged = CUBE_EVENT_TARGET_CHANGED,
-        EntitySpawn = CUBE_EVENT_ENTITY_SPAWN,
-        EntityDeath = CUBE_EVENT_ENTITY_DEATH,
+        EntitySpawn = CUBE_EVENT_CREATURE_SPAWN,
+        EntityDeath = CUBE_EVENT_CREATURE_DEATH,
         CoinsChanged = CUBE_EVENT_COINS_CHANGED,
         DayNight = CUBE_EVENT_DAY_NIGHT,
         BuffGained = CUBE_EVENT_BUFF_GAINED,
@@ -79,19 +79,19 @@ namespace cube
         EquipmentChanged = CUBE_EVENT_EQUIPMENT_CHANGED,
         SkillRankChanged = CUBE_EVENT_SKILL_RANK_CHANGED,
         AimTargetChanged = CUBE_EVENT_AIM_TARGET_CHANGED,
-        EntityDespawn = CUBE_EVENT_ENTITY_DESPAWN,
+        EntityDespawn = CUBE_EVENT_CREATURE_DESPAWN,
         CompanionSummoned = CUBE_EVENT_COMPANION_SUMMONED,
         CompanionDied = CUBE_EVENT_COMPANION_DIED,
         CompanionDismissed = CUBE_EVENT_COMPANION_DISMISSED,
         Stunned = CUBE_EVENT_PLAYER_STUNNED,
         KnockedDown = CUBE_EVENT_PLAYER_KNOCKED_DOWN,
         Recovered = CUBE_EVENT_PLAYER_RECOVERED,
-        EntityStunned = CUBE_EVENT_ENTITY_STUNNED,
-        EntityKnockedDown = CUBE_EVENT_ENTITY_KNOCKED_DOWN,
+        EntityStunned = CUBE_EVENT_CREATURE_STUNNED,
+        EntityKnockedDown = CUBE_EVENT_CREATURE_KNOCKED_DOWN,
         CompanionStunned = CUBE_EVENT_COMPANION_STUNNED,
         CompanionKnockedDown = CUBE_EVENT_COMPANION_KNOCKED_DOWN,
-        EntitySelected = CUBE_EVENT_ENTITY_SELECTED,
-        EntityRecovered = CUBE_EVENT_ENTITY_RECOVERED,
+        EntitySelected = CUBE_EVENT_CREATURE_SELECTED,
+        EntityRecovered = CUBE_EVENT_CREATURE_RECOVERED,
         CompanionRecovered = CUBE_EVENT_COMPANION_RECOVERED,
         AbilityUsed = CUBE_EVENT_ABILITY_USED,
         ItemPickup = CUBE_EVENT_ITEM_PICKUP,
@@ -252,11 +252,11 @@ namespace cube
         Hostile = CUBE_REL_HOSTILE
     };
 
-    enum class EntityState
+    enum class CreatureState
     {
-        Unknown = CUBE_ENTSTATE_UNKNOWN,
-        Alive = CUBE_ENTSTATE_ALIVE,
-        Dead = CUBE_ENTSTATE_DEAD
+        Unknown = CUBE_CREATURESTATE_UNKNOWN,
+        Alive = CUBE_CREATURESTATE_ALIVE,
+        Dead = CUBE_CREATURESTATE_DEAD
     };
 
     inline const char* relationName(Relation r)
@@ -273,12 +273,12 @@ namespace cube
         }
     }
 
-    inline const char* entityStateName(EntityState state)
+    inline const char* creatureStateName(CreatureState state)
     {
         switch (state)
         {
-            case EntityState::Alive: return "alive";
-            case EntityState::Dead: return "dead";
+            case CreatureState::Alive: return "alive";
+            case CreatureState::Dead: return "dead";
             default: return "unknown";
         }
     }

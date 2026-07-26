@@ -75,7 +75,7 @@ typedef enum CubeEvent
                                // Post mitigation HP delta the loader sees by diffing health, NOT the game's
                                // raw damage number; cause is not attributed. For the attacker + the game's
                                // damage value (and to cancel/rescale) use eventHook().onImpact.
-    CUBE_EVENT_ENTITY_DAMAGED, // ANY nearby creature lost health this frame (NOT necessarily player caused).
+    CUBE_EVENT_CREATURE_DAMAGED, // ANY nearby creature lost health this frame (NOT necessarily player caused).
                            // subject = victim, amount = damage (HP lost, float), param = victim category byte,
                            // param2 = victim remaining health (int). Fires once per damaged creature; the
                            // attacker is NOT attributed (a monster hitting a monster fires this too). For
@@ -95,9 +95,9 @@ typedef enum CubeEvent
                                  // param2 = previous CubeMovement
     CUBE_EVENT_TARGET_CHANGED, // selection/interact target changed. subject = new creature (0 if cleared),
                                // param = previous target address
-    CUBE_EVENT_ENTITY_SPAWN, // a creature was created / entered range. subject = creature,
+    CUBE_EVENT_CREATURE_SPAWN, // a creature was created / entered range. subject = creature,
                              // param = its category byte, param2 = its type/species id, amount = its health
-    CUBE_EVENT_ENTITY_DEATH, // a tracked creature's health reached zero (killed). subject = creature,
+    CUBE_EVENT_CREATURE_DEATH, // a tracked creature's health reached zero (killed). subject = creature,
                              // param = its category byte, param2 = its type/species id
     CUBE_EVENT_COINS_CHANGED, // coin total changed. param = new coin total, param2 = delta (new coin total minus the old)
     CUBE_EVENT_DAY_NIGHT, // day/night flipped. param = 1 day / 0 night, param2 = in game hour [0,23]
@@ -108,7 +108,7 @@ typedef enum CubeEvent
                                   // in the slot (0 if the slot was emptied)
     CUBE_EVENT_SKILL_RANK_CHANGED, // a skill rank changed. param = skill index, param2 = new rank
     CUBE_EVENT_AIM_TARGET_CHANGED, // crosshair hover target changed; args.subject = creature (0 if none)
-    CUBE_EVENT_ENTITY_DESPAWN, // a tracked creature was destroyed / left range. subject = its last address,
+    CUBE_EVENT_CREATURE_DESPAWN, // a tracked creature was destroyed / left range. subject = its last address,
                                // param = its last known category byte, param2 = its last known type id
     CUBE_EVENT_COMPANION_SUMMONED, // the local player's pet was created / changed; args.subject = pet creature
     CUBE_EVENT_COMPANION_DIED, // the local player's pet's health reached zero; args.subject = pet creature
@@ -116,20 +116,20 @@ typedef enum CubeEvent
     CUBE_EVENT_PLAYER_STUNNED, // the LOCAL player's stun lock became active from taking damage (cannot act);
                                // args.subject = player, args.param = stun lock timer. The shared lock the game
                                // also uses for a dodge roll is filtered out (that raises PLAYER_ROLL instead),
-                               // so this fires on a genuine hit / hard fall. For creatures use ENTITY_STUNNED.
+                               // so this fires on a genuine hit / hard fall. For creatures use CREATURE_STUNNED.
     CUBE_EVENT_PLAYER_KNOCKED_DOWN, // the LOCAL player entered the downed state (on ground, stars). subject = player
     CUBE_EVENT_PLAYER_RECOVERED, // the LOCAL player's stun lock ended (can act again). subject = player.
                                // Pairs with PLAYER_STUNNED, so it likewise follows a hard fall/collision, not
                                // just an enemy stun.
-    CUBE_EVENT_ENTITY_STUNNED, // a nearby creature became stunned. subject = creature, param = category byte, param2 = type id
-    CUBE_EVENT_ENTITY_KNOCKED_DOWN, // a nearby creature was knocked down. subject = creature, param = category, param2 = type id
+    CUBE_EVENT_CREATURE_STUNNED, // a nearby creature became stunned. subject = creature, param = category byte, param2 = type id
+    CUBE_EVENT_CREATURE_KNOCKED_DOWN, // a nearby creature was knocked down. subject = creature, param = category, param2 = type id
     CUBE_EVENT_COMPANION_STUNNED, // the local player's pet became stunned; args.subject = pet creature
     CUBE_EVENT_COMPANION_KNOCKED_DOWN, // the local player's pet was knocked down; args.subject = pet creature
-    CUBE_EVENT_ENTITY_SELECTED, // the player pressed the R / use key (GameController::updateSelectedEntity);
+    CUBE_EVENT_CREATURE_SELECTED, // the player pressed the R / use key (GameController::updateSelectedEntity);
                          // args.subject = selected target creature (0 for a world object),
                          // args.param = CubeSelectionKind, args.param2 = raw target discriminator byte
                          // (CubeSelection.typeByte)
-    CUBE_EVENT_ENTITY_RECOVERED, // a nearby creature's stun lock ended (complements ENTITY_STUNNED).
+    CUBE_EVENT_CREATURE_RECOVERED, // a nearby creature's stun lock ended (complements CREATURE_STUNNED).
                                  // subject = creature, param = category byte, param2 = type id
     CUBE_EVENT_COMPANION_RECOVERED, // the local player's pet's stun lock ended; args.subject = pet creature
     CUBE_EVENT_ABILITY_USED, // the local player used a hotbar ability (keys 1 to 5). subject = player,
@@ -197,8 +197,8 @@ typedef enum CubePlayerStat
     CUBE_STAT_VEL_Y,
     CUBE_STAT_VEL_Z,
     CUBE_STAT_ACTION_ID, // raw action/animation byte
-    CUBE_STAT_CATEGORY, // entity category byte (monster/player/npc/hostile)
-    CUBE_STAT_RANK, // entity star/power rank byte
+    CUBE_STAT_CATEGORY, // creature category byte (monster/player/npc/hostile)
+    CUBE_STAT_RANK, // creature star/power rank byte
     CUBE_STAT_ATTACK_SPEED, // attack timescale float (higher = faster)
     CUBE_STAT_STEALTH, // stealth stat float 0..1 (reduces detection; also feeds crit at 0.15 per point)
     CUBE_STAT_SNEAKING, // 1 = enable stealth (write the stealth stat), 0 = disable it

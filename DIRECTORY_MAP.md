@@ -72,7 +72,7 @@ The struct layout is unchanged by these renames (binary ABI is preserved; only t
 | Concept                | game/ term            | C ABI struct     | SDK class (namespace cube) |
 |------------------------|-----------------------|------------------|----------------------------|
 | local player           | Creature (player)     | CubePlayer       | Player                     |
-| any other living thing | Creature              | CubeEntity       | Entity                     |
+| any other living thing | Creature              | CubeCreature     | Creature                   |
 | tamed companion        | CompanionBehavior     | CubeCompanion    | Companion                  |
 | combat stats           | combat_* subsystem    | CubeCombat       | Combat                     |
 | stun/knockdown state   | -                 | CubeStun         | Stun                       |

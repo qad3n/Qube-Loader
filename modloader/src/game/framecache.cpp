@@ -17,7 +17,7 @@ namespace game::framecache
         uintptr_t g_gc = 0;
         bool g_haveEntities = false;
         int32_t g_entityCount = 0;
-        CubeEntity g_entities[CUBE_ENTITIES_MAX];
+        CubeCreature g_entities[CUBE_CREATURES_MAX];
 
     }
 
@@ -64,22 +64,22 @@ namespace game::framecache
         g_haveGc = true;
     }
 
-    int32_t getEntities(CubeEntity* out, int32_t maxCount)
+    int32_t getEntities(CubeCreature* out, int32_t maxCount)
     {
         if (!g_active || !g_haveEntities || !out || maxCount <= 0 || g_entityCount <= 0)
             return -1;
         const int32_t n = g_entityCount < maxCount ? g_entityCount : maxCount;
-        std::memcpy(out, g_entities, static_cast<size_t>(n) * sizeof(CubeEntity));
+        std::memcpy(out, g_entities, static_cast<size_t>(n) * sizeof(CubeCreature));
         return n;
     }
 
-    void putEntities(const CubeEntity* list, int32_t count)
+    void putEntities(const CubeCreature* list, int32_t count)
     {
         if (!g_active || !list || count < 0)
             return;
-        const int32_t n = count < CUBE_ENTITIES_MAX ? count : CUBE_ENTITIES_MAX;
+        const int32_t n = count < CUBE_CREATURES_MAX ? count : CUBE_CREATURES_MAX;
         if (n > 0)
-            std::memcpy(g_entities, list, static_cast<size_t>(n) * sizeof(CubeEntity));
+            std::memcpy(g_entities, list, static_cast<size_t>(n) * sizeof(CubeCreature));
         g_entityCount = n;
         g_haveEntities = true;
     }

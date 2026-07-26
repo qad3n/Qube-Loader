@@ -1,4 +1,4 @@
-#include "menu/tabs/entities_tab.h"
+#include "menu/tabs/creatures_tab.h"
 #include "mod_context.h"
 
 #include "imgui.h"
@@ -9,7 +9,7 @@ namespace exmod::menu
 {
     namespace
     {
-        // Entity type is the loader's relation (from the +0x60 kind byte, kind 1 split into hostile
+        // Creature type is the loader's relation (from the +0x60 kind byte, kind 1 split into hostile
         // monsters vs peaceful animals). Raw kind shown per row; kind 3 has no name in the binary.
         const ImVec4 kEnemyColor = ImVec4(1.0f, 0.35f, 0.35f, 1.0f);
         const ImVec4 kAnimalColor = ImVec4(0.8f, 0.72f, 0.45f, 1.0f);
@@ -40,12 +40,12 @@ namespace exmod::menu
             }
         }
 
-        const ImVec4& entityColor(const cube::Entity& e)
+        const ImVec4& creatureColor(const cube::Creature& e)
         {
             return relationColor(e.getRelation());
         }
 
-        const char* entityLabel(const cube::Entity& e)
+        const char* creatureLabel(const cube::Creature& e)
         {
             return cube::relationName(e.getRelation());
         }
@@ -69,8 +69,8 @@ namespace exmod::menu
 
     }
 
-    template <typename Creature>
-    void EntitiesTab::drawTransformEditors(const Creature& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel)
+    template <typename CreatureT>
+    void CreaturesTab::drawTransformEditors(const CreatureT& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel)
     {
         float facing = creature.getFacing();
         ImGui::SetNextItemWidth(sc(kInputWidth));
@@ -96,36 +96,36 @@ namespace exmod::menu
     }
 
     // Read only fields plus live editors for one creature. Callers must push a unique ID scope.
-    void EntitiesTab::drawEntityDetail(const cube::Entity& entity, cube::Player& player)
+    void CreaturesTab::drawCreatureDetail(const cube::Creature& creature, cube::Player& player)
     {
         if (beginTable("ent_detail"))
         {
-            row("Address", "0x%08X", entity.raw().address);
-            row("Name", "%s", entity.getName()[0] ? entity.getName() : "(unnamed)");
-            row("Type", "%s (kind %d)", entityLabel(entity), entity.getCategory());
-            row("Hostile", "%s", yesNo(entity.isHostile()));
-            row("State", "%s (from health)", cube::entityStateName(entity.getState()));
-            row("Distance", "%.1f m", entity.getDistance());
+            row("Address", "0x%08X", creature.raw().address);
+            row("Name", "%s", creature.getName()[0] ? creature.getName() : "(unnamed)");
+            row("Type", "%s (kind %d)", creatureLabel(creature), creature.getCategory());
+            row("Hostile", "%s", yesNo(creature.isHostile()));
+            row("State", "%s (from health)", cube::creatureStateName(creature.getState()));
+            row("Distance", "%.1f m", creature.getDistance());
             row("Species", "%s (#%d)",
-                cube::catalog::nameOr(g_api, CUBE_CATALOG_SPECIES, entity.getType(), "unknown"), entity.getType());
+                cube::catalog::nameOr(g_api, CUBE_CATALOG_SPECIES, creature.getType(), "unknown"), creature.getType());
             row("Class", "%s",
-                cube::catalog::nameOr(g_api, CUBE_CATALOG_CLASS, entity.getCombatClass(), "none"));
-            row("Boss / rank", "%s / %d stars", yesNo(entity.isBoss()), entity.getRank());
-            row("Elite", "%s (boss or 3+ stars)", yesNo(entity.isElite()));
-            row("Effective power", "%d (vs your level)", entity.getEffectivePower());
-            row("Stagger", "hitStun %d%s", entity.getHitStun(),
-                entity.isKnockedDown() ? " (knocked down)" : "");
-            if (entity.getOwnerAddress() != 0)
-                row("Owner addr", "0x%08X", entity.getOwnerAddress());
+                cube::catalog::nameOr(g_api, CUBE_CATALOG_CLASS, creature.getCombatClass(), "none"));
+            row("Boss / rank", "%s / %d stars", yesNo(creature.isBoss()), creature.getRank());
+            row("Elite", "%s (boss or 3+ stars)", yesNo(creature.isElite()));
+            row("Effective power", "%d (vs your level)", creature.getEffectivePower());
+            row("Stagger", "hitStun %d%s", creature.getHitStun(),
+                creature.isKnockedDown() ? " (knocked down)" : "");
+            if (creature.getOwnerAddress() != 0)
+                row("Owner addr", "0x%08X", creature.getOwnerAddress());
             // getWeapon() resolves the main-hand slot (equip index 6 / Creature+0xaa8), the weapon the
             // game's combat code actually swings. The off-hand (index 5) is a separate slot.
-            const cube::Item weapon = entity.getWeapon();
+            const cube::Item weapon = creature.getWeapon();
             row("Weapon (main hand)", "%s", weapon.present() ? weapon.getName() : "(none)");
-            row("Tameable", "%s (feed a Food item to tame)", yesNo(entity.isTameable()));
+            row("Tameable", "%s (feed a Food item to tame)", yesNo(creature.isTameable()));
             ImGui::EndTable();
         }
-        // Any creature's inventory (a shopkeeper's wares, a chest's loot) read via entity.stock().
-        const std::vector<cube::Item> stock = entity.stock();
+        // Any creature's inventory (a shopkeeper's wares, a chest's loot) read via creature.stock().
+        const std::vector<cube::Item> stock = creature.stock();
         if (!stock.empty())
         {
             ImGui::SeparatorText("stock / inventory");
@@ -135,7 +135,7 @@ namespace exmod::menu
                 ImGui::BulletText("%s  x%d  (%d coins)", ware.getName(), ware.getStack(), ware.getValue());
             }
         }
-        const std::vector<cube::Buff> effects = entity.buffs();
+        const std::vector<cube::Buff> effects = creature.buffs();
         if (!effects.empty())
         {
             ImGui::SeparatorText("status effects");
@@ -147,29 +147,29 @@ namespace exmod::menu
                                   effect.getMagnitude(), effect.getRemainingMs());
             }
         }
-        if ((entity.getHitStun() > 0 || entity.isKnockedDown()) && ImGui::SmallButton("Break free##entstun"))
-            entity.clearStun();
+        if ((creature.getHitStun() > 0 || creature.isKnockedDown()) && ImGui::SmallButton("Break free##entstun"))
+            creature.clearStun();
         int value = 0;
-        if (idEditor("species", CUBE_CATALOG_SPECIES, entity.getType(), value))
-            entity.setType(value);
-        if (idEditor("category", CUBE_CATALOG_ENTITY_CATEGORY, entity.getCategory(), value))
-            entity.setCategory(value);
-        float health = entity.getHealth();
+        if (idEditor("species", CUBE_CATALOG_SPECIES, creature.getType(), value))
+            creature.setType(value);
+        if (idEditor("category", CUBE_CATALOG_CREATURE_CATEGORY, creature.getCategory(), value))
+            creature.setCategory(value);
+        float health = creature.getHealth();
         if (dragFloat("health", health, kStatDragSpeed, kHealthMin, kHealthMax, "%.0f"))
-            entity.setHealth(health);
-        int level = entity.getLevel();
+            creature.setHealth(health);
+        int level = creature.getLevel();
         if (dragInt("level", level, kIntDragSpeed, kSmallCountMin, kLevelMax))
-            entity.setLevel(level);
-        int rank = entity.getRank();
+            creature.setLevel(level);
+        int rank = creature.getRank();
         if (dragInt("rank", rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
-            entity.setRank(rank);
-        drawTransformEditors(entity, m_entityName, sizeof(m_entityName), player, "Teleport me here");
+            creature.setRank(rank);
+        drawTransformEditors(creature, m_entityName, sizeof(m_entityName), player, "Teleport me here");
     }
 
-    void EntitiesTab::drawNearby(cube::Player& player)
+    void CreaturesTab::drawNearby(cube::Player& player)
     {
-        // Loader returns entities nearest first, so index 0 is the closest creature.
-        std::vector<cube::Entity> nearby = cube::entitiesOf(g_api);
+        // Loader returns creatures nearest first, so index 0 is the closest creature.
+        std::vector<cube::Creature> nearby = cube::creaturesOf(g_api);
         const int total = static_cast<int>(nearby.size());
         ImGui::Text("%d nearby (expand any row for full detail)", total);
         drawRelationLegend();
@@ -178,19 +178,19 @@ namespace exmod::menu
         ImGui::BeginChild("ent_list", ImVec2(0.0f, 0.0f), ImGuiChildFlags_Borders);
         for (int i = 0; i < total; ++i)
         {
-            const cube::Entity& entity = nearby[static_cast<size_t>(i)];
-            // Key the row by live creature address, never the loop index: the entity set reorders
+            const cube::Creature& creature = nearby[static_cast<size_t>(i)];
+            // Key the row by live creature address, never the loop index: the creature set reorders
             // every frame, so an index keyed node's open state + actions would hit the wrong creature.
-            ImGui::PushID(static_cast<int>(entity.raw().address));
-            ImGui::PushStyleColor(ImGuiCol_Text, entityColor(entity));
+            ImGui::PushID(static_cast<int>(creature.raw().address));
+            ImGui::PushStyleColor(ImGuiCol_Text, creatureColor(creature));
             const bool open = ImGui::TreeNode("row", "%s  L%d  %.0fm  %s (kind %d)%s",
-                                              entity.getName()[0] ? entity.getName() : "(unnamed)", entity.getLevel(),
-                                              entity.getDistance(), entityLabel(entity), entity.getCategory(),
-                                              entity.isBoss() ? " BOSS" : "");
+                                              creature.getName()[0] ? creature.getName() : "(unnamed)", creature.getLevel(),
+                                              creature.getDistance(), creatureLabel(creature), creature.getCategory(),
+                                              creature.isBoss() ? " BOSS" : "");
             ImGui::PopStyleColor();
             if (open)
             {
-                drawEntityDetail(entity, player);
+                drawCreatureDetail(creature, player);
                 ImGui::TreePop();
             }
             ImGui::PopID();
@@ -198,7 +198,7 @@ namespace exmod::menu
         ImGui::EndChild();
     }
 
-    void EntitiesTab::drawCompanion(cube::Player& player)
+    void CreaturesTab::drawCompanion(cube::Player& player)
     {
         cube::Companion pet(g_api);
         if (!pet.valid())
@@ -210,7 +210,7 @@ namespace exmod::menu
         {
             row("Address", "0x%08X", pet.raw().address);
             row("XP", "%u", pet.getXp());
-            row("State", "%s", cube::entityStateName(pet.getState()));
+            row("State", "%s", cube::creatureStateName(pet.getState()));
             ImGui::EndTable();
         }
         int value = 0;
@@ -225,7 +225,7 @@ namespace exmod::menu
         drawTransformEditors(pet, m_petName, sizeof(m_petName), player, "Teleport me to pet");
     }
 
-    void EntitiesTab::draw(const CubeEventArgs&)
+    void CreaturesTab::draw(const CubeEventArgs&)
     {
         cube::Player player(g_api);
         if (!ImGui::BeginTabBar("##enttabs"))
@@ -237,13 +237,13 @@ namespace exmod::menu
         }
         if (ImGui::BeginTabItem("Target"))
         {
-            cube::Entity target;
+            cube::Creature target;
             if (!cube::targetOf(g_api, target))
                 ImGui::TextDisabled("no target");
             else
             {
                 ImGui::PushID("tgt");
-                drawEntityDetail(target, player);
+                drawCreatureDetail(target, player);
                 ImGui::PopID();
             }
             ImGui::EndTabItem();
@@ -251,13 +251,13 @@ namespace exmod::menu
         if (ImGui::BeginTabItem("Aim"))
         {
             ImGui::TextDisabled("crosshair hover target (what you are looking at)");
-            cube::Entity aim;
+            cube::Creature aim;
             if (!cube::aimTargetOf(g_api, aim))
                 ImGui::TextDisabled("not aiming at a creature");
             else
             {
                 ImGui::PushID("aim");
-                drawEntityDetail(aim, player);
+                drawCreatureDetail(aim, player);
                 ImGui::PopID();
             }
             ImGui::EndTabItem();

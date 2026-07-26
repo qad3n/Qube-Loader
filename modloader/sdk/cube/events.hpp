@@ -49,14 +49,14 @@ namespace cube
         // Payload: `damage` is HP LOST this frame (an HP delta the loader observes by diffing health
         // frame to frame). It is post mitigation and NOT the game's raw damage value, and the cause is
         // not attributed (any HP loss, whoever caused it). `remainingHealth` is the victim's HP after
-        // the loss. Filter by victim against an address you hold (a tracked entity, or your target via
+        // the loss. Filter by victim against an address you hold (a tracked creature, or your target via
         // target(Entity&).getAddress()). For the game's actual damage argument and the attacker (and
         // to cancel/rescale the hit) use mod.eventHook().onImpact instead.
         void onDamaged(std::function<void(float damage)> fn) { onRaw(Event::Damaged, [fn = std::move(fn)](EventArgs& a) { fn(a.amount); }); }
         void onDamaged(std::function<void(float damage, int remainingHealth)> fn) { onRaw(Event::Damaged, [fn = std::move(fn)](EventArgs& a) { fn(a.amount, a.param2); }); }
         void onEntityDamaged(std::function<void(unsigned victim, float damage)> fn) { onRaw(Event::EntityDamaged, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, a.amount); }); }
         void onEntityDamaged(std::function<void(unsigned victim, float damage, int remainingHealth)> fn) { onRaw(Event::EntityDamaged, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, a.amount, a.param2); }); }
-        // Fullest form: also the victim's category byte (monster/player/pet/npc), so you can filter
+        // Fullest form: also the victim's category byte (monster/player/companion/npc), so you can filter
         // "only count damage to monsters" without a second lookup.
         void onEntityDamaged(std::function<void(unsigned victim, float damage, int remainingHealth, int category)> fn) { onRaw(Event::EntityDamaged, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, a.amount, a.param2, a.param); }); }
         void onMenuOpen(std::function<void()> fn) { on(Event::MenuOpen, std::move(fn)); }
@@ -103,7 +103,7 @@ namespace cube
         void onCompanionSummoned(std::function<void(unsigned)> fn) { onRaw(Event::CompanionSummoned, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
         void onCompanionDied(std::function<void(unsigned)> fn) { onRaw(Event::CompanionDied, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
         void onCompanionDismissed(std::function<void(unsigned)> fn) { onRaw(Event::CompanionDismissed, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
-        // Stun / knocked down edges. Local player forms are no arg; entity/pet forms pass the creature address.
+        // Stun / knocked down edges. Local player forms are no arg; creature/companion forms pass the creature address.
         // onStunned also has an overload carrying the stun lock timer value the loader read for the edge.
         void onStunned(std::function<void()> fn) { on(Event::Stunned, std::move(fn)); }
         void onStunned(std::function<void(int hitStun)> fn) { onRaw(Event::Stunned, [fn = std::move(fn)](EventArgs& a) { fn(a.param); }); }

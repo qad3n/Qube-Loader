@@ -40,7 +40,7 @@ namespace modloader::api
                 spanOf("status", api.status),
                 spanOf("world", api.world),
                 spanOf("companion", api.companion),
-                spanOf("entities", api.entities),
+                spanOf("creatures", api.creatures),
                 spanOf("camera", api.camera),
                 spanOf("display", api.display),
                 spanOf("audio", api.audio),
@@ -101,7 +101,7 @@ namespace modloader::api
         fillItems(api);
         fillStatus(api);
         fillWorld(api);
-        fillEntities(api);
+        fillCreatures(api);
         fillCompanion(api);
         fillView(api);
         fillSession(api);

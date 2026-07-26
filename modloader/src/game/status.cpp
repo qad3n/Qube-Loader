@@ -12,7 +12,7 @@ namespace game
 {
     namespace
     {
-        // Any creature's status list (generic Creature field: works for entity/pet too). Both public
+        // Any creature's status list (generic Creature field: works for creature/companion too). Both public
         // entry points below resolve to an address first and then land here.
         int32_t listBuffsAt(uintptr_t creature, CubeBuff* out, int32_t maxCount)
         {

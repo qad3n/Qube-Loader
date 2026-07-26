@@ -1,4 +1,4 @@
-#include "game/entities.h"
+#include "game/creatures.h"
 #include "game/creature.h"
 #include "game/gamecontroller.h"
 #include "game/items.h"
@@ -131,10 +131,10 @@ namespace game
             }
         }
 
-        void fillEntity(uintptr_t creature, uint64_t, const mathutil::Vec3& playerPos, uint64_t, CubeEntity& out)
+        void fillCreature(uintptr_t creature, uint64_t, const mathutil::Vec3& playerPos, uint64_t, CubeCreature& out)
         {
-            out = CubeEntity{}; // caller buffer may be uninitialized; skipped reads must read 0
-            out.structSize = sizeof(CubeEntity);
+            out = CubeCreature{}; // caller buffer may be uninitialized; skipped reads must read 0
+            out.structSize = sizeof(CubeCreature);
             out.address = static_cast<uint32_t>(creature);
 
             field::byteI32(creature, off::kEntityKindOff, out.category);
@@ -153,7 +153,7 @@ namespace game
             // hostile flag = HOSTILE relation only (aggressive monster); passive animals are NEUTRAL.
             out.relation = resolveRelation(creature, out.category, out.type);
             out.hostile = (out.relation == CUBE_REL_HOSTILE) ? 1 : 0;
-            out.entityState = (out.health > kDeadHealth) ? CUBE_ENTSTATE_ALIVE : CUBE_ENTSTATE_DEAD;
+            out.creatureState = (out.health > kDeadHealth) ? CUBE_CREATURESTATE_ALIVE : CUBE_CREATURESTATE_DEAD;
             out.boss = isBossSpecies(out.type) ? 1 : 0;
             readCreatureFacing(creature, out.facing);
             readCreatureVelocity(creature, out.velX, out.velY, out.velZ);
@@ -183,14 +183,14 @@ namespace game
             return companionId;
         }
 
-        bool closerToPlayer(const CubeEntity& a, const CubeEntity& b)
+        bool closerToPlayer(const CubeCreature& a, const CubeCreature& b)
         {
             return a.distance < b.distance;
         }
 
     }
 
-    int32_t listEntities(CubeEntity* out, int32_t maxCount)
+    int32_t listCreatures(CubeCreature* out, int32_t maxCount)
     {
         if (!out || maxCount <= 0)
             return 0;
@@ -212,7 +212,7 @@ namespace game
         {
             if (count >= maxCount || creature == static_cast<uint32_t>(player))
                 return;
-            fillEntity(creature, key, playerPos, companionId, out[count]);
+            fillCreature(creature, key, playerPos, companionId, out[count]);
             ++count;
         });
 
@@ -220,7 +220,7 @@ namespace game
         // >maxCount creatures keeps the first maxCount by id then sorts (not a true nearest N cap).
         std::sort(out, out + count, closerToPlayer);
         // Cache only a full buffer request, so a later larger request isn't served a truncated set.
-        if (maxCount >= CUBE_ENTITIES_MAX)
+        if (maxCount >= CUBE_CREATURES_MAX)
             framecache::putEntities(out, count);
         return count;
     }
@@ -241,7 +241,7 @@ namespace game
         return isPassiveCritter(obj, species);
     }
 
-    bool targetEntity(CubeEntity& out)
+    bool targetEntity(CubeCreature& out)
     {
         uintptr_t gc = 0;
         uintptr_t player = 0;
@@ -257,11 +257,11 @@ namespace game
 
         const mathutil::Vec3 playerPos = readPosition(player);
         const uint64_t companionId = readCompanionId(player);
-        fillEntity(selected, 0, playerPos, companionId, out);
+        fillCreature(selected, 0, playerPos, companionId, out);
         return true;
     }
 
-    bool aimTargetEntity(CubeEntity& out)
+    bool aimTargetEntity(CubeCreature& out)
     {
         uintptr_t gc = 0;
         uintptr_t player = 0;
@@ -277,7 +277,7 @@ namespace game
 
         const mathutil::Vec3 playerPos = readPosition(player);
         const uint64_t companionId = readCompanionId(player);
-        fillEntity(creature, aimId, playerPos, companionId, out);
+        fillCreature(creature, aimId, playerPos, companionId, out);
         return true;
     }
 

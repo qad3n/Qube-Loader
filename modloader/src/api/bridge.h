@@ -74,7 +74,7 @@ namespace modloader::api
     template <typename T>
     int32_t bridgeList(const CubeApi* api, const char* label, const T* out, int32_t maxCount, int32_t count, uint32_t T::* addr)
     {
-        constexpr int32_t kMaxLogged = 16; // cap so a full inventory/entity sweep cannot flood one line
+        constexpr int32_t kMaxLogged = 16; // cap so a full inventory/creature sweep cannot flood one line
         char buf[kMaxLogged * 11 + 16] = {};
         int written = 0;
         const int32_t shown = (count < kMaxLogged) ? count : kMaxLogged;
@@ -213,7 +213,7 @@ namespace modloader::api
     void fillItems(CubeApi& api);
     void fillStatus(CubeApi& api);
     void fillWorld(CubeApi& api);
-    void fillEntities(CubeApi& api);
+    void fillCreatures(CubeApi& api);
     void fillCompanion(CubeApi& api);
     void fillView(CubeApi& api);
     void fillSession(CubeApi& api);

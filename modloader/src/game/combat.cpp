@@ -1,7 +1,7 @@
 #include "game/combat.h"
 #include "game/creature.h"
 #include "game/gamecontroller.h"
-#include "game/entities.h"
+#include "game/creatures.h"
 #include "game/offsets.h"
 #include "util/field.h"
 
@@ -24,13 +24,13 @@ namespace game
         };
 
         // Render thread only edge detection state: last frame's player HP plus the nearby creature
-        // set, diffed each frame to emit PLAYER_DAMAGED / ENTITY_* edges. The only cross thread combat
+        // set, diffed each frame to emit PLAYER_DAMAGED / CREATURE_* edges. The only cross thread combat
         // signal is g_critPending below (game thread noteCrit).
         struct CombatStore
         {
             bool valid = false;
             float health = 0.0f;
-            TrackedEntity tracked[CUBE_ENTITIES_MAX];
+            TrackedEntity tracked[CUBE_CREATURES_MAX];
             int32_t trackedCount = 0;
         };
 
@@ -50,11 +50,11 @@ namespace game
             return -1;
         }
 
-        bool addressInList(uint32_t address, const CubeEntity* entities, int32_t count)
+        bool addressInList(uint32_t address, const CubeCreature* creatures, int32_t count)
         {
             for (int32_t i = 0; i < count; ++i)
             {
-                if (entities[i].address == address)
+                if (creatures[i].address == address)
                     return true;
             }
             return false;
@@ -67,7 +67,7 @@ namespace game
         g_critPending.fetch_add(1, std::memory_order_relaxed);
     }
 
-    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, EntityEdge* edgesOut, int32_t maxEdges, int32_t& edgeCount)
+    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, CreatureEdge* edgesOut, int32_t maxEdges, int32_t& edgeCount)
     {
         CombatEdges edges = {0.0f, false};
         edgeCount = 0;
@@ -87,27 +87,27 @@ namespace game
         if (hadPrev && player.health < prevHealth)
             edges.damageTaken = prevHealth - player.health;
 
-        // One entity map walk feeds hit detection + spawn/death edges (a hit = any nearby
+        // One creature map walk feeds hit detection + spawn/death edges (a hit = any nearby
         // creature losing health). Static, not a ~125KB stack array (overflow = uncatchable, no SEH).
-        static CubeEntity entities[CUBE_ENTITIES_MAX];
-        const int32_t count = listEntities(entities, CUBE_ENTITIES_MAX);
+        static CubeCreature creatures[CUBE_CREATURES_MAX];
+        const int32_t count = listCreatures(creatures, CUBE_CREATURES_MAX);
 
         if (hadPrev)
         {
             for (int32_t i = 0; i < count; ++i)
             {
-                const uint32_t address = entities[i].address;
-                const float health = entities[i].health;
-                const int32_t category = entities[i].category;
-                const int32_t type = entities[i].type;
-                const bool stunned = entities[i].hitStun > 0;
-                const bool knockedDown = entities[i].knockedDown != 0;
+                const uint32_t address = creatures[i].address;
+                const float health = creatures[i].health;
+                const int32_t category = creatures[i].category;
+                const int32_t type = creatures[i].type;
+                const bool stunned = creatures[i].hitStun > 0;
+                const bool knockedDown = creatures[i].knockedDown != 0;
 
                 const int32_t prev = previousIndexOf(address);
                 if (prev < 0)
                 {
                     if (edgesOut && edgeCount < maxEdges)
-                        edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Spawn, 0.0f, health, category, type};
+                        edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Spawn, 0.0f, health, category, type};
                     continue; // brand new creature has no previous state to diff
                 }
 
@@ -115,36 +115,36 @@ namespace game
                 if (health < was.health && edgesOut && edgeCount < maxEdges)
                 {
                     const float dealt = was.health - health;
-                    edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Damaged, dealt, health, category, type};
+                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Damaged, dealt, health, category, type};
                 }
 
                 if (was.health > kDeadHealth && health <= kDeadHealth && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Death, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Death, 0.0f, health, category, type};
                 if (!was.stunned && stunned && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Stunned, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Stunned, 0.0f, health, category, type};
                 if (was.stunned && !stunned && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::Recovered, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Recovered, 0.0f, health, category, type};
                 if (!was.knockedDown && knockedDown && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = EntityEdge{address, EntityEdgeKind::KnockedDown, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::KnockedDown, 0.0f, health, category, type};
             }
             // Despawn: tracked last frame but gone from the map now. Uses the OLD tracked set.
             for (int32_t i = 0; i < g_store.trackedCount; ++i)
             {
                 const TrackedEntity& was = g_store.tracked[i];
-                if (!addressInList(was.address, entities, count) && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = EntityEdge{was.address, EntityEdgeKind::Despawn, 0.0f, was.health, was.category, was.type};
+                if (!addressInList(was.address, creatures, count) && edgesOut && edgeCount < maxEdges)
+                    edgesOut[edgeCount++] = CreatureEdge{was.address, CreatureEdgeKind::Despawn, 0.0f, was.health, was.category, was.type};
             }
         }
 
-        g_store.trackedCount = count < CUBE_ENTITIES_MAX ? count : CUBE_ENTITIES_MAX;
+        g_store.trackedCount = count < CUBE_CREATURES_MAX ? count : CUBE_CREATURES_MAX;
         for (int32_t i = 0; i < g_store.trackedCount; ++i)
         {
-            g_store.tracked[i].address = entities[i].address;
-            g_store.tracked[i].health = entities[i].health;
-            g_store.tracked[i].category = entities[i].category;
-            g_store.tracked[i].type = entities[i].type;
-            g_store.tracked[i].stunned = entities[i].hitStun > 0;
-            g_store.tracked[i].knockedDown = entities[i].knockedDown != 0;
+            g_store.tracked[i].address = creatures[i].address;
+            g_store.tracked[i].health = creatures[i].health;
+            g_store.tracked[i].category = creatures[i].category;
+            g_store.tracked[i].type = creatures[i].type;
+            g_store.tracked[i].stunned = creatures[i].hitStun > 0;
+            g_store.tracked[i].knockedDown = creatures[i].knockedDown != 0;
         }
 
         g_store.health = player.health;

@@ -50,7 +50,7 @@ namespace off
     constexpr uintptr_t kPlayerHealthOff = 0x16c; // float HP
     constexpr uintptr_t kPlayerLevelOff = 0x190; // int level
     constexpr uintptr_t kPlayerXpOff = 0x194; // int xp
-    constexpr uintptr_t kPlayerTypeOff = 0x64; // int entity/model type
+    constexpr uintptr_t kPlayerTypeOff = 0x64; // int creature/model type
     constexpr uintptr_t kPlayerClassOff = 0x140; // byte class 1..4
     constexpr uintptr_t kPlayerSpecOff = 0x141; // byte specialization
     constexpr uintptr_t kPlayerNameOff = 0x1168; // inline null terminated name
@@ -285,10 +285,10 @@ namespace off
     constexpr uintptr_t kRbLeft = 0x00; // node _Left
     constexpr uintptr_t kRbParent = 0x04; // node _Parent
     constexpr uintptr_t kRbRight = 0x08; // node _Right
-    constexpr uintptr_t kRbKey = 0x10; // node key (uint64 entity id)
+    constexpr uintptr_t kRbKey = 0x10; // node key (uint64 creature id)
     constexpr uintptr_t kRbValue = 0x18; // node value (Creature*)
     constexpr uint32_t kMaxEntityWalk = 4096; // safety cap on tree traversal
-    // Creature "kind" byte +0x60 (entity role): 0 player, 1 monster, 5 pet, 6 npc. Value 3 exists
+    // Creature "kind" byte +0x60 (creature role): 0 player, 1 monster, 5 pet, 6 npc. Value 3 exists
     // but is unlabelled in the binary, so it is left unclassified. PROVEN: cube::Creature::ctor_0
     // writes 5 (pet) and 6 (npc) into +0x60 right after construction (GameController.cpp:96097,96848).
     // Curated game_offsets.tsv names this "stateFlag, checked !=0": that is the narrow player-vs-not
@@ -366,7 +366,7 @@ namespace off
         kBossSpeciesF, kBossSpeciesG, kBossSpeciesH, kBossSpeciesI, kBossSpeciesJ};
     constexpr uintptr_t kSelectedEntityOff = 0x8008d8; // GC: selected/use target Creature*
 
-    // Active pet's entity id (0 = none); resolve against the entity map.
+    // Active pet's creature id (0 = none); resolve against the creature map.
     constexpr uintptr_t kCompanionIdOff = 0x11c8;
 
     // Camera + display, GameController relative.
@@ -404,7 +404,7 @@ namespace off
     constexpr uintptr_t kWidgetArrayOff = 0x94; // state to visibility array base
     constexpr int32_t kWidgetMaxIndex = 256; // sanity bound on a garbage index
 
-    // Crosshair aim/hover target entity id (what the player is looking at), distinct from the
+    // Crosshair aim/hover target creature id (what the player is looking at), distinct from the
     // committed selection @kSelectedEntityOff.
     constexpr uintptr_t kAimTargetIdOff = 0x800a70; // GC relative uint64
 
@@ -471,7 +471,7 @@ namespace off
     constexpr uintptr_t kKnockbackVelXOff = 0x11d0;
     constexpr uintptr_t kKnockbackVelYOff = 0x11d4;
 
-    // Effective combat power = level/2 + star + 1 (does the entity outclass the player).
+    // Effective combat power = level/2 + star + 1 (does the creature outclass the player).
     constexpr int32_t kEffectivePowerLevelDiv = 2;
     constexpr int32_t kEffectivePowerBase = 1;
     // A monster is surfaced as "elite" at this star rank or above, or if a boss species (derived).

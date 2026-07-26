@@ -1,6 +1,6 @@
 #include "game/session.h"
 #include "game/gamecontroller.h"
-#include "game/entities.h"
+#include "game/creatures.h"
 #include "game/offsets.h"
 #include "core/mem.h"
 

@@ -1,5 +1,5 @@
 #pragma once
-// Detours GameController::updateSelectedEntity (the R / use key) to record the last entity the
+// Detours GameController::updateSelectedEntity (the R / use key) to record the last creature the
 // player selected. The detour captures state on the game thread; the render thread poll emits it.
 
 #include "cube_sdk.h"

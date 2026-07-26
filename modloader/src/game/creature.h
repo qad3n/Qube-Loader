@@ -1,5 +1,5 @@
 #pragma once
-// Generic per Creature reads/writes shared by the player/pet/entity/status readers. Every creature
+// Generic per Creature reads/writes shared by the player/companion/creature/status readers. Every creature
 // shares the Creature memory layout, so these operate on any validated Creature address.
 
 #include "cube_sdk.h"
@@ -7,7 +7,7 @@
 
 namespace game
 {
-    // Shared across the creature readers (player/pet/entity).
+    // Shared across the creature readers (player/companion/creature).
     constexpr uint32_t kMaxNameChars = CUBE_PLAYER_NAME_MAX - 1;
     constexpr float kDeadHealth = 0.0f;
 
@@ -18,11 +18,11 @@ namespace game
     // Reads + wraps the creature body yaw (raw field grows unbounded).
     void readCreatureFacing(uintptr_t creature, float& facing);
 
-    // Creature level writes, shared by the player + entity/pet setters.
+    // Creature level writes, shared by the player + creature/companion setters.
     bool writeCreatureStat(uintptr_t obj, int32_t stat, double value);
     bool setCreaturePosition(uintptr_t obj, float x, float y, float z);
     bool setCreatureName(uintptr_t obj, const char* name);
-    // Validates address is a live Creature (readable + vftable match); guards entity/pet writes
+    // Validates address is a live Creature (readable + vftable match); guards creature/companion writes
     // against arbitrary addresses.
     bool validateCreature(uint32_t address, uintptr_t& objOut);
     // Resolves a target to a Creature: 0 = local player, else validate. False if unavailable.

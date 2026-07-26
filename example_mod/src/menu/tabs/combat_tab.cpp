@@ -75,7 +75,7 @@ namespace exmod::menu
             row("Attacks", "%u", events.countAt(CUBE_EVENT_PLAYER_ATTACK));
             row("Crits", "%u", events.countAt(CUBE_EVENT_PLAYER_CRIT));
             row("Times damaged", "%u", events.countAt(CUBE_EVENT_PLAYER_DAMAGED));
-            row("Entities hit", "%u", events.countAt(CUBE_EVENT_ENTITY_DAMAGED));
+            row("Entities hit", "%u", events.countAt(CUBE_EVENT_CREATURE_DAMAGED));
             ImGui::EndTable();
         }
 

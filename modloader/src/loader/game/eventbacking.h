@@ -7,7 +7,7 @@
 // untouched. Poll backed events read memory and appear here not at all.
 //
 // One refcount per BACKING, not per event, because several features share one detour (the R-select
-// capture backs both CUBE_EVENT_ENTITY_SELECTED and selection.getLast). The zero to one edge installs,
+// capture backs both CUBE_EVENT_CREATURE_SELECTED and selection.getLast). The zero to one edge installs,
 // the one to zero edge removes.
 
 #include "cube_sdk.h"

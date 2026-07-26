@@ -1,5 +1,5 @@
 #pragma once
-// Session tab: game/network state, open HUD panels, and the last entity the player selected.
+// Session tab: game/network state, open HUD panels, and the last creature the player selected.
 
 #include "menu/tab.h"
 

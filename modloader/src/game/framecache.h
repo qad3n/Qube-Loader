@@ -1,5 +1,5 @@
 #pragma once
-// Intra frame resolve cache: beginFrame() opens a per frame window caching the first player/GC/entity
+// Intra frame resolve cache: beginFrame() opens a per frame window caching the first player/GC/creature
 // resolve. The window flag is thread local (render thread), so a game thread hook always resolves live.
 #include "cube_sdk.h"
 #include <cstdint>
@@ -23,8 +23,8 @@ namespace game::framecache
     bool getGameController(bool& okOut, uintptr_t& gcOut);
     void putGameController(bool ok, uintptr_t gc);
 
-    // Nearby entity list memo. getEntities copies up to maxCount cached rows and
+    // Nearby creature list memo. getEntities copies up to maxCount cached rows and
     // returns the count on a hit, or -1 on a miss. putEntities stores the full list.
-    int32_t getEntities(CubeEntity* out, int32_t maxCount);
-    void putEntities(const CubeEntity* list, int32_t count);
+    int32_t getEntities(CubeCreature* out, int32_t maxCount);
+    void putEntities(const CubeCreature* list, int32_t count);
 }

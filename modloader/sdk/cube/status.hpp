@@ -1,6 +1,6 @@
 #pragma once
 // Status wrapper: Stun (hit-stun / knockdown snapshot). Mirrors the game's status handling on the
-// Creature. Buff nodes are read through the Entity / Player surface (entity.hpp).
+// Creature. Buff nodes are read through the Creature / Player surface (creature.hpp).
 
 #include "cube/common.hpp"
 

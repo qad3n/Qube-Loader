@@ -9,22 +9,22 @@
 namespace exmod::menu
 {
 
-    class EntitiesTab : public Tab
+    class CreaturesTab : public Tab
     {
     public:
         const char* label() const override { return "Entities"; }
         void draw(const CubeEventArgs& frame) override;
 
     private:
-        void drawEntityDetail(const cube::Entity& entity, cube::Player& player);
+        void drawCreatureDetail(const cube::Creature& creature, cube::Player& player);
         void drawNearby(cube::Player& player);
         void drawCompanion(cube::Player& player);
-        // Facing/name/position/velocity editors shared by the entity detail and pet views (both are
+        // Facing/name/position/velocity editors shared by the creature detail and pet views (both are
         // Creatures with the same setters). teleportLabel names the "warp me to it" button.
-        template <typename Creature>
-        void drawTransformEditors(const Creature& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel);
+        template <typename CreatureT>
+        void drawTransformEditors(const CreatureT& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel);
 
-        // Separate name edit buffers so entity / pet do not stomp each other.
+        // Separate name edit buffers so creature / pet do not stomp each other.
         char m_entityName[CUBE_PLAYER_NAME_MAX] = "";
         char m_petName[CUBE_PLAYER_NAME_MAX] = "";
     };

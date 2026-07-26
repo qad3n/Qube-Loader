@@ -92,7 +92,7 @@ namespace game
         return mem::writeRaw(obj + off::kPlayerNameOff, buffer, std::strlen(buffer) + 1);
     }
 
-    // Writes a creature local scalar stat (shared by player + entities). FACING here is body yaw;
+    // Writes a creature local scalar stat (shared by player + creatures). FACING here is body yaw;
     // the player's camera yaw facing is special cased in setPlayerStat.
     bool writeCreatureStat(uintptr_t obj, int32_t stat, double value)
     {

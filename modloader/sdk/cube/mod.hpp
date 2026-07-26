@@ -11,7 +11,7 @@
 #include "cube/view.hpp"
 #include "cube/items.hpp"
 #include "cube/session.hpp"
-#include "cube/entity.hpp"
+#include "cube/creature.hpp"
 #include "cube/selection.hpp"
 #include "cube/hookcall.hpp"
 #include "cube/logger.hpp"
@@ -88,9 +88,9 @@ namespace cube
             return Item(data, m_api);
         }
 
-        std::vector<Entity> entities() const { return entitiesOf(m_api); }
-        bool target(Entity& out) const { return targetOf(m_api, out); }
-        bool aimTarget(Entity& out) const { return aimTargetOf(m_api, out); }
+        std::vector<Creature> creatures() const { return creaturesOf(m_api); }
+        bool target(Creature& out) const { return targetOf(m_api, out); }
+        bool aimTarget(Creature& out) const { return aimTargetOf(m_api, out); }
 
         std::vector<Item> equipment() const { return equipmentOf(m_api); }
         std::vector<Item> inventory() const { return inventoryOf(m_api); }

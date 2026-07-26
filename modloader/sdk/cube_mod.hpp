@@ -12,7 +12,7 @@
 #include "cube/view.hpp"
 #include "cube/items.hpp"
 #include "cube/session.hpp"
-#include "cube/entity.hpp"
+#include "cube/creature.hpp"
 #include "cube/selection.hpp"
 #include "cube/hookcall.hpp"
 #include "cube/logger.hpp"

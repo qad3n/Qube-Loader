@@ -12,9 +12,9 @@ namespace game
     void noteCrit();
 
     // Per creature edge detected this frame, so gameevents can emit the matching event.
-    enum class EntityEdgeKind
+    enum class CreatureEdgeKind
     {
-        Spawn, // address newly present in the entity map (created / entered range)
+        Spawn, // address newly present in the creature map (created / entered range)
         Death, // a tracked creature's health crossed to <= 0 while still present (killed)
         Despawn, // a tracked address is gone from the map (destroyed / left range)
         Stunned, // a tracked creature's stun lock timer became active
@@ -23,10 +23,10 @@ namespace game
         Damaged // a tracked creature lost health this frame (amount = how much)
     };
 
-    struct EntityEdge
+    struct CreatureEdge
     {
         uint32_t address;
-        EntityEdgeKind kind;
+        CreatureEdgeKind kind;
         float damage = 0.0f; // Damaged: health lost this frame; 0 for the other kinds
         float health = 0.0f; // the creature's remaining health at this edge (last known for Despawn)
         int32_t category = 0; // the creature's kind byte (+0x60); last known for Despawn
@@ -43,5 +43,5 @@ namespace game
     // Diffs the player's + nearby creatures' health vs last frame: updates the counters and
     // fills up to maxEdges into edgesOut (edgeCount = number written). Resets when the player
     // is unavailable, which also suppresses a spawn flood the first frame back in world.
-    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, EntityEdge* edgesOut, int32_t maxEdges, int32_t& edgeCount);
+    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, CreatureEdge* edgesOut, int32_t maxEdges, int32_t& edgeCount);
 }

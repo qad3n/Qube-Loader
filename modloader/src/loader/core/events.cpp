@@ -109,8 +109,8 @@ namespace modloader::events
                 return "AREA_CHANGE";
             case CUBE_EVENT_PLAYER_DAMAGED:
                 return "PLAYER_DAMAGED";
-            case CUBE_EVENT_ENTITY_DAMAGED:
-                return "ENTITY_DAMAGED";
+            case CUBE_EVENT_CREATURE_DAMAGED:
+                return "CREATURE_DAMAGED";
             case CUBE_EVENT_PLAYER_CRIT:
                 return "PLAYER_CRIT";
             case CUBE_EVENT_MENU_OPEN:
@@ -129,10 +129,10 @@ namespace modloader::events
                 return "MOVEMENT_CHANGED";
             case CUBE_EVENT_TARGET_CHANGED:
                 return "TARGET_CHANGED";
-            case CUBE_EVENT_ENTITY_SPAWN:
-                return "ENTITY_SPAWN";
-            case CUBE_EVENT_ENTITY_DEATH:
-                return "ENTITY_DEATH";
+            case CUBE_EVENT_CREATURE_SPAWN:
+                return "CREATURE_SPAWN";
+            case CUBE_EVENT_CREATURE_DEATH:
+                return "CREATURE_DEATH";
             case CUBE_EVENT_COINS_CHANGED:
                 return "COINS_CHANGED";
             case CUBE_EVENT_DAY_NIGHT:
@@ -147,8 +147,8 @@ namespace modloader::events
                 return "SKILL_RANK_CHANGED";
             case CUBE_EVENT_AIM_TARGET_CHANGED:
                 return "AIM_TARGET_CHANGED";
-            case CUBE_EVENT_ENTITY_DESPAWN:
-                return "ENTITY_DESPAWN";
+            case CUBE_EVENT_CREATURE_DESPAWN:
+                return "CREATURE_DESPAWN";
             case CUBE_EVENT_COMPANION_SUMMONED:
                 return "PET_SUMMONED";
             case CUBE_EVENT_COMPANION_DIED:
@@ -161,22 +161,22 @@ namespace modloader::events
                 return "PLAYER_KNOCKED_DOWN";
             case CUBE_EVENT_PLAYER_RECOVERED:
                 return "PLAYER_RECOVERED";
-            case CUBE_EVENT_ENTITY_STUNNED:
-                return "ENTITY_STUNNED";
-            case CUBE_EVENT_ENTITY_KNOCKED_DOWN:
-                return "ENTITY_KNOCKED_DOWN";
+            case CUBE_EVENT_CREATURE_STUNNED:
+                return "CREATURE_STUNNED";
+            case CUBE_EVENT_CREATURE_KNOCKED_DOWN:
+                return "CREATURE_KNOCKED_DOWN";
             case CUBE_EVENT_COMPANION_STUNNED:
                 return "PET_STUNNED";
             case CUBE_EVENT_COMPANION_KNOCKED_DOWN:
                 return "PET_KNOCKED_DOWN";
-            case CUBE_EVENT_ENTITY_SELECTED:
-                return "ENTITY_SELECTED";
+            case CUBE_EVENT_CREATURE_SELECTED:
+                return "CREATURE_SELECTED";
             case CUBE_EVENT_ITEM_PICKUP:
                 return "ITEM_PICKUP";
             case CUBE_EVENT_PLAYER_ROLL:
                 return "PLAYER_ROLL";
-            case CUBE_EVENT_ENTITY_RECOVERED:
-                return "ENTITY_RECOVERED";
+            case CUBE_EVENT_CREATURE_RECOVERED:
+                return "CREATURE_RECOVERED";
             case CUBE_EVENT_COMPANION_RECOVERED:
                 return "PET_RECOVERED";
             case CUBE_EVENT_ABILITY_USED:

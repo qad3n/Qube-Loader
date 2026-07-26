@@ -123,17 +123,17 @@ typedef struct CubeCompanionApi
     int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeCompanion* out);
 } CubeCompanionApi;
 
-typedef struct CubeEntitiesApi
+typedef struct CubeCreaturesApi
 {
-    // Fills up to maxCount nearby entities (excluding the local player); returns the number written.
-    int32_t (CUBE_CALL* list)(const struct CubeApi* api, CubeEntity* out, int32_t maxCount);
-    // Fills the currently selected/targeted entity; returns 1 if one exists. Source: the committed
+    // Fills up to maxCount nearby creatures (excluding the local player); returns the number written.
+    int32_t (CUBE_CALL* list)(const struct CubeApi* api, CubeCreature* out, int32_t maxCount);
+    // Fills the currently selected/targeted creature; returns 1 if one exists. Source: the committed
     // target pointer at GC+0x8008d8. This is the same pointer surfaced by CubePlayer.target (as a raw
     // address) and by selection.getLast (as an event-captured CubeSelection). This resolves it to a
-    // full entity and is the canonical way to read "who is selected".
-    int32_t (CUBE_CALL* target)(const struct CubeApi* api, CubeEntity* out);
+    // full creature and is the canonical way to read "who is selected".
+    int32_t (CUBE_CALL* target)(const struct CubeApi* api, CubeCreature* out);
     // Fills the crosshair aim/hover target (distinct from the committed selection); 1 if it resolves to a creature.
-    int32_t (CUBE_CALL* aimTarget)(const struct CubeApi* api, CubeEntity* out);
+    int32_t (CUBE_CALL* aimTarget)(const struct CubeApi* api, CubeCreature* out);
     // Fills the status effects of any creature at address (the status list is a generic Creature field); returns the count.
     int32_t (CUBE_CALL* effects)(const struct CubeApi* api, uint32_t address, CubeBuff* out, int32_t maxCount);
     // Writes a CubePlayerStat on the creature at address; the loader validates it is a Creature first. 1 on success.
@@ -144,7 +144,7 @@ typedef struct CubeEntitiesApi
     int32_t (CUBE_CALL* teleport)(const struct CubeApi* api, uint32_t address, float x, float y, float z);
     // 1 if the creature at address is a tameable passive critter (feed it a Food item to tame a pet).
     int32_t (CUBE_CALL* isTameable)(const struct CubeApi* api, uint32_t address);
-} CubeEntitiesApi;
+} CubeCreaturesApi;
 
 typedef struct CubeCameraApi
 {
@@ -244,7 +244,7 @@ typedef enum CubeCatalog
     CUBE_CATALOG_BUFF_TYPE,
     CUBE_CATALOG_ACTION,
     CUBE_CATALOG_STRUCTURE_TYPE,
-    CUBE_CATALOG_ENTITY_CATEGORY,
+    CUBE_CATALOG_CREATURE_CATEGORY,
     CUBE_CATALOG_CLASS,
     CUBE_CATALOG_SPECIES,
     CUBE_CATALOG_SKILL, // indexed by skill array slot (0..CUBE_SKILL_COUNT-1)
@@ -281,16 +281,16 @@ typedef struct CubeInputApi
 } CubeInputApi;
 
 // Selection (client only). The loader detours the R / use key (GameController::updateSelectedEntity);
-// subscribe to CUBE_EVENT_ENTITY_SELECTED or poll getLast(). The detour is installed ON DEMAND: the
+// subscribe to CUBE_EVENT_CREATURE_SELECTED or poll getLast(). The detour is installed ON DEMAND: the
 // first subscription or the first getLast() call arms it, so a session where no mod asks leaves the
 // game unpatched.
 typedef struct CubeSelectionApi
 {
     // Fills the most recent selection; returns 1 if any selection has happened, else 0. The FIRST call
     // arms the capture and so always returns 0: nothing has been captured yet. Same source as
-    // entities.target and CubePlayer.target (the committed target GC+0x8008d8), but delivered as an
+    // creatures.target and CubePlayer.target (the committed target GC+0x8008d8), but delivered as an
     // event-captured CubeSelection with a selection-type discriminator. Use this for the detour/event
-    // view; use entities.target for a live poll that resolves a full entity.
+    // view; use creatures.target for a live poll that resolves a full creature.
     int32_t (CUBE_CALL* getLast)(const struct CubeApi* api, CubeSelection* out);
 } CubeSelectionApi;
 

@@ -56,7 +56,7 @@ namespace game
             "61=Vase 6,62=Vase 7,63=Vase 8,64=Vase 9,65=Campfire,66=Tent,67=Beach Umbrella,"
             "68=Beach Towel,69=Sleeping Mat,71=Furnace,72=Anvil,73=Spinning Wheel,74=Loom,"
             "75=Saw Bench,76=Workbench,77=Customization Bench",
-            // CUBE_CATALOG_ENTITY_CATEGORY (Creature kind byte +0x60); kind 3 exists but is unlabeled
+            // CUBE_CATALOG_CREATURE_CATEGORY (Creature kind byte +0x60); kind 3 exists but is unlabeled
             "0=Player,1=Monster,5=Companion,6=NPC",
             // CUBE_CATALOG_CLASS (Creature byte +0x140)
             "1=Warrior,2=Ranger,3=Mage,4=Rogue",

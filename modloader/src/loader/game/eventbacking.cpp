@@ -75,7 +75,7 @@ namespace modloader::eventbacking
         {
             switch (event)
             {
-                case CUBE_EVENT_ENTITY_SELECTED:
+                case CUBE_EVENT_CREATURE_SELECTED:
                     out[0] = Backing::Selection;
                     return 1;
                 case CUBE_EVENT_ITEM_PICKUP:

@@ -8,7 +8,7 @@
 #include "game/status.h"
 #include "game/world.h"
 #include "game/companion.h"
-#include "game/entities.h"
+#include "game/creatures.h"
 #include "game/view.h"
 #include "game/session.h"
 #include "core/log.h"
@@ -164,15 +164,15 @@ namespace game::diag
 
         void logEntities()
         {
-            CubeEntity entities[CUBE_ENTITIES_MAX];
-            const int32_t count = listEntities(entities, CUBE_ENTITIES_MAX);
-            LOGC(Debug, kCategory, "entities: %d nearby", count);
+            CubeCreature creatures[CUBE_CREATURES_MAX];
+            const int32_t count = listCreatures(creatures, CUBE_CREATURES_MAX);
+            LOGC(Debug, kCategory, "creatures: %d nearby", count);
 
             for (int32_t i = 0; i < count && i < kMaxEntityRowsLogged; ++i)
                 LOGC(Debug, kCategory, "  [%d] '%s' type=%d lvl=%d hp=%.0f relation=%d",
-                     i, entities[i].name, entities[i].type, entities[i].level, entities[i].health, entities[i].relation);
+                     i, creatures[i].name, creatures[i].type, creatures[i].level, creatures[i].health, creatures[i].relation);
 
-            CubeEntity target = {};
+            CubeCreature target = {};
             target.structSize = sizeof(target);
 
             if (targetEntity(target))
@@ -255,7 +255,7 @@ namespace game::diag
     void logKnownGaps()
     {
         LOGC(Debug, kCategory, "known deferred fields (intentionally unavailable, NOT resolution failures):");
-        LOGC(Debug, kCategory, "  entity maxHealth = computed, producer NOT located (0x00444db0 is attack damage);");
+        LOGC(Debug, kCategory, "  creature maxHealth = computed, producer NOT located (0x00444db0 is attack damage);");
         LOGC(Debug, kCategory, "  weather/season = absent in build;");
         LOGC(Debug, kCategory, "  pet mood = absent; race/gender + quests = offset +0x1d28 contested (gated);");
         LOGC(Debug, kCategory, "  region name = needs game-call; crafting = recipe-walk pending.");

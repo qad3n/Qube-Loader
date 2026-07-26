@@ -40,7 +40,7 @@ namespace exmod
     GameEvents::GameEvents()
     {
         // Every event echoes to the console by default; each is still toggleable in the Events tab
-        // (the high frequency ones like MOVEMENT_CHANGED / ENTITY_DAMAGED can be muted there).
+        // (the high frequency ones like MOVEMENT_CHANGED / CREATURE_DAMAGED can be muted there).
         for (int i = 0; i < CUBE_EVENT_COUNT; ++i)
             m_console[i] = true;
     }
@@ -85,7 +85,7 @@ namespace exmod
         {
             char detail[56];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d -%.0f hp (%d left)", victim, category, damage, remainingHealth);
-            record(CUBE_EVENT_ENTITY_DAMAGED, detail);
+            record(CUBE_EVENT_CREATURE_DAMAGED, detail);
         });
         listener.onCrit([this] { record(CUBE_EVENT_PLAYER_CRIT); });
         listener.onLevelUp([this](int newLevel, int previousLevel)
@@ -131,13 +131,13 @@ namespace exmod
         {
             char detail[56];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d hp %.0f", creature, category, type, health);
-            record(CUBE_EVENT_ENTITY_SPAWN, detail);
+            record(CUBE_EVENT_CREATURE_SPAWN, detail);
         });
         listener.onEntityDeath([this](unsigned creature, int category, int type)
         {
             char detail[48];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_ENTITY_DEATH, detail);
+            record(CUBE_EVENT_CREATURE_DEATH, detail);
         });
         listener.onCoinsChanged([this](int newTotal, int delta)
         {
@@ -180,7 +180,7 @@ namespace exmod
         {
             char detail[48];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_ENTITY_DESPAWN, detail);
+            record(CUBE_EVENT_CREATURE_DESPAWN, detail);
         });
         listener.onCompanionSummoned([this](unsigned) { record(CUBE_EVENT_COMPANION_SUMMONED); });
         listener.onCompanionDied([this](unsigned) { record(CUBE_EVENT_COMPANION_DIED); });
@@ -197,19 +197,19 @@ namespace exmod
         {
             char detail[48];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_ENTITY_STUNNED, detail);
+            record(CUBE_EVENT_CREATURE_STUNNED, detail);
         });
         listener.onEntityRecovered([this](unsigned creature, int category, int type)
         {
             char detail[48];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_ENTITY_RECOVERED, detail);
+            record(CUBE_EVENT_CREATURE_RECOVERED, detail);
         });
         listener.onEntityKnockedDown([this](unsigned creature, int category, int type)
         {
             char detail[48];
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_ENTITY_KNOCKED_DOWN, detail);
+            record(CUBE_EVENT_CREATURE_KNOCKED_DOWN, detail);
         });
         listener.onCompanionStunned([this](unsigned) { record(CUBE_EVENT_COMPANION_STUNNED); });
         listener.onCompanionRecovered([this](unsigned) { record(CUBE_EVENT_COMPANION_RECOVERED); });
@@ -218,7 +218,7 @@ namespace exmod
         {
             char detail[48];
             std::snprintf(detail, sizeof(detail), "0x%08X %s t0x%02X", target, cube::selectionKindName(kind), typeByte);
-            record(CUBE_EVENT_ENTITY_SELECTED, detail);
+            record(CUBE_EVENT_CREATURE_SELECTED, detail);
         });
         listener.onItemPickup([this](const cube::Item& item)
         {

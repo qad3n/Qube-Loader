@@ -1,17 +1,17 @@
 #pragma once
-// Entity accessors + collection helpers (entities/equipment/inventory/skills/buffs).
+// Creature accessors + collection helpers (creatures/equipment/inventory/skills/buffs).
 
 #include "cube/common.hpp"
 #include "cube/items.hpp"
-#include "cube/status.hpp" // Stun, returned by Entity::getStun()
+#include "cube/status.hpp" // Stun, returned by Creature::getStun()
 
 namespace cube
 {
-    class Entity
+    class Creature
     {
     public:
-        Entity() = default;
-        explicit Entity(const CubeEntity& data, const CubeApi* api = nullptr) : m_data(data), m_api(api) {}
+        Creature() = default;
+        explicit Creature(const CubeCreature& data, const CubeApi* api = nullptr) : m_data(data), m_api(api) {}
 
         const char* getName() const { return m_data.hasName ? m_data.name : ""; }
         int getCategory() const { return m_data.category; }
@@ -23,7 +23,7 @@ namespace cube
         float getFacing() const { return m_data.facing; }
         float getDistance() const { return m_data.distance; }
         Relation getRelation() const { return static_cast<Relation>(m_data.relation); }
-        EntityState getState() const { return static_cast<EntityState>(m_data.entityState); }
+        CreatureState getState() const { return static_cast<CreatureState>(m_data.creatureState); }
         bool isBoss() const { return m_data.boss != 0; }
         bool isElite() const { return m_data.elite != 0; } // derived: boss or high star rank
         int getRank() const { return m_data.rank; } // star / power rank (the monster power tier)
@@ -36,19 +36,19 @@ namespace cube
         Stun getStun() const { return Stun(m_api, m_data.address); }
         bool clearStun() const { return m_api && m_data.address && m_api->status.clearStun(m_api, m_data.address) != 0; }
         unsigned getOwnerAddress() const { return m_data.ownerAddress; }
-        bool isAlive() const { return getState() == EntityState::Alive; }
+        bool isAlive() const { return getState() == CreatureState::Alive; }
         bool isHostile() const { return m_data.hostile != 0; } // game's foe rule: kind==monster OR aggroed
         Item getWeapon() const { return Item(m_data.weapon, m_api); }
         unsigned getAddress() const { return m_data.address; }
-        const CubeEntity& raw() const { return m_data; }
+        const CubeCreature& raw() const { return m_data; }
         // True if this is a tameable passive critter (feed it a Food item to tame it as a pet).
-        bool isTameable() const { return m_api && m_data.address && m_api->entities.isTameable(m_api, m_data.address) != 0; }
+        bool isTameable() const { return m_api && m_data.address && m_api->creatures.isTameable(m_api, m_data.address) != 0; }
         // This creature's inventory / stock (e.g. a shopkeeper's wares). Empty if it carries none.
         std::vector<Item> stock() const;
         // This creature's active status effects (the status list is generic per creature).
         std::vector<class Buff> buffs() const;
         // Live edits to this creature (validated as a Creature by the loader).
-        bool set(PlayerStat stat, double value) const { return m_api && m_data.address && m_api->entities.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0; }
+        bool set(PlayerStat stat, double value) const { return m_api && m_data.address && m_api->creatures.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0; }
         bool setHealth(float health) const { return set(PlayerStat::Health, health); }
         bool setLevel(int level) const { return set(PlayerStat::Level, level); }
         bool setType(int type) const { return set(PlayerStat::Type, type); }
@@ -56,48 +56,48 @@ namespace cube
         bool setVelocity(float x, float y, float z) const { return set(PlayerStat::VelX, x) && set(PlayerStat::VelY, y) && set(PlayerStat::VelZ, z); }
         bool setCategory(int category) const { return set(PlayerStat::Category, category); }
         bool setRank(int rank) const { return set(PlayerStat::Rank, rank); }
-        bool setName(const char* name) const { return m_api && m_data.address && m_api->entities.setName(m_api, m_data.address, name) != 0; }
-        bool teleport(float x, float y, float z) const { return m_api && m_data.address && m_api->entities.teleport(m_api, m_data.address, x, y, z) != 0; }
+        bool setName(const char* name) const { return m_api && m_data.address && m_api->creatures.setName(m_api, m_data.address, name) != 0; }
+        bool teleport(float x, float y, float z) const { return m_api && m_data.address && m_api->creatures.teleport(m_api, m_data.address, x, y, z) != 0; }
         bool teleport(const Vec3& to) const { return teleport(to.x, to.y, to.z); }
 
     private:
-        CubeEntity m_data = {};
+        CubeCreature m_data = {};
         const CubeApi* m_api = nullptr;
     };
 
-    // Nearby entities, usable with any CubeApi* (what Mod::entities() calls). Tree walk is in the loader.
-    inline std::vector<Entity> entitiesOf(const CubeApi* api)
+    // Nearby creatures, usable with any CubeApi* (what Mod::creatures() calls). Tree walk is in the loader.
+    inline std::vector<Creature> creaturesOf(const CubeApi* api)
     {
         if (!api)
-            return std::vector<Entity>();
-        // Heap buffer: CUBE_ENTITIES_MAX CubeEntity on the stack would risk a stack overflow.
-        std::vector<CubeEntity> buffer(CUBE_ENTITIES_MAX);
-        const int32_t count = api->entities.list(api, buffer.data(), CUBE_ENTITIES_MAX);
-        return detail::wrapList<CubeEntity, Entity>(api, buffer.data(), count);
+            return std::vector<Creature>();
+        // Heap buffer: CUBE_CREATURES_MAX CubeCreature on the stack would risk a stack overflow.
+        std::vector<CubeCreature> buffer(CUBE_CREATURES_MAX);
+        const int32_t count = api->creatures.list(api, buffer.data(), CUBE_CREATURES_MAX);
+        return detail::wrapList<CubeCreature, Creature>(api, buffer.data(), count);
     }
 
-    inline bool targetOf(const CubeApi* api, Entity& out)
+    inline bool targetOf(const CubeApi* api, Creature& out)
     {
         if (!api)
             return false;
-        CubeEntity data = {};
-        data.structSize = sizeof(CubeEntity);
-        if (api->entities.target(api, &data) == 0)
+        CubeCreature data = {};
+        data.structSize = sizeof(CubeCreature);
+        if (api->creatures.target(api, &data) == 0)
             return false;
-        out = Entity(data, api);
+        out = Creature(data, api);
         return true;
     }
 
     // The crosshair aim/hover target, distinct from the committed selection returned by targetOf.
-    inline bool aimTargetOf(const CubeApi* api, Entity& out)
+    inline bool aimTargetOf(const CubeApi* api, Creature& out)
     {
         if (!api)
             return false;
-        CubeEntity data = {};
-        data.structSize = sizeof(CubeEntity);
-        if (api->entities.aimTarget(api, &data) == 0)
+        CubeCreature data = {};
+        data.structSize = sizeof(CubeCreature);
+        if (api->creatures.aimTarget(api, &data) == 0)
             return false;
-        out = Entity(data, api);
+        out = Creature(data, api);
         return true;
     }
 
@@ -117,7 +117,7 @@ namespace cube
         return detail::fillListAt<CubeItem, Item, CUBE_INVENTORY_MAX>(api, api ? api->items.inventoryOf : nullptr, creatureAddress);
     }
 
-    inline std::vector<Item> Entity::stock() const { return stockOf(m_api, m_data.address); }
+    inline std::vector<Item> Creature::stock() const { return stockOf(m_api, m_data.address); }
 
     // Resolve any (type, subtype) to its display name via the full item directory.
     inline const char* itemName(const CubeApi* api, int type, int subtype)
@@ -192,9 +192,9 @@ namespace cube
         return detail::fillList<CubeBuff, Buff, CUBE_BUFFS_MAX>(api, api ? api->status.effects : nullptr);
     }
 
-    // An entity's own status effects, read through the generic per creature status list.
-    inline std::vector<Buff> Entity::buffs() const
+    // An creature's own status effects, read through the generic per creature status list.
+    inline std::vector<Buff> Creature::buffs() const
     {
-        return detail::fillListAt<CubeBuff, Buff, CUBE_BUFFS_MAX>(m_api, m_api ? m_api->entities.effects : nullptr, m_data.address);
+        return detail::fillListAt<CubeBuff, Buff, CUBE_BUFFS_MAX>(m_api, m_api ? m_api->creatures.effects : nullptr, m_data.address);
     }
 }

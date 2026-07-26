@@ -11,7 +11,7 @@
 #include "game/session.h"
 #include "game/status.h"
 #include "game/items.h"
-#include "game/entities.h"
+#include "game/creatures.h"
 #include "game/framecache.h"
 #include "game/selection.h"
 #include "game/pickup.h"
@@ -262,7 +262,7 @@ namespace modloader::gameevents
         }
 
         // Diff the companion id for COMPANION_SUMMONED/COMPANION_DISMISSED. Companion address is cached on the summon edge so
-        // PET_DIED matches the per frame ENTITY_DEATH edges without an extra tree walk.
+        // PET_DIED matches the per frame CREATURE_DEATH edges without an extra tree walk.
         void pollCompanionLifecycle(const CubePlayer& player, bool okPlayer)
         {
             if (!okPlayer || !player.address)
@@ -473,10 +473,10 @@ namespace modloader::gameevents
             // A single frame can spawn and despawn a full zone (mass reload) and also damage every
             // creature (mass AoE), so the edge buffer holds several edges per creature. Overflow is
             // guarded (extra edges are dropped, never a crash).
-            constexpr int32_t kMaxEntityEdges = CUBE_ENTITIES_MAX * 3;
-            game::EntityEdge entityEdges[kMaxEntityEdges];
+            constexpr int32_t kMaxCreatureEdges = CUBE_CREATURES_MAX * 3;
+            game::CreatureEdge entityEdges[kMaxCreatureEdges];
             int32_t entityEdgeCount = 0;
-            const game::CombatEdges combat = game::pollCombat(player, okPlayer, entityEdges, kMaxEntityEdges, entityEdgeCount);
+            const game::CombatEdges combat = game::pollCombat(player, okPlayer, entityEdges, kMaxCreatureEdges, entityEdgeCount);
             if (combat.damageTaken > 0.0f)
             {
                 const int32_t damage = static_cast<int32_t>(combat.damageTaken);
@@ -489,39 +489,39 @@ namespace modloader::gameevents
             }
             for (int32_t i = 0; i < entityEdgeCount; ++i)
             {
-                const game::EntityEdge& edge = entityEdges[i];
+                const game::CreatureEdge& edge = entityEdges[i];
                 const bool isCompanion = g_prev.companionAddress != 0 && edge.address == g_prev.companionAddress;
                 switch (edge.kind)
                 {
-                    case game::EntityEdgeKind::Damaged:
+                    case game::CreatureEdgeKind::Damaged:
                         // ANY creature took damage (attacker not attributed). subject = victim,
                         // param = victim category, param2 = remaining health, amount = damage.
-                        emitEvent(CUBE_EVENT_ENTITY_DAMAGED, edge.address, edge.category,
+                        emitEvent(CUBE_EVENT_CREATURE_DAMAGED, edge.address, edge.category,
                             static_cast<int32_t>(edge.health), edge.damage);
                         break;
-                    case game::EntityEdgeKind::Spawn:
-                        emitEvent(CUBE_EVENT_ENTITY_SPAWN, edge.address, edge.category, edge.type, edge.health);
+                    case game::CreatureEdgeKind::Spawn:
+                        emitEvent(CUBE_EVENT_CREATURE_SPAWN, edge.address, edge.category, edge.type, edge.health);
                         break;
-                    case game::EntityEdgeKind::Death:
-                        emitEvent(CUBE_EVENT_ENTITY_DEATH, edge.address, edge.category, edge.type);
+                    case game::CreatureEdgeKind::Death:
+                        emitEvent(CUBE_EVENT_CREATURE_DEATH, edge.address, edge.category, edge.type);
                         if (isCompanion)
                             emitEvent(CUBE_EVENT_COMPANION_DIED, edge.address, edge.category, edge.type);
                         break;
-                    case game::EntityEdgeKind::Despawn:
-                        emitEvent(CUBE_EVENT_ENTITY_DESPAWN, edge.address, edge.category, edge.type);
+                    case game::CreatureEdgeKind::Despawn:
+                        emitEvent(CUBE_EVENT_CREATURE_DESPAWN, edge.address, edge.category, edge.type);
                         break;
-                    case game::EntityEdgeKind::Stunned:
-                        emitEvent(CUBE_EVENT_ENTITY_STUNNED, edge.address, edge.category, edge.type);
+                    case game::CreatureEdgeKind::Stunned:
+                        emitEvent(CUBE_EVENT_CREATURE_STUNNED, edge.address, edge.category, edge.type);
                         if (isCompanion)
                             emitEvent(CUBE_EVENT_COMPANION_STUNNED, edge.address, edge.category, edge.type);
                         break;
-                    case game::EntityEdgeKind::Recovered:
-                        emitEvent(CUBE_EVENT_ENTITY_RECOVERED, edge.address, edge.category, edge.type);
+                    case game::CreatureEdgeKind::Recovered:
+                        emitEvent(CUBE_EVENT_CREATURE_RECOVERED, edge.address, edge.category, edge.type);
                         if (isCompanion)
                             emitEvent(CUBE_EVENT_COMPANION_RECOVERED, edge.address, edge.category, edge.type);
                         break;
-                    case game::EntityEdgeKind::KnockedDown:
-                        emitEvent(CUBE_EVENT_ENTITY_KNOCKED_DOWN, edge.address, edge.category, edge.type);
+                    case game::CreatureEdgeKind::KnockedDown:
+                        emitEvent(CUBE_EVENT_CREATURE_KNOCKED_DOWN, edge.address, edge.category, edge.type);
                         if (isCompanion)
                             emitEvent(CUBE_EVENT_COMPANION_KNOCKED_DOWN, edge.address, edge.category, edge.type);
                         break;
@@ -579,7 +579,7 @@ namespace modloader::gameevents
             selection.structSize = sizeof(CubeSelection);
             if (game::selection::pollSelection(selection))
             {
-                emitEvent(CUBE_EVENT_ENTITY_SELECTED, selection.address, selection.kind, selection.typeByte);
+                emitEvent(CUBE_EVENT_CREATURE_SELECTED, selection.address, selection.kind, selection.typeByte);
             }
 
             // Pickup detour captured a new E key item pickup: emit it on the render thread
@@ -610,7 +610,7 @@ namespace modloader::gameevents
 
     void CUBE_CALL onFrame(IDirect3DDevice9* device)
     {
-        // Open the intra frame resolve cache so the many player/GC/entity resolves below walk the
+        // Open the intra frame resolve cache so the many player/GC/creature resolves below walk the
         // pointer chains only once.
         game::framecache::beginFrame();
 

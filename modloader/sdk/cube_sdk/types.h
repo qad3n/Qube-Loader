@@ -1,5 +1,5 @@
 #pragma once
-// POD data structs returned across the ABI (player/world/entity/item/... snapshots).
+// POD data structs returned across the ABI (player/world/creature/item/... snapshots).
 
 #include "cube_sdk/enums.h"
 
@@ -36,7 +36,7 @@ typedef struct CubePlayer
     float velY;
     float velZ; // vertical axis
     float speed; // horizontal speed magnitude, computed by the loader
-    uint32_t target; // selected/interact entity address (0 if none)
+    uint32_t target; // selected/interact creature address (0 if none)
     int32_t sneaking; // 1 if stealthed (the stealth stat > 0; Cube World has no crouch bit)
     int32_t knockedDown; // 1 if in the knocked down action state (heavy hit stagger)
     int32_t actionElapsedMs; // ms elapsed in the current action (resets to 0 on any action change)
@@ -119,7 +119,7 @@ typedef struct CubeCompanion
     float y;
     float z;
     int32_t hasPosition;
-    int32_t entityState; // CubeEntityState (alive/dead)
+    int32_t creatureState; // CubeCreatureState (alive/dead)
     float facing; // body yaw, radians
     float velX;
     float velY;
@@ -198,7 +198,7 @@ typedef struct CubeItem
     char typeName[CUBE_ITEM_NAME_MAX]; // coarse category name, computed by the loader
 } CubeItem;
 
-// How an entity relates to the local player (resolved by the loader).
+// How an creature relates to the local player (resolved by the loader).
 typedef enum CubeRelation
 {
     CUBE_REL_UNKNOWN = 0,
@@ -210,14 +210,14 @@ typedef enum CubeRelation
     CUBE_REL_HOSTILE
 } CubeRelation;
 
-typedef enum CubeEntityState
+typedef enum CubeCreatureState
 {
-    CUBE_ENTSTATE_UNKNOWN = 0,
-    CUBE_ENTSTATE_ALIVE,
-    CUBE_ENTSTATE_DEAD
-} CubeEntityState;
+    CUBE_CREATURESTATE_UNKNOWN = 0,
+    CUBE_CREATURESTATE_ALIVE,
+    CUBE_CREATURESTATE_DEAD
+} CubeCreatureState;
 
-typedef struct CubeEntity
+typedef struct CubeCreature
 {
     uint32_t structSize;
     uint32_t address; // live Creature base pointer
@@ -233,7 +233,7 @@ typedef struct CubeEntity
     float distance; // world blocks from the local player
     int32_t hostile; // 1 if hostile (legacy; == relation==HOSTILE)
     int32_t relation; // CubeRelation, resolved by the loader
-    int32_t entityState; // CubeEntityState (alive/dead)
+    int32_t creatureState; // CubeCreatureState (alive/dead)
     int32_t boss; // 1 if a boss type species
     int32_t elite; // 1 if a standout enemy (derived: boss or star rank >= 3, non player)
     int32_t rank; // star / power rank (0 = common; the monster power indicator, non player)
@@ -247,7 +247,7 @@ typedef struct CubeEntity
     float velY;
     float velZ;
     CubeItem weapon; // equipped main hand item (weapon.present==0 if none)
-} CubeEntity;
+} CubeCreature;
 
 typedef struct CubeCamera
 {
