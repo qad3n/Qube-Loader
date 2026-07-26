@@ -54,7 +54,7 @@ namespace cube
         bool isWeapon() const { return getItemType() == ItemType::Weapon; }
         bool isConsumable() const { return getItemType() == ItemType::Consumable; }
         bool isFood() const { return getItemType() == ItemType::Food; }
-        bool isPetFood() const { return isFood(); } // pet taming feeds a Food item to a tameable critter
+        bool isCompanionFood() const { return isFood(); } // taming feeds a Food item to a tameable critter (produces a Companion)
         // Coin value via the game price function (this is the buy price). Needs an api bound item.
         int getValue() const { return (m_api && m_data.address) ? static_cast<int>(m_api->items.value(m_api, m_data.address)) : 0; }
         // The sell price the game gives for this item (half the buy value).

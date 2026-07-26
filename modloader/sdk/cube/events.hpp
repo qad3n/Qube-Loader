@@ -100,9 +100,9 @@ namespace cube
         void onEntityDespawn(std::function<void(unsigned)> fn) { onRaw(Event::EntityDespawn, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
         // Payload: the last address, its last known category byte and type/species id.
         void onEntityDespawn(std::function<void(unsigned creature, int category, int type)> fn) { onRaw(Event::EntityDespawn, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, a.param, a.param2); }); }
-        void onPetSummoned(std::function<void(unsigned)> fn) { onRaw(Event::PetSummoned, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
-        void onPetDied(std::function<void(unsigned)> fn) { onRaw(Event::PetDied, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
-        void onPetDismissed(std::function<void(unsigned)> fn) { onRaw(Event::PetDismissed, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        void onCompanionSummoned(std::function<void(unsigned)> fn) { onRaw(Event::CompanionSummoned, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        void onCompanionDied(std::function<void(unsigned)> fn) { onRaw(Event::CompanionDied, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        void onCompanionDismissed(std::function<void(unsigned)> fn) { onRaw(Event::CompanionDismissed, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
         // Stun / knocked down edges. Local player forms are no arg; entity/pet forms pass the creature address.
         // onStunned also has an overload carrying the stun lock timer value the loader read for the edge.
         void onStunned(std::function<void()> fn) { on(Event::Stunned, std::move(fn)); }
@@ -116,9 +116,9 @@ namespace cube
         void onEntityRecovered(std::function<void(unsigned creature, int category, int type)> fn) { onRaw(Event::EntityRecovered, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, a.param, a.param2); }); }
         void onEntityKnockedDown(std::function<void(unsigned)> fn) { onRaw(Event::EntityKnockedDown, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
         void onEntityKnockedDown(std::function<void(unsigned creature, int category, int type)> fn) { onRaw(Event::EntityKnockedDown, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, a.param, a.param2); }); }
-        void onPetStunned(std::function<void(unsigned)> fn) { onRaw(Event::PetStunned, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
-        void onPetRecovered(std::function<void(unsigned)> fn) { onRaw(Event::PetRecovered, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
-        void onPetKnockedDown(std::function<void(unsigned)> fn) { onRaw(Event::PetKnockedDown, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        void onCompanionStunned(std::function<void(unsigned)> fn) { onRaw(Event::CompanionStunned, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        void onCompanionRecovered(std::function<void(unsigned)> fn) { onRaw(Event::CompanionRecovered, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
+        void onCompanionKnockedDown(std::function<void(unsigned)> fn) { onRaw(Event::CompanionKnockedDown, [fn = std::move(fn)](EventArgs& a) { fn(a.subject); }); }
         // Player selects with R / use key: address = creature/object (0 = world object), kind =
         // SelectionKind, typeByte = the raw target discriminator (container subtype / creature class).
         void onEntitySelected(std::function<void(unsigned, SelectionKind)> fn) { onRaw(Event::EntitySelected, [fn = std::move(fn)](EventArgs& a) { fn(a.subject, static_cast<SelectionKind>(a.param)); }); }

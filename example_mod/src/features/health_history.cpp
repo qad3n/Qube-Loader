@@ -15,10 +15,10 @@ namespace exmod
     {
         if (!g_api)
             return;
-        cube::Hero hero(g_api);
-        if (!hero.valid())
+        cube::Player player(g_api);
+        if (!player.valid())
             return;
-        m_health[m_head] = hero.getHealth();
+        m_health[m_head] = player.getHealth();
         m_head = (m_head + 1) % kSize;
     }
 }

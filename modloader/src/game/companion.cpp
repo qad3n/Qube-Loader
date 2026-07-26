@@ -1,4 +1,4 @@
-#include "game/pet.h"
+#include "game/companion.h"
 #include "game/creature.h"
 #include "game/gamecontroller.h"
 #include "game/entities.h"
@@ -10,22 +10,22 @@
 
 namespace game
 {
-    bool readPet(CubePet& out)
+    bool readCompanion(CubeCompanion& out)
     {
         uintptr_t gc = 0;
         uintptr_t player = 0;
         if (!resolveLocalPlayer(gc, player))
             return false;
 
-        uint64_t petId = 0;
-        if (!mem::read(player + off::kPetIdOff, petId) || !petId)
+        uint64_t companionId = 0;
+        if (!mem::read(player + off::kCompanionIdOff, companionId) || !companionId)
             return false; // no active/summoned pet
 
         uintptr_t pet = 0;
-        if (!findCreatureById(gc, petId, pet))
+        if (!findCreatureById(gc, companionId, pet))
             return false; // pet id set but the live creature is not present
 
-        out.structSize = sizeof(CubePet);
+        out.structSize = sizeof(CubeCompanion);
         out.address = static_cast<uint32_t>(pet);
 
         field::i32(pet, off::kPlayerTypeOff, out.type);

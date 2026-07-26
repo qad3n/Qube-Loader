@@ -122,8 +122,8 @@ namespace game
                     return CUBE_REL_PLAYER;
                 case off::kKindMonster:
                     return isPassiveCritter(creature, species) ? CUBE_REL_NEUTRAL : CUBE_REL_HOSTILE;
-                case off::kKindPet:
-                    return CUBE_REL_OWN_PET;
+                case off::kKindCompanion:
+                    return CUBE_REL_OWN_COMPANION;
                 case off::kKindNpc:
                     return CUBE_REL_NPC;
                 default:
@@ -176,11 +176,11 @@ namespace game
             // identified by matching the player's pet id against the map key.
         }
 
-        uint64_t readPetId(uintptr_t player)
+        uint64_t readCompanionId(uintptr_t player)
         {
-            uint64_t petId = 0;
-            mem::read(player + off::kPetIdOff, petId);
-            return petId;
+            uint64_t companionId = 0;
+            mem::read(player + off::kCompanionIdOff, companionId);
+            return companionId;
         }
 
         bool closerToPlayer(const CubeEntity& a, const CubeEntity& b)
@@ -206,13 +206,13 @@ namespace game
             return 0;
 
         const mathutil::Vec3 playerPos = readPosition(player);
-        const uint64_t petId = readPetId(player);
+        const uint64_t companionId = readCompanionId(player);
         int32_t count = 0;
         forEachEntity(gc, [&](uint32_t creature, uint64_t key)
         {
             if (count >= maxCount || creature == static_cast<uint32_t>(player))
                 return;
-            fillEntity(creature, key, playerPos, petId, out[count]);
+            fillEntity(creature, key, playerPos, companionId, out[count]);
             ++count;
         });
 
@@ -256,8 +256,8 @@ namespace game
             return false;
 
         const mathutil::Vec3 playerPos = readPosition(player);
-        const uint64_t petId = readPetId(player);
-        fillEntity(selected, 0, playerPos, petId, out);
+        const uint64_t companionId = readCompanionId(player);
+        fillEntity(selected, 0, playerPos, companionId, out);
         return true;
     }
 
@@ -276,8 +276,8 @@ namespace game
             return false;
 
         const mathutil::Vec3 playerPos = readPosition(player);
-        const uint64_t petId = readPetId(player);
-        fillEntity(creature, aimId, playerPos, petId, out);
+        const uint64_t companionId = readCompanionId(player);
+        fillEntity(creature, aimId, playerPos, companionId, out);
         return true;
     }
 

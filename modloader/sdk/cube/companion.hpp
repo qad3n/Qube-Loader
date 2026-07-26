@@ -1,17 +1,17 @@
 #pragma once
-// Active pet accessor: Pet.
+// Active companion accessor: Companion.
 
 #include "cube/common.hpp"
 
 namespace cube
 {
-    class Pet
+    class Companion
     {
     public:
-        explicit Pet(const CubeApi* api) : m_api(api), m_valid(api && api->pet.get(api, &m_data) != 0) {}
+        explicit Companion(const CubeApi* api) : m_api(api), m_valid(api && api->companion.get(api, &m_data) != 0) {}
 
         bool valid() const { return m_valid; }
-        bool refresh() { m_valid = m_api && m_api->pet.get(m_api, &m_data) != 0; return m_valid; }
+        bool refresh() { m_valid = m_api && m_api->companion.get(m_api, &m_data) != 0; return m_valid; }
         const char* getName() const { return m_data.hasName ? m_data.name : ""; }
         int getType() const { return m_data.type; }
         int getLevel() const { return m_data.level; }
@@ -22,7 +22,7 @@ namespace cube
         float getFacing() const { return m_data.facing; }
         EntityState getState() const { return static_cast<EntityState>(m_data.entityState); }
         bool isAlive() const { return getState() == EntityState::Alive; }
-        const CubePet& raw() const { return m_data; }
+        const CubeCompanion& raw() const { return m_data; }
         // Live edits (the pet is a Creature; edits go through the entity setters).
         bool set(PlayerStat stat, double value) const { return m_api && m_data.address && m_api->entities.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0; }
         bool setHealth(float health) const { return set(PlayerStat::Health, health); }
@@ -36,7 +36,7 @@ namespace cube
 
     private:
         const CubeApi* m_api;
-        CubePet m_data = {};
+        CubeCompanion m_data = {};
         bool m_valid;
     };
 

@@ -1,6 +1,6 @@
 #include "menu/menu.h"
 #include "menu/tab.h"
-#include "menu/tabs/hero_tab.h"
+#include "menu/tabs/player_tab.h"
 #include "menu/tabs/combat_tab.h"
 #include "menu/tabs/items_tab.h"
 #include "menu/tabs/world_tab.h"
@@ -44,7 +44,7 @@ namespace exmod::menu
         private:
             void drawSidebar();
 
-            HeroTab m_hero;
+            PlayerTab m_player;
             CombatTab m_combat;
             ItemsTab m_items;
             WorldTab m_world;
@@ -54,7 +54,7 @@ namespace exmod::menu
             EventsTab m_events;
             HooksTab m_hooks;
             ModTab m_mod;
-            Tab* const m_tabs[kMainTabCount] = {&m_hero, &m_combat, &m_items, &m_world, &m_entities,
+            Tab* const m_tabs[kMainTabCount] = {&m_player, &m_combat, &m_items, &m_world, &m_entities,
                                                 &m_view, &m_session, &m_events, &m_hooks, &m_mod};
             int m_active = 0;
             ImVec2 m_lastDisplay = {0.0f, 0.0f}; // refit the window when the resolution changes

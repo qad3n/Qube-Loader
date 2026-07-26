@@ -1,5 +1,5 @@
 #pragma once
-// Continuous per frame cheats. The Hero tab binds widgets to settings(); the mod's onFrame calls
+// Continuous per frame cheats. The Player tab binds widgets to settings(); the mod's onFrame calls
 // apply() every frame regardless of menu visibility. All behavior lives here, none in the menu.
 
 namespace exmod

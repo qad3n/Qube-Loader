@@ -4,9 +4,11 @@
 // cube/ accessor header (split per domain) and the CUBE_MOD entry macro.
 
 #include "cube/common.hpp"
-#include "cube/hero.hpp"
+#include "cube/player.hpp"
+#include "cube/combat.hpp"
+#include "cube/status.hpp"
 #include "cube/world.hpp"
-#include "cube/pet.hpp"
+#include "cube/companion.hpp"
 #include "cube/view.hpp"
 #include "cube/items.hpp"
 #include "cube/session.hpp"

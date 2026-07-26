@@ -37,9 +37,9 @@ namespace exmod::menu
                 world.setSpawn(point[0], point[1], point[2]);
             if (ImGui::Button("Teleport to spawn"))
             {
-                cube::Hero hero(g_api);
-                if (hero.valid())
-                    hero.teleport(world.getSpawn());
+                cube::Player player(g_api);
+                if (player.valid())
+                    player.teleport(world.getSpawn());
             }
         }
     }
@@ -103,7 +103,7 @@ namespace exmod::menu
             ImGui::Text("showing %d of %d in zone (capped)", shownCount, total);
         else
             ImGui::Text("%d in zone", total);
-        cube::Hero hero(g_api);
+        cube::Player player(g_api);
         for (int i = 0; i < shownCount; ++i)
         {
             const cube::Structure& structure = structures[static_cast<size_t>(i)];
@@ -119,8 +119,8 @@ namespace exmod::menu
                 ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
                 if (ImGui::DragFloat3("position", position, kStatDragSpeed))
                     structure.setPosition(position[0], position[1], position[2]);
-                if (ImGui::SmallButton("Teleport me here") && hero.valid())
-                    hero.teleport(pos);
+                if (ImGui::SmallButton("Teleport me here") && player.valid())
+                    player.teleport(pos);
                 ImGui::TreePop();
             }
             ImGui::PopID();

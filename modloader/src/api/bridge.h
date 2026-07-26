@@ -214,7 +214,7 @@ namespace modloader::api
     void fillStatus(CubeApi& api);
     void fillWorld(CubeApi& api);
     void fillEntities(CubeApi& api);
-    void fillPet(CubeApi& api);
+    void fillCompanion(CubeApi& api);
     void fillView(CubeApi& api);
     void fillSession(CubeApi& api);
     void fillCatalog(CubeApi& api);

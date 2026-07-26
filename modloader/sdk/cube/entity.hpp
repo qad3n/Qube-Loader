@@ -3,6 +3,7 @@
 
 #include "cube/common.hpp"
 #include "cube/items.hpp"
+#include "cube/status.hpp" // Stun, returned by Entity::getStun()
 
 namespace cube
 {

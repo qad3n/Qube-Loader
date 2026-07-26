@@ -3,9 +3,11 @@
 // CUBE_MOD entry point macro. Depends on every accessor header.
 
 #include "cube/common.hpp"
-#include "cube/hero.hpp"
+#include "cube/player.hpp"
+#include "cube/combat.hpp"
+#include "cube/status.hpp"
 #include "cube/world.hpp"
-#include "cube/pet.hpp"
+#include "cube/companion.hpp"
 #include "cube/view.hpp"
 #include "cube/items.hpp"
 #include "cube/session.hpp"
@@ -40,11 +42,10 @@ namespace cube
         Mod() : eventListener(this), eventHook(this) {}
 
         // High level game objects, the whole surface a mod needs.
-        Hero hero() const { return Hero(m_api); }
-        Player player() const { return Hero(m_api); }
+        Player player() const { return Player(m_api); }
         Combat combat() const { return Combat(m_api); }
         World world() const { return World(m_api); }
-        Pet pet() const { return Pet(m_api); }
+        Companion companion() const { return Companion(m_api); }
         Camera camera() const { return Camera(m_api); }
         Display display() const { return Display(m_api); }
         Audio audio() const { return Audio(m_api); }

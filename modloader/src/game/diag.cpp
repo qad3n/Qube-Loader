@@ -7,7 +7,7 @@
 #include "game/items.h"
 #include "game/status.h"
 #include "game/world.h"
-#include "game/pet.h"
+#include "game/companion.h"
 #include "game/entities.h"
 #include "game/view.h"
 #include "game/session.h"
@@ -178,11 +178,11 @@ namespace game::diag
             if (targetEntity(target))
                 LOGC(Debug, kCategory, "  target: '%s' lvl %d hp %.0f relation=%d", target.hasName ? target.name : "?", target.level, target.health, target.relation);
 
-            CubePet pet = {};
-            pet.structSize = sizeof(pet);
+            CubeCompanion companion = {};
+            companion.structSize = sizeof(companion);
 
-            if (readPet(pet))
-                LOGC(Debug, kCategory, "  pet: '%s' type %d level %d hp %.0f", pet.hasName ? pet.name : "?", pet.type, pet.level, pet.health);
+            if (readCompanion(companion))
+                LOGC(Debug, kCategory, "  companion: '%s' type %d level %d hp %.0f", companion.hasName ? companion.name : "?", companion.type, companion.level, companion.health);
         }
 
         void logView()

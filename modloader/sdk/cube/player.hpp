@@ -1,38 +1,16 @@
 #pragma once
-// Local player + combat accessors: Hero (alias Player), Combat, Stun.
+// Local player accessor: Player. (Combat lives in combat.hpp, Stun in status.hpp.)
 
 #include "cube/common.hpp"
+#include "cube/status.hpp" // Stun, returned by Player::getStun()
 
 namespace cube
 {
-    class Stun
-    {
-    public:
-        Stun() = default;
-        Stun(const CubeApi* api, unsigned address) : m_api(api), m_valid(api && api->status.stun(api, address, &m_data) != 0) {}
-
-        bool valid() const { return m_valid; }
-        bool isStunned() const { return m_data.stunned != 0; } // cannot act while true
-        bool isKnockedDown() const { return m_data.knockedDown != 0; } // on the ground, "stars"
-        int getHitStun() const { return m_data.hitStun; } // stun lock timer, 0..600
-        float getHitStunPercent() const { return m_data.hitStunPercent; } // 0..100 for a bar
-        Vec3 getKnockback() const { return Vec3{m_data.knockbackX, m_data.knockbackY, 0.0f}; }
-        unsigned getAddress() const { return m_data.address; }
-        const CubeStun& raw() const { return m_data; }
-        // Break the stun (zero the timer + stand up if downed). Returns true on success.
-        bool clear() const { return m_valid && m_api && m_api->status.clearStun(m_api, m_data.address) != 0; }
-
-    private:
-        const CubeApi* m_api = nullptr;
-        CubeStun m_data = {};
-        bool m_valid = false;
-    };
-
     // The local player. Snapshots loader data on construction; getters read the snapshot.
-    class Hero
+    class Player
     {
     public:
-        explicit Hero(const CubeApi* api) : m_api(api), m_valid(api && api->player.get(api, &m_data) != 0) {}
+        explicit Player(const CubeApi* api) : m_api(api), m_valid(api && api->player.get(api, &m_data) != 0) {}
 
         bool valid() const { return m_valid; }
         // Re pull the snapshot from live memory; call after a setter, else a get reads the pre set value.
@@ -120,37 +98,6 @@ namespace cube
     private:
         const CubeApi* m_api;
         CubePlayer m_data = {};
-        bool m_valid;
-    };
-
-    typedef Hero Player;
-
-    // Local player combat snapshot: stored Creature combat stats (all direct reads). For damage and
-    // crit occurrences use the PLAYER_DAMAGED / PLAYER_CRIT events or the IMPACT / CRIT_ROLL hooks.
-    class Combat
-    {
-    public:
-        explicit Combat(const CubeApi* api) : m_api(api), m_valid(api && api->combat.get(api, &m_data) != 0) {}
-
-        bool valid() const { return m_valid; }
-        bool refresh() { m_valid = m_api && m_api->combat.get(m_api, &m_data) != 0; return m_valid; }
-        float getBaseDamage() const { return m_data.baseDamage; }
-        float getPower() const { return m_data.power; }
-        float getArmor() const { return m_data.armor; }
-        float getSpirit() const { return m_data.spirit; }
-        int getCombo() const { return m_data.combo; }
-        float getAttackCooldown() const { return m_data.attackCooldown; }
-        bool isReadyToStrike() const { return m_data.attackCooldown <= 0.0f; }
-        float getAttackSpeed() const { return m_data.attackSpeed; }
-        float getCritStat() const { return m_data.critStat; }
-        float getCritChancePercent() const { return m_data.critChancePercent; }
-        int getHitStun() const { return m_data.hitStun; }
-        bool isStunned() const { return m_data.hitStun > 0; }
-        const CubeCombat& raw() const { return m_data; }
-
-    private:
-        const CubeApi* m_api;
-        CubeCombat m_data = {};
         bool m_valid;
     };
 

@@ -149,11 +149,11 @@ namespace modloader::events
                 return "AIM_TARGET_CHANGED";
             case CUBE_EVENT_ENTITY_DESPAWN:
                 return "ENTITY_DESPAWN";
-            case CUBE_EVENT_PET_SUMMONED:
+            case CUBE_EVENT_COMPANION_SUMMONED:
                 return "PET_SUMMONED";
-            case CUBE_EVENT_PET_DIED:
+            case CUBE_EVENT_COMPANION_DIED:
                 return "PET_DIED";
-            case CUBE_EVENT_PET_DISMISSED:
+            case CUBE_EVENT_COMPANION_DISMISSED:
                 return "PET_DISMISSED";
             case CUBE_EVENT_PLAYER_STUNNED:
                 return "PLAYER_STUNNED";
@@ -165,9 +165,9 @@ namespace modloader::events
                 return "ENTITY_STUNNED";
             case CUBE_EVENT_ENTITY_KNOCKED_DOWN:
                 return "ENTITY_KNOCKED_DOWN";
-            case CUBE_EVENT_PET_STUNNED:
+            case CUBE_EVENT_COMPANION_STUNNED:
                 return "PET_STUNNED";
-            case CUBE_EVENT_PET_KNOCKED_DOWN:
+            case CUBE_EVENT_COMPANION_KNOCKED_DOWN:
                 return "PET_KNOCKED_DOWN";
             case CUBE_EVENT_ENTITY_SELECTED:
                 return "ENTITY_SELECTED";
@@ -177,7 +177,7 @@ namespace modloader::events
                 return "PLAYER_ROLL";
             case CUBE_EVENT_ENTITY_RECOVERED:
                 return "ENTITY_RECOVERED";
-            case CUBE_EVENT_PET_RECOVERED:
+            case CUBE_EVENT_COMPANION_RECOVERED:
                 return "PET_RECOVERED";
             case CUBE_EVENT_ABILITY_USED:
                 return "ABILITY_USED";

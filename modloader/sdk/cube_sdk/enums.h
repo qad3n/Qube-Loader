@@ -110,9 +110,9 @@ typedef enum CubeEvent
     CUBE_EVENT_AIM_TARGET_CHANGED, // crosshair hover target changed; args.subject = creature (0 if none)
     CUBE_EVENT_ENTITY_DESPAWN, // a tracked creature was destroyed / left range. subject = its last address,
                                // param = its last known category byte, param2 = its last known type id
-    CUBE_EVENT_PET_SUMMONED, // the local player's pet was created / changed; args.subject = pet creature
-    CUBE_EVENT_PET_DIED, // the local player's pet's health reached zero; args.subject = pet creature
-    CUBE_EVENT_PET_DISMISSED, // the local player's pet was destroyed / dismissed; args.subject = last address
+    CUBE_EVENT_COMPANION_SUMMONED, // the local player's pet was created / changed; args.subject = pet creature
+    CUBE_EVENT_COMPANION_DIED, // the local player's pet's health reached zero; args.subject = pet creature
+    CUBE_EVENT_COMPANION_DISMISSED, // the local player's pet was destroyed / dismissed; args.subject = last address
     CUBE_EVENT_PLAYER_STUNNED, // the LOCAL player's stun lock became active from taking damage (cannot act);
                                // args.subject = player, args.param = stun lock timer. The shared lock the game
                                // also uses for a dodge roll is filtered out (that raises PLAYER_ROLL instead),
@@ -123,15 +123,15 @@ typedef enum CubeEvent
                                // just an enemy stun.
     CUBE_EVENT_ENTITY_STUNNED, // a nearby creature became stunned. subject = creature, param = category byte, param2 = type id
     CUBE_EVENT_ENTITY_KNOCKED_DOWN, // a nearby creature was knocked down. subject = creature, param = category, param2 = type id
-    CUBE_EVENT_PET_STUNNED, // the local player's pet became stunned; args.subject = pet creature
-    CUBE_EVENT_PET_KNOCKED_DOWN, // the local player's pet was knocked down; args.subject = pet creature
+    CUBE_EVENT_COMPANION_STUNNED, // the local player's pet became stunned; args.subject = pet creature
+    CUBE_EVENT_COMPANION_KNOCKED_DOWN, // the local player's pet was knocked down; args.subject = pet creature
     CUBE_EVENT_ENTITY_SELECTED, // the player pressed the R / use key (GameController::updateSelectedEntity);
                          // args.subject = selected target creature (0 for a world object),
                          // args.param = CubeSelectionKind, args.param2 = raw target discriminator byte
                          // (CubeSelection.typeByte)
     CUBE_EVENT_ENTITY_RECOVERED, // a nearby creature's stun lock ended (complements ENTITY_STUNNED).
                                  // subject = creature, param = category byte, param2 = type id
-    CUBE_EVENT_PET_RECOVERED, // the local player's pet's stun lock ended; args.subject = pet creature
+    CUBE_EVENT_COMPANION_RECOVERED, // the local player's pet's stun lock ended; args.subject = pet creature
     CUBE_EVENT_ABILITY_USED, // the local player used a hotbar ability (keys 1 to 5). subject = player,
                              // param = ability id (matches CUBE_CATALOG_ABILITY), param2 = cooldown ms set.
     CUBE_EVENT_ITEM_PICKUP, // the local player picked up an item (E / hold to pickup completes).

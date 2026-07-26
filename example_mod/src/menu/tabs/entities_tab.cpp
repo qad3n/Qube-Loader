@@ -13,7 +13,7 @@ namespace exmod::menu
         // monsters vs peaceful animals). Raw kind shown per row; kind 3 has no name in the binary.
         const ImVec4 kEnemyColor = ImVec4(1.0f, 0.35f, 0.35f, 1.0f);
         const ImVec4 kAnimalColor = ImVec4(0.8f, 0.72f, 0.45f, 1.0f);
-        const ImVec4 kPetColor = ImVec4(0.4f, 0.9f, 0.4f, 1.0f);
+        const ImVec4 kCompanionColor = ImVec4(0.4f, 0.9f, 0.4f, 1.0f);
         const ImVec4 kNpcColor = ImVec4(0.4f, 0.8f, 1.0f, 1.0f);
         const ImVec4 kPlayerColor = ImVec4(1.0f, 0.85f, 0.3f, 1.0f);
         const ImVec4 kUnknownColor = ImVec4(0.8f, 0.6f, 1.0f, 1.0f);
@@ -27,8 +27,8 @@ namespace exmod::menu
                     return kEnemyColor;
                 case cube::Relation::Neutral:
                     return kAnimalColor;
-                case cube::Relation::OwnPet:
-                    return kPetColor;
+                case cube::Relation::OwnCompanion:
+                    return kCompanionColor;
                 case cube::Relation::Npc:
                     return kNpcColor;
                 case cube::Relation::Player:
@@ -61,7 +61,7 @@ namespace exmod::menu
         {
             legendEntry(cube::Relation::Hostile, false);
             legendEntry(cube::Relation::Neutral, false);
-            legendEntry(cube::Relation::OwnPet, false);
+            legendEntry(cube::Relation::OwnCompanion, false);
             legendEntry(cube::Relation::Npc, false);
             legendEntry(cube::Relation::Player, false);
             legendEntry(cube::Relation::Unknown, true);
@@ -70,7 +70,7 @@ namespace exmod::menu
     }
 
     template <typename Creature>
-    void EntitiesTab::drawTransformEditors(const Creature& creature, char* nameBuf, size_t nameSize, cube::Hero& hero, const char* teleportLabel)
+    void EntitiesTab::drawTransformEditors(const Creature& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel)
     {
         float facing = creature.getFacing();
         ImGui::SetNextItemWidth(sc(kInputWidth));
@@ -91,12 +91,12 @@ namespace exmod::menu
         ImGui::SetNextItemWidth(sc(kTeleportInputWidth));
         if (ImGui::DragFloat3("velocity", velocity, kFineDragSpeed))
             creature.setVelocity(velocity[0], velocity[1], velocity[2]);
-        if (ImGui::SmallButton(teleportLabel) && hero.valid())
-            hero.teleport(creature.getPosition());
+        if (ImGui::SmallButton(teleportLabel) && player.valid())
+            player.teleport(creature.getPosition());
     }
 
     // Read only fields plus live editors for one creature. Callers must push a unique ID scope.
-    void EntitiesTab::drawEntityDetail(const cube::Entity& entity, cube::Hero& hero)
+    void EntitiesTab::drawEntityDetail(const cube::Entity& entity, cube::Player& player)
     {
         if (beginTable("ent_detail"))
         {
@@ -117,7 +117,10 @@ namespace exmod::menu
                 entity.isKnockedDown() ? " (knocked down)" : "");
             if (entity.getOwnerAddress() != 0)
                 row("Owner addr", "0x%08X", entity.getOwnerAddress());
-            row("Weapon", "%s", entity.getWeapon().getName());
+            // getWeapon() resolves the main-hand slot (equip index 6 / Creature+0xaa8), the weapon the
+            // game's combat code actually swings. The off-hand (index 5) is a separate slot.
+            const cube::Item weapon = entity.getWeapon();
+            row("Weapon (main hand)", "%s", weapon.present() ? weapon.getName() : "(none)");
             row("Tameable", "%s (feed a Food item to tame)", yesNo(entity.isTameable()));
             ImGui::EndTable();
         }
@@ -160,10 +163,10 @@ namespace exmod::menu
         int rank = entity.getRank();
         if (dragInt("rank", rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
             entity.setRank(rank);
-        drawTransformEditors(entity, m_entityName, sizeof(m_entityName), hero, "Teleport me here");
+        drawTransformEditors(entity, m_entityName, sizeof(m_entityName), player, "Teleport me here");
     }
 
-    void EntitiesTab::drawNearby(cube::Hero& hero)
+    void EntitiesTab::drawNearby(cube::Player& player)
     {
         // Loader returns entities nearest first, so index 0 is the closest creature.
         std::vector<cube::Entity> nearby = cube::entitiesOf(g_api);
@@ -187,7 +190,7 @@ namespace exmod::menu
             ImGui::PopStyleColor();
             if (open)
             {
-                drawEntityDetail(entity, hero);
+                drawEntityDetail(entity, player);
                 ImGui::TreePop();
             }
             ImGui::PopID();
@@ -195,9 +198,9 @@ namespace exmod::menu
         ImGui::EndChild();
     }
 
-    void EntitiesTab::drawPet(cube::Hero& hero)
+    void EntitiesTab::drawCompanion(cube::Player& player)
     {
-        cube::Pet pet(g_api);
+        cube::Companion pet(g_api);
         if (!pet.valid())
         {
             ImGui::TextDisabled("no active pet");
@@ -219,17 +222,17 @@ namespace exmod::menu
         int level = pet.getLevel();
         if (dragInt("level", level, kIntDragSpeed, kSmallCountMin, kLevelMax))
             pet.setLevel(level);
-        drawTransformEditors(pet, m_petName, sizeof(m_petName), hero, "Teleport me to pet");
+        drawTransformEditors(pet, m_petName, sizeof(m_petName), player, "Teleport me to pet");
     }
 
     void EntitiesTab::draw(const CubeEventArgs&)
     {
-        cube::Hero hero(g_api);
+        cube::Player player(g_api);
         if (!ImGui::BeginTabBar("##enttabs"))
             return;
         if (ImGui::BeginTabItem("Nearby"))
         {
-            drawNearby(hero);
+            drawNearby(player);
             ImGui::EndTabItem();
         }
         if (ImGui::BeginTabItem("Target"))
@@ -240,7 +243,7 @@ namespace exmod::menu
             else
             {
                 ImGui::PushID("tgt");
-                drawEntityDetail(target, hero);
+                drawEntityDetail(target, player);
                 ImGui::PopID();
             }
             ImGui::EndTabItem();
@@ -254,14 +257,14 @@ namespace exmod::menu
             else
             {
                 ImGui::PushID("aim");
-                drawEntityDetail(aim, hero);
+                drawEntityDetail(aim, player);
                 ImGui::PopID();
             }
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("Pet"))
+        if (ImGui::BeginTabItem("Companion"))
         {
-            drawPet(hero);
+            drawCompanion(player);
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

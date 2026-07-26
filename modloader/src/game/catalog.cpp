@@ -57,7 +57,7 @@ namespace game
             "68=Beach Towel,69=Sleeping Mat,71=Furnace,72=Anvil,73=Spinning Wheel,74=Loom,"
             "75=Saw Bench,76=Workbench,77=Customization Bench",
             // CUBE_CATALOG_ENTITY_CATEGORY (Creature kind byte +0x60); kind 3 exists but is unlabeled
-            "0=Player,1=Monster,5=Pet,6=NPC",
+            "0=Player,1=Monster,5=Companion,6=NPC",
             // CUBE_CATALOG_CLASS (Creature byte +0x140)
             "1=Warrior,2=Ranger,3=Mage,4=Rogue",
             // CUBE_CATALOG_SPECIES (Creature int +0x64); complete table, ids 0..155 (95, 129 absent)

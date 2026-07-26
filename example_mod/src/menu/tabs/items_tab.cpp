@@ -127,7 +127,7 @@ namespace exmod::menu
     void ItemsTab::drawSkills()
     {
         const std::vector<int> skills = cube::skillsOf(g_api);
-        cube::Hero hero(g_api);
+        cube::Player player(g_api);
         if (skills.empty())
         {
             ImGui::TextDisabled("(unavailable)");
@@ -145,8 +145,8 @@ namespace exmod::menu
             int rank = skills[i];
             ImGui::PushID(static_cast<int>(i));
             ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragInt(label, &rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags) && hero.valid())
-                hero.setSkillRank(static_cast<int>(i), rank);
+            if (ImGui::DragInt(label, &rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags) && player.valid())
+                player.setSkillRank(static_cast<int>(i), rank);
             ImGui::PopID();
         }
     }

@@ -1,5 +1,5 @@
 #pragma once
-// Hero tab: the local player's vitals/progression/movement/identity, each an editor. Pure view: the
+// Player tab: the local player's vitals/progression/movement/identity, each an editor. Pure view: the
 // continuous cheats (god mode, infinite mana/stamina) are owned + applied by exmod::Cheats; this tab
 // only binds widgets to their settings.
 
@@ -13,10 +13,10 @@ namespace exmod::menu
     constexpr int kQuickXpSmall = 100;
     constexpr int kQuickCoins = 1000;
 
-    class HeroTab : public Tab
+    class PlayerTab : public Tab
     {
     public:
-        const char* label() const override { return "Hero"; }
+        const char* label() const override { return "Player"; }
         void draw(const CubeEventArgs& frame) override;
 
     private:
@@ -29,13 +29,13 @@ namespace exmod::menu
             float teleport[3] = {0.0f, 0.0f, 0.0f};
         };
 
-        void drawVitals(cube::Hero& hero);
-        void drawProgress(cube::Hero& hero);
-        void drawMovement(cube::Hero& hero);
-        void drawIdentity(cube::Hero& hero);
+        void drawVitals(cube::Player& player);
+        void drawProgress(cube::Player& player);
+        void drawMovement(cube::Player& player);
+        void drawIdentity(cube::Player& player);
 
         Inputs m_inputs;
-        char m_name[CUBE_PLAYER_NAME_MAX] = "Hero";
+        char m_name[CUBE_PLAYER_NAME_MAX] = "Player";
     };
 
 }

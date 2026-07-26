@@ -47,8 +47,8 @@ namespace modloader::gameevents
             int32_t coins = 0;
             game::actionlock::Cause lockCause = game::actionlock::Cause::None;
             int32_t knockedDown = 0;
-            uint64_t petId = 0;
-            uint32_t petAddress = 0;
+            uint64_t companionId = 0;
+            uint32_t companionAddress = 0;
             int32_t zoneX = 0;
             int32_t zoneY = 0;
             int32_t level = 0;
@@ -261,38 +261,38 @@ namespace modloader::gameevents
             g_prev.aimId = aimId;
         }
 
-        // Diff the pet id for PET_SUMMONED/PET_DISMISSED. Pet address is cached on the summon edge so
+        // Diff the companion id for COMPANION_SUMMONED/COMPANION_DISMISSED. Companion address is cached on the summon edge so
         // PET_DIED matches the per frame ENTITY_DEATH edges without an extra tree walk.
-        void pollPetLifecycle(const CubePlayer& player, bool okPlayer)
+        void pollCompanionLifecycle(const CubePlayer& player, bool okPlayer)
         {
             if (!okPlayer || !player.address)
             {
-                g_prev.petId = 0;
-                g_prev.petAddress = 0;
+                g_prev.companionId = 0;
+                g_prev.companionAddress = 0;
                 return;
             }
-            uint64_t petId = 0;
-            // A failed read must not zero petId and falsely fire PET_DISMISSED; leave prev state intact.
-            if (!mem::read(static_cast<uintptr_t>(player.address) + off::kPetIdOff, petId))
+            uint64_t companionId = 0;
+            // A failed read must not zero companionId and falsely fire COMPANION_DISMISSED; leave prev state intact.
+            if (!mem::read(static_cast<uintptr_t>(player.address) + off::kCompanionIdOff, companionId))
                 return;
-            if (petId == g_prev.petId)
+            if (companionId == g_prev.companionId)
                 return;
 
-            if (g_prev.petId != 0)
+            if (g_prev.companionId != 0)
             {
-                emitEvent(CUBE_EVENT_PET_DISMISSED, g_prev.petAddress, 0);
+                emitEvent(CUBE_EVENT_COMPANION_DISMISSED, g_prev.companionAddress, 0);
             }
-            uint32_t petAddress = 0;
-            if (petId != 0)
+            uint32_t companionAddress = 0;
+            if (companionId != 0)
             {
                 uintptr_t gc = 0;
                 uintptr_t creature = 0;
-                if (game::resolveGameController(gc) && game::findCreatureById(gc, petId, creature))
-                    petAddress = static_cast<uint32_t>(creature);
-                emitEvent(CUBE_EVENT_PET_SUMMONED, petAddress, 0);
+                if (game::resolveGameController(gc) && game::findCreatureById(gc, companionId, creature))
+                    companionAddress = static_cast<uint32_t>(creature);
+                emitEvent(CUBE_EVENT_COMPANION_SUMMONED, companionAddress, 0);
             }
-            g_prev.petAddress = petAddress;
-            g_prev.petId = petId;
+            g_prev.companionAddress = companionAddress;
+            g_prev.companionId = companionId;
         }
 
         int32_t prevCooldownMs(int32_t abilityId)
@@ -490,7 +490,7 @@ namespace modloader::gameevents
             for (int32_t i = 0; i < entityEdgeCount; ++i)
             {
                 const game::EntityEdge& edge = entityEdges[i];
-                const bool isPet = g_prev.petAddress != 0 && edge.address == g_prev.petAddress;
+                const bool isCompanion = g_prev.companionAddress != 0 && edge.address == g_prev.companionAddress;
                 switch (edge.kind)
                 {
                     case game::EntityEdgeKind::Damaged:
@@ -504,30 +504,30 @@ namespace modloader::gameevents
                         break;
                     case game::EntityEdgeKind::Death:
                         emitEvent(CUBE_EVENT_ENTITY_DEATH, edge.address, edge.category, edge.type);
-                        if (isPet)
-                            emitEvent(CUBE_EVENT_PET_DIED, edge.address, edge.category, edge.type);
+                        if (isCompanion)
+                            emitEvent(CUBE_EVENT_COMPANION_DIED, edge.address, edge.category, edge.type);
                         break;
                     case game::EntityEdgeKind::Despawn:
                         emitEvent(CUBE_EVENT_ENTITY_DESPAWN, edge.address, edge.category, edge.type);
                         break;
                     case game::EntityEdgeKind::Stunned:
                         emitEvent(CUBE_EVENT_ENTITY_STUNNED, edge.address, edge.category, edge.type);
-                        if (isPet)
-                            emitEvent(CUBE_EVENT_PET_STUNNED, edge.address, edge.category, edge.type);
+                        if (isCompanion)
+                            emitEvent(CUBE_EVENT_COMPANION_STUNNED, edge.address, edge.category, edge.type);
                         break;
                     case game::EntityEdgeKind::Recovered:
                         emitEvent(CUBE_EVENT_ENTITY_RECOVERED, edge.address, edge.category, edge.type);
-                        if (isPet)
-                            emitEvent(CUBE_EVENT_PET_RECOVERED, edge.address, edge.category, edge.type);
+                        if (isCompanion)
+                            emitEvent(CUBE_EVENT_COMPANION_RECOVERED, edge.address, edge.category, edge.type);
                         break;
                     case game::EntityEdgeKind::KnockedDown:
                         emitEvent(CUBE_EVENT_ENTITY_KNOCKED_DOWN, edge.address, edge.category, edge.type);
-                        if (isPet)
-                            emitEvent(CUBE_EVENT_PET_KNOCKED_DOWN, edge.address, edge.category, edge.type);
+                        if (isCompanion)
+                            emitEvent(CUBE_EVENT_COMPANION_KNOCKED_DOWN, edge.address, edge.category, edge.type);
                         break;
                 }
             }
-            pollPetLifecycle(player, okPlayer);
+            pollCompanionLifecycle(player, okPlayer);
 
             CubeUi ui = {};
             ui.structSize = sizeof(CubeUi);

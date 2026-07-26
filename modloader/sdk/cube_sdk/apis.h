@@ -113,17 +113,24 @@ typedef struct CubeWorldApi
     int32_t (CUBE_CALL* setStructure)(const struct CubeApi* api, uint32_t address, int32_t field, double value);
 } CubeWorldApi;
 
-typedef struct CubePetApi
+typedef struct CubeCompanionApi
 {
-    // Fills out with the local player's active pet; 1 if a live pet exists, else 0.
-    int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubePet* out);
-} CubePetApi;
+    // Fills out with the local player's active companion; 1 if a live companion exists, else 0.
+    // Named after the game class cube::CompanionBehavior, which drives the companion. A companion is a
+    // live cube::Creature (kind byte +0x60 == 5), resolved by the player's companion id (+0x11c8). The
+    // player-facing term is "Pet" (skill slot 0 is "Pet Master"), but the engine calls it a Companion,
+    // so the API mirrors the game.
+    int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeCompanion* out);
+} CubeCompanionApi;
 
 typedef struct CubeEntitiesApi
 {
     // Fills up to maxCount nearby entities (excluding the local player); returns the number written.
     int32_t (CUBE_CALL* list)(const struct CubeApi* api, CubeEntity* out, int32_t maxCount);
-    // Fills the currently selected/targeted entity; returns 1 if one exists.
+    // Fills the currently selected/targeted entity; returns 1 if one exists. Source: the committed
+    // target pointer at GC+0x8008d8. This is the same pointer surfaced by CubePlayer.target (as a raw
+    // address) and by selection.getLast (as an event-captured CubeSelection). This resolves it to a
+    // full entity and is the canonical way to read "who is selected".
     int32_t (CUBE_CALL* target)(const struct CubeApi* api, CubeEntity* out);
     // Fills the crosshair aim/hover target (distinct from the committed selection); 1 if it resolves to a creature.
     int32_t (CUBE_CALL* aimTarget)(const struct CubeApi* api, CubeEntity* out);
@@ -157,7 +164,9 @@ typedef struct CubeAudioApi
 {
     int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeAudio* out); // client only
     // Play a built in sound effect (CUBE_CATALOG_SOUND id, 0..100) 2D at the listener. 1 on success.
-    // WARNING: game call; invoke from the game thread (an event callback / hook), not another thread.
+    // Requires CUBE_CAP_WRITES (a game call, gated like stopMusic/setMusicVolume for a consistent
+    // capability surface). WARNING: game call; invoke from the game thread (an event callback / hook),
+    // not another thread.
     int32_t (CUBE_CALL* playSound)(const struct CubeApi* api, int32_t soundId);
     // Play a built in sound effect at a world position with volume/pitch multipliers. 1 on success.
     int32_t (CUBE_CALL* playSoundAt)(const struct CubeApi* api, int32_t soundId, float x, float y, float z, float volume, float pitch);
@@ -278,7 +287,10 @@ typedef struct CubeInputApi
 typedef struct CubeSelectionApi
 {
     // Fills the most recent selection; returns 1 if any selection has happened, else 0. The FIRST call
-    // arms the capture and so always returns 0: nothing has been captured yet.
+    // arms the capture and so always returns 0: nothing has been captured yet. Same source as
+    // entities.target and CubePlayer.target (the committed target GC+0x8008d8), but delivered as an
+    // event-captured CubeSelection with a selection-type discriminator. Use this for the detour/event
+    // view; use entities.target for a live poll that resolves a full entity.
     int32_t (CUBE_CALL* getLast)(const struct CubeApi* api, CubeSelection* out);
 } CubeSelectionApi;
 

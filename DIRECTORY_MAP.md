@@ -55,25 +55,26 @@ sdk/
   cube_sdk.h            umbrella for the raw versioned C ABI; includes cube_sdk/*.h
   cube_sdk/             core.h, enums.h, types.h, apis.h, api.h, events_hooks.h (the C ABI, per concern)
   cube_mod.hpp          umbrella for the ergonomic C++ layer (this is what a mod includes); includes cube/*.hpp
-  cube/                 one header per domain: hero, world, entity, pet, items, view, session, selection,
-                        combat/stun (in hero.hpp), events, hookcall, services, config, storage, locale,
+  cube/                 one header per domain: player, combat, status, world, entity, companion, items,
+                        view, session, selection, events, hookcall, services, config, storage, locale,
                         assets, menu, logger, common (Vec3/NamedValue)
   imgui/                Dear ImGui (git submodule); the loader owns the context, mods build it core-only
   cube_imgui.cmake      one-line helper a mod uses to compile ImGui core for its own build
 ```
 
 ## Naming glossary (game term -> C ABI struct -> C++ SDK class)
-The loader is deliberately layered, so one concept can carry three names. This is intentional: the
-`game/` layer stays faithful to the reverse-engineered class names, the C ABI is the stable wire
-format, and the SDK class is the ergonomic name a mod sees. Do not "unify" these; they are aliases by
-design, and renaming the ABI/SDK names breaks the versioned mod ABI.
+The loader is layered, so one concept can carry names at three layers. The SDK class and C ABI struct
+now mirror the game's own class names where the game has one: the tamed companion is
+`cube::CompanionBehavior` in the engine, so the SDK class is `Companion` and the struct is
+`CubeCompanion`, not "Pet". The `game/` layer stays faithful to the reverse-engineered class names.
+The struct layout is unchanged by these renames (binary ABI is preserved; only the source names moved).
 
-| Concept                | game/ term        | C ABI struct     | SDK class (namespace cube) |
-|------------------------|-------------------|------------------|----------------------------|
-| local player           | Creature (player) | CubePlayer       | Hero (alias Player)        |
-| any other living thing | Creature          | CubeEntity       | Entity                     |
-| tamed companion        | Creature (pet)    | CubePet          | Pet                        |
-| combat block           | -                 | CubeCombat       | Combat                     |
+| Concept                | game/ term            | C ABI struct     | SDK class (namespace cube) |
+|------------------------|-----------------------|------------------|----------------------------|
+| local player           | Creature (player)     | CubePlayer       | Player                     |
+| any other living thing | Creature              | CubeEntity       | Entity                     |
+| tamed companion        | CompanionBehavior     | CubeCompanion    | Companion                  |
+| combat stats           | combat_* subsystem    | CubeCombat       | Combat                     |
 | stun/knockdown state   | -                 | CubeStun         | Stun                       |
 | status buff            | -                 | CubeBuff         | Buff                       |
 | world / area           | -                 | CubeWorld        | World                      |
@@ -83,7 +84,7 @@ design, and renaming the ABI/SDK names breaks the versioned mod ABI.
 | session / UI state     | -                 | CubeSession/CubeUi | Session / Ui             |
 
 All three living-thing rows share the game's one `Creature` memory layout, so `game/creature.*` holds
-the shared per-Creature reads/writes and the player/pet/entity readers build on it. In identifiers,
+the shared per-Creature reads/writes and the player/companion/entity readers build on it. In identifiers,
 the full concept word wins (`health`, `cooldown`, `position`); `pos`/`cd` appear only as conventional
 short-lived locals and `hp` only in compact log-line text.
 

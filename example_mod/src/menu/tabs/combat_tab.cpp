@@ -25,45 +25,45 @@ namespace exmod::menu
         constexpr int kBuffDurMax = 1000000000;
     }
 
-    void CombatTab::drawStats(cube::Combat& combat, cube::Hero& hero)
+    void CombatTab::drawStats(cube::Combat& combat, cube::Player& player)
     {
         addressHeader("Creature", combat.raw().address);
         float baseDamage = combat.getBaseDamage();
         if (dragFloat("base damage", baseDamage, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
-            hero.setBaseDamage(baseDamage);
+            player.setBaseDamage(baseDamage);
 
         ImGui::SameLine();
         ImGui::TextDisabled("(scales every attack + ability)");
 
         float power = combat.getPower();
         if (dragFloat("power", power, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
-            hero.setPower(power);
+            player.setPower(power);
 
         float armor = combat.getArmor();
         if (dragFloat("armor", armor, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
-            hero.setArmor(armor);
+            player.setArmor(armor);
 
         float spirit = combat.getSpirit();
         if (dragFloat("spirit", spirit, kStatDragSpeed, kStatMin, kStatMax, "%.1f"))
-            hero.setSpirit(spirit);
+            player.setSpirit(spirit);
 
         int combo = combat.getCombo();
         if (dragInt("combo", combo, kIntDragSpeed, kSmallCountMin, kSmallCountMax))
-            hero.setCombo(combo);
+            player.setCombo(combo);
 
         float attackSpeed = combat.getAttackSpeed();
         if (dragFloat("attack speed", attackSpeed, kFineDragSpeed, kAttackSpeedMin, kAttackSpeedMax, "%.2f"))
-            hero.setAttackSpeed(attackSpeed);
+            player.setAttackSpeed(attackSpeed);
 
         // One stat feeds both stealth and crit chance; setStealth writes it (there is no separate crit).
         float crit = combat.getCritStat();
         if (dragFloat("crit / stealth stat", crit, kFineDragSpeed, kCritMin, kCritMax, "%.2f"))
-            hero.setStealth(crit);
+            player.setStealth(crit);
 
         ImGui::Text("crit chance ~%.1f%% (excludes gear bonus)", combat.getCritChancePercent());
     }
 
-    void CombatTab::drawTelemetry(cube::Combat& combat, cube::Hero& hero)
+    void CombatTab::drawTelemetry(cube::Combat& combat, cube::Player& player)
     {
         addressHeader("Creature", combat.raw().address);
 
@@ -79,23 +79,23 @@ namespace exmod::menu
             ImGui::EndTable();
         }
 
-        if (hero.valid())
+        if (player.valid())
         {
             float cooldown = combat.getAttackCooldown();
             if (dragFloat("attack cd", cooldown, kFineDragSpeed, kCooldownMin, kCooldownMax, "%.2f"))
-                hero.setAttackCooldown(cooldown);
+                player.setAttackCooldown(cooldown);
             int hitStun = combat.getHitStun();
             if (dragInt("hit stun", hitStun, kIntDragSpeed, kHitStunMin, kHitStunMax))
-                hero.setHitStun(hitStun);
+                player.setHitStun(hitStun);
             ImGui::SeparatorText("stun state");
-            const cube::Stun stun = hero.getStun();
+            const cube::Stun stun = player.getStun();
             ImGui::Text("stunned: %s   knocked down: %s", stun.isStunned() ? "yes" : "no",
                         stun.isKnockedDown() ? "yes" : "no");
             ImGui::Text("lock timer: %d (%.0f%%)", stun.getHitStun(), stun.getHitStunPercent());
             const cube::Vec3 kb = stun.getKnockback();
             ImGui::Text("knockback: %.1f, %.1f", kb.x, kb.y);
             if (ImGui::Button("Break free"))
-                hero.clearStun();
+                player.clearStun();
         }
         ImGui::SeparatorText("health history");
         const HealthHistory& history = healthHistory();
@@ -201,17 +201,17 @@ namespace exmod::menu
     void CombatTab::draw(const CubeEventArgs&)
     {
         cube::Combat combat(g_api);
-        cube::Hero hero(g_api);
+        cube::Player player(g_api);
 
         if (!ImGui::BeginTabBar("##combattabs"))
             return;
 
         if (ImGui::BeginTabItem("Stats"))
         {
-            if (!combat.valid() || !hero.valid())
+            if (!combat.valid() || !player.valid())
                 ImGui::TextDisabled("(unavailable)");
             else
-                drawStats(combat, hero);
+                drawStats(combat, player);
             ImGui::EndTabItem();
         }
 
@@ -220,7 +220,7 @@ namespace exmod::menu
             if (!combat.valid())
                 ImGui::TextDisabled("(unavailable)");
             else
-                drawTelemetry(combat, hero);
+                drawTelemetry(combat, player);
             ImGui::EndTabItem();
         }
 

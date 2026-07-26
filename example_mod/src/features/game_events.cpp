@@ -17,10 +17,10 @@ namespace exmod
             "Crit", "MenuOpen", "MenuClose", "LevelUp", "Death",
             "Respawn", "Land", "MovementChanged", "TargetChanged", "EntitySpawn",
             "EntityDeath", "CoinsChanged", "DayNight", "BuffGained", "BuffLost",
-            "EquipmentChanged", "SkillRankChanged", "AimTargetChanged", "EntityDespawn", "PetSummoned",
-            "PetDied", "PetDismissed", "PlayerStunned", "PlayerKnockedDown", "PlayerRecovered",
-            "EntityStunned", "EntityKnockedDown", "PetStunned", "PetKnockedDown", "EntitySelected",
-            "EntityRecovered", "PetRecovered", "AbilityUsed", "ItemPickup", "PlayerRoll",
+            "EquipmentChanged", "SkillRankChanged", "AimTargetChanged", "EntityDespawn", "CompanionSummoned",
+            "CompanionDied", "CompanionDismissed", "PlayerStunned", "PlayerKnockedDown", "PlayerRecovered",
+            "EntityStunned", "EntityKnockedDown", "CompanionStunned", "CompanionKnockedDown", "EntitySelected",
+            "EntityRecovered", "CompanionRecovered", "AbilityUsed", "ItemPickup", "PlayerRoll",
             "Ready", "WorldEnter", "WorldExit"
         };
 
@@ -182,9 +182,9 @@ namespace exmod
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
             record(CUBE_EVENT_ENTITY_DESPAWN, detail);
         });
-        listener.onPetSummoned([this](unsigned) { record(CUBE_EVENT_PET_SUMMONED); });
-        listener.onPetDied([this](unsigned) { record(CUBE_EVENT_PET_DIED); });
-        listener.onPetDismissed([this](unsigned) { record(CUBE_EVENT_PET_DISMISSED); });
+        listener.onCompanionSummoned([this](unsigned) { record(CUBE_EVENT_COMPANION_SUMMONED); });
+        listener.onCompanionDied([this](unsigned) { record(CUBE_EVENT_COMPANION_DIED); });
+        listener.onCompanionDismissed([this](unsigned) { record(CUBE_EVENT_COMPANION_DISMISSED); });
         listener.onStunned([this](int hitStun)
         {
             char detail[24];
@@ -211,9 +211,9 @@ namespace exmod
             std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
             record(CUBE_EVENT_ENTITY_KNOCKED_DOWN, detail);
         });
-        listener.onPetStunned([this](unsigned) { record(CUBE_EVENT_PET_STUNNED); });
-        listener.onPetRecovered([this](unsigned) { record(CUBE_EVENT_PET_RECOVERED); });
-        listener.onPetKnockedDown([this](unsigned) { record(CUBE_EVENT_PET_KNOCKED_DOWN); });
+        listener.onCompanionStunned([this](unsigned) { record(CUBE_EVENT_COMPANION_STUNNED); });
+        listener.onCompanionRecovered([this](unsigned) { record(CUBE_EVENT_COMPANION_RECOVERED); });
+        listener.onCompanionKnockedDown([this](unsigned) { record(CUBE_EVENT_COMPANION_KNOCKED_DOWN); });
         listener.onEntitySelected([this](unsigned target, cube::SelectionKind kind, int typeByte)
         {
             char detail[48];

@@ -105,7 +105,7 @@ typedef struct CubeStructure
     char name[CUBE_ITEM_NAME_MAX]; // resolved structure name, computed by the loader
 } CubeStructure;
 
-typedef struct CubePet
+typedef struct CubeCompanion
 {
     uint32_t structSize;
     uint32_t address; // live pet Creature base pointer (0 if unavailable)
@@ -124,8 +124,8 @@ typedef struct CubePet
     float velX;
     float velY;
     float velZ;
-    // Pet mood/loyalty/hunger (R4) is not located in this build, no field exposed.
-} CubePet;
+    // Companion mood/loyalty/hunger (R4) is not located in this build, no field exposed.
+} CubeCompanion;
 
 // An active status effect / buff / debuff on the local player. `type` is the raw
 // effect id; the enum meaning is only partially mapped, so the raw id is exposed.
@@ -203,7 +203,7 @@ typedef enum CubeRelation
 {
     CUBE_REL_UNKNOWN = 0,
     CUBE_REL_SELF,
-    CUBE_REL_OWN_PET,
+    CUBE_REL_OWN_COMPANION,
     CUBE_REL_PLAYER, // another player
     CUBE_REL_NPC,
     CUBE_REL_NEUTRAL, // non aggressive monster

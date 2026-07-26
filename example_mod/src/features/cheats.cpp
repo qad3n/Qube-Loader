@@ -16,18 +16,18 @@ namespace exmod
         if (!g_api)
             return;
 
-        cube::Hero hero(g_api);
+        cube::Player player(g_api);
 
-        if (!hero.valid())
+        if (!player.valid())
             return;
 
         if (m_settings.godMode)
-            hero.setHealth(m_settings.godModeHealth);
+            player.setHealth(m_settings.godModeHealth);
 
         if (m_settings.infiniteMana)
-            hero.setMana(kFullResource);
+            player.setMana(kFullResource);
 
         if (m_settings.infiniteStamina)
-            hero.setStamina(kFullResource);
+            player.setStamina(kFullResource);
     }
 }

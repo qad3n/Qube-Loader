@@ -80,19 +80,19 @@ namespace cube
         SkillRankChanged = CUBE_EVENT_SKILL_RANK_CHANGED,
         AimTargetChanged = CUBE_EVENT_AIM_TARGET_CHANGED,
         EntityDespawn = CUBE_EVENT_ENTITY_DESPAWN,
-        PetSummoned = CUBE_EVENT_PET_SUMMONED,
-        PetDied = CUBE_EVENT_PET_DIED,
-        PetDismissed = CUBE_EVENT_PET_DISMISSED,
+        CompanionSummoned = CUBE_EVENT_COMPANION_SUMMONED,
+        CompanionDied = CUBE_EVENT_COMPANION_DIED,
+        CompanionDismissed = CUBE_EVENT_COMPANION_DISMISSED,
         Stunned = CUBE_EVENT_PLAYER_STUNNED,
         KnockedDown = CUBE_EVENT_PLAYER_KNOCKED_DOWN,
         Recovered = CUBE_EVENT_PLAYER_RECOVERED,
         EntityStunned = CUBE_EVENT_ENTITY_STUNNED,
         EntityKnockedDown = CUBE_EVENT_ENTITY_KNOCKED_DOWN,
-        PetStunned = CUBE_EVENT_PET_STUNNED,
-        PetKnockedDown = CUBE_EVENT_PET_KNOCKED_DOWN,
+        CompanionStunned = CUBE_EVENT_COMPANION_STUNNED,
+        CompanionKnockedDown = CUBE_EVENT_COMPANION_KNOCKED_DOWN,
         EntitySelected = CUBE_EVENT_ENTITY_SELECTED,
         EntityRecovered = CUBE_EVENT_ENTITY_RECOVERED,
-        PetRecovered = CUBE_EVENT_PET_RECOVERED,
+        CompanionRecovered = CUBE_EVENT_COMPANION_RECOVERED,
         AbilityUsed = CUBE_EVENT_ABILITY_USED,
         ItemPickup = CUBE_EVENT_ITEM_PICKUP,
         Ready = CUBE_EVENT_READY,
@@ -245,7 +245,7 @@ namespace cube
     {
         Unknown = CUBE_REL_UNKNOWN,
         Self = CUBE_REL_SELF,
-        OwnPet = CUBE_REL_OWN_PET,
+        OwnCompanion = CUBE_REL_OWN_COMPANION,
         Player = CUBE_REL_PLAYER,
         Npc = CUBE_REL_NPC,
         Neutral = CUBE_REL_NEUTRAL,
@@ -264,7 +264,7 @@ namespace cube
         switch (r)
         {
             case Relation::Self: return "self";
-            case Relation::OwnPet: return "pet";
+            case Relation::OwnCompanion: return "companion";
             case Relation::Player: return "player";
             case Relation::Npc: return "npc";
             case Relation::Neutral: return "neutral";

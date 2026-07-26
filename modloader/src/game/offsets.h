@@ -122,7 +122,7 @@ namespace off
     constexpr int32_t kItemTypeUnused = 0x16;
     constexpr int32_t kWeaponSubtypeMax = 0x14;
     // Food/consumable magnitude (heal or nourishment) is the level field @0x10; eating sets the
-    // action byte to kActionEat. Pet taming uses a Food item (type 0x14) on a passive tameable
+    // action byte to kActionEat. Companion taming uses a Food item (type 0x14) on a passive tameable
     // species (game predicate FUN_00444680: species in kPassiveSpecies AND state +0x7e & 0x1a00 == 0).
     constexpr uintptr_t kItemTypeOff = 0x0; // u8 type/category
     constexpr uintptr_t kItemSubtypeOff = 0x1; // u8 subtype
@@ -131,11 +131,25 @@ namespace off
     constexpr uintptr_t kItemMaterialOff = 0xd; // u8 material (Iron/Wood/Gold/...)
     constexpr uintptr_t kItemLevelOff = 0x10; // s16 level (or stack count for consumables)
     constexpr uintptr_t kItemUpgradeCountOff = 0x114; // s32 upgrade/spirit count
-    // Equipment: inline array of bare Item structs on the Creature, 12 slots (weapon=idx5, offhand=idx6).
-    constexpr uintptr_t kEquipmentBaseOff = 0x418;
-    constexpr uintptr_t kEquipmentStride = kItemStructSize;
-    constexpr int32_t kEquipmentSlotCount = 12;
-    constexpr int32_t kEquipWeaponSlot = 5;
+    // Equipment: inline array of bare Item structs on the Creature (backing game class cube::Creature).
+    // The physical array base is 0x300: the save deserializer (entity/Creature.cpp:740) writes
+    // contiguous 0x118 blocks at 0x300,0x418,0x530...0x1020, bounded above by skillRanks @0x1138.
+    // Physical slot 0 (0x300) is never read as worn gear by any stat/combat/loot function, so the base
+    // starts at physical slot 1 (0x418), the first worn slot. Per-slot item type tag (byte[0]), proven
+    // by the game's unrolled equip-stat sums (stat_calcAttackDamage@444db0, the Interface regen sum,
+    // and the loot-drop enumerator game_misc.cpp:18874):
+    //   idx0 0x418 type8   idx1 0x530 type4   idx2 0x648 type6   idx3 0x760 type5   idx4 0x878 type7
+    //   idx5 0x990 type3 weapon off-hand      idx6 0xaa8 type3 weapon main-hand
+    //   idx7 0xbc0 type9   idx8 0xcd8 type9   (type9 is a paired slot, e.g. rings)
+    // Main attack weapon is idx6 (0xaa8): every combat_* function reads it (selectAttackVariant,
+    // rollHitChance, rollElementProc). idx5 (0x990) is the off-hand / second weapon. Physical slots
+    // 10-12 (0xdf0,0xf08,0x1020) are deserialized Item structs never read as worn gear (purpose
+    // unconfirmed), so they are excluded from the worn count.
+    constexpr uintptr_t kEquipmentBaseOff = 0x418; // physical slot 1, the first worn slot
+    constexpr uintptr_t kEquipmentStride = kItemStructSize; // 0x118, VERIFIED
+    constexpr int32_t kEquipmentSlotCount = 9; // worn slots the game reads (0x418..0xcd8)
+    constexpr int32_t kEquipWeaponSlot = 6; // 0xaa8 main-hand; was 5 (0x990 off-hand), which is wrong
+    constexpr int32_t kEquipOffhandSlot = 5; // 0x990 off-hand / second weapon (dual-wield)
     // Inventory: std::vector<std::vector<InventoryCell>>; cell = [int stack count][Item 0x118].
     constexpr uintptr_t kInventoryVecOff = 0x11dc; // outer vector begin (end=+4, cap=+8)
     constexpr uintptr_t kInventoryOuterStride = 0xc; // inner std::vector size
@@ -182,7 +196,17 @@ namespace off
     // (health lost gives stun, no damage from the ground gives roll). Set to this max on a heavy hit / roll,
     // counts down; gates acting while > 0.
     constexpr int32_t kHitStunMax = 600;
-    constexpr uintptr_t kPlayerAttackSpeedOff = 0x17c; // float attack timescale (higher = faster)
+    // f32 attack timescale (higher = faster). VERIFIED f32, not i32: CombatBehavior reads it 11x as
+    // *(float*) in the attack-timing math, e.g. windup = (int)(base / (rate * f@0x17c)) at
+    // ai/CombatBehavior.cpp:1618. Curated game_offsets.tsv calls this "reloadStat i32 read by
+    // combat_getReloadFrames@447310"; that is imprecise, getReloadFrames reads +0x68 and scales by
+    // combat_getEffectiveHaste(), never reads 0x17c as int. Do not flip this to i32.
+    constexpr uintptr_t kPlayerAttackSpeedOff = 0x17c;
+    // i32 hand/stance flag (curated game_offsets.tsv "handFlag"). combat_selectAttackVariant@4452a0
+    // reads it as `*(uint*)(self+0x70) & 0x80000001` for left/right hand attack parity; also read by
+    // stat_calcAttackDamage. Pinned. poise @0x174 is deliberately NOT pinned: curated
+    // marks it NEEDS-LIVE-VERIFY, so it stays out until a live check confirms it.
+    constexpr uintptr_t kPlayerHandFlagOff = 0x70;
     // +0x1190 is the STEALTH/sneak stat (0..1): it reduces enemy detection range and decays when
     // hit. It ALSO feeds crit chance (crit = base + stealth * kCritChancePerPoint), so the same
     // field backs both "sneaking" and the crit contribution. There is no separate stored crit stat.
@@ -194,6 +218,9 @@ namespace off
     // Status/buff intrusive circular list: head @+0x1178, count @+0x117c; node next@+0, type@+8,
     // magnitude f32@+0xc, duration ms@+0x10.
     constexpr uintptr_t kBuffListHeadOff = 0x1178;
+    // buff node count (curated game_offsets.tsv). i32 mirror of the list length; pinned for validation
+    // and cheap count reads without walking the circular list.
+    constexpr uintptr_t kBuffCountOff = 0x117c;
     // The inline name field is exactly 16 bytes (bounded by the buff list head that follows it);
     // name writes MUST clamp to this or they corrupt the buff list.
     constexpr uintptr_t kPlayerNameCapacity = kBuffListHeadOff - kPlayerNameOff; // 16 bytes
@@ -262,11 +289,16 @@ namespace off
     constexpr uintptr_t kRbValue = 0x18; // node value (Creature*)
     constexpr uint32_t kMaxEntityWalk = 4096; // safety cap on tree traversal
     // Creature "kind" byte +0x60 (entity role): 0 player, 1 monster, 5 pet, 6 npc. Value 3 exists
-    // but is unlabelled in the binary, so it is left unclassified.
+    // but is unlabelled in the binary, so it is left unclassified. PROVEN: cube::Creature::ctor_0
+    // writes 5 (pet) and 6 (npc) into +0x60 right after construction (GameController.cpp:96097,96848).
+    // Curated game_offsets.tsv names this "stateFlag, checked !=0": that is the narrow player-vs-not
+    // test the combat stat functions apply (kind==0 is player), compatible with but narrower than the
+    // kind semantics. The &8/&0x40 bit-tests on +0x60 in GameController are a different struct's flag
+    // byte, not this kind byte (kind 0..6 never sets bits 4-6).
     constexpr uintptr_t kEntityKindOff = 0x60;
     constexpr int32_t kKindPlayer = 0;
     constexpr int32_t kKindMonster = 1; // creature faction (monsters AND passive animals)
-    constexpr int32_t kKindPet = 5;
+    constexpr int32_t kKindCompanion = 5;
     constexpr int32_t kKindNpc = 6; // non combatant / passive (never hostile)
     // Species the game treats as the peaceful critter faction: a kind==1 in this set is passive
     // wildlife, not a hostile monster (gated on state word +0x7e & 0x1a00 == 0).
@@ -335,7 +367,7 @@ namespace off
     constexpr uintptr_t kSelectedEntityOff = 0x8008d8; // GC: selected/use target Creature*
 
     // Active pet's entity id (0 = none); resolve against the entity map.
-    constexpr uintptr_t kPetIdOff = 0x11c8;
+    constexpr uintptr_t kCompanionIdOff = 0x11c8;
 
     // Camera + display, GameController relative.
     constexpr uintptr_t kCamDistanceOff = 0x1c0; // float third person zoom [0,14], def 5
@@ -349,8 +381,13 @@ namespace off
     constexpr uintptr_t kSettingResX = 0x0076b1dc; // int resolution X
     constexpr uintptr_t kSettingResY = 0x0076b1e0; // int resolution Y
     constexpr uintptr_t kSettingRenderDistance = 0x0076b1e8; // int view/render distance
-    constexpr uintptr_t kSettingSoundVolume = 0x0076b1ec; // int sound volume
-    constexpr uintptr_t kSettingMusicVolume = 0x0076b1f0; // int music volume
+    // Saved audio config ints (persisted user settings), exposed via Display. Deliberately distinct
+    // from the LIVE music volume f32 at Music+0x1e0018 (kMusicVolumeOff), exposed via Audio: changing
+    // the live streamer volume does not rewrite the saved preference, and vice versa. That is why
+    // saved-config lives in Display and live-state in Audio. kSettingSoundVolume is dead in this alpha
+    // (saved-only, no live control).
+    constexpr uintptr_t kSettingSoundVolume = 0x0076b1ec; // int sound volume (saved config; dead in alpha)
+    constexpr uintptr_t kSettingMusicVolume = 0x0076b1f0; // int music volume (saved config)
     constexpr uintptr_t kSettingMinTimeStep = 0x0076b204; // int min ms/frame (implicit fps cap)
 
     // Session / network state on the GameController.

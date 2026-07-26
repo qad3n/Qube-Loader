@@ -16,8 +16,8 @@ namespace exmod::menu
         void draw(const CubeEventArgs& frame) override;
 
     private:
-        void drawStats(cube::Combat& combat, cube::Hero& hero);
-        void drawTelemetry(cube::Combat& combat, cube::Hero& hero);
+        void drawStats(cube::Combat& combat, cube::Player& player);
+        void drawTelemetry(cube::Combat& combat, cube::Player& player);
         void drawBuffs();
         void drawAbilities();
 

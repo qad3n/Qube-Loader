@@ -17,7 +17,7 @@ typedef struct CubeApi
     CubeSkillsApi skills;
     CubeStatusApi status;
     CubeWorldApi world;
-    CubePetApi pet;
+    CubeCompanionApi companion;
     CubeEntitiesApi entities;
     CubeCameraApi camera; // client only
     CubeDisplayApi display; // client only
