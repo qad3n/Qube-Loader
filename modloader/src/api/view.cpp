@@ -41,6 +41,9 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiAudioPlaySound(const CubeApi* api, int32_t soundId)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "audio.playSound"))
+                return 0;
+            writeguard::Scope scope(api);
             const bool ok = game::playSound(soundId);
             LOGC(Debug, kApiCategory, "'%s' audio.playSound(%d) -> %s", modName(api), soundId, ok ? "ok" : "fail");
             return okInt(ok);
@@ -48,6 +51,9 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiAudioPlaySoundAt(const CubeApi* api, int32_t soundId, float x, float y, float z, float volume, float pitch)
         {
+            if (!capabilityGate(api, CUBE_CAP_WRITES, "audio.playSoundAt"))
+                return 0;
+            writeguard::Scope scope(api);
             const bool ok = game::playSoundAt(soundId, x, y, z, volume, pitch);
             LOGC(Debug, kApiCategory, "'%s' audio.playSoundAt(%d) -> %s", modName(api), soundId, ok ? "ok" : "fail");
             return okInt(ok);

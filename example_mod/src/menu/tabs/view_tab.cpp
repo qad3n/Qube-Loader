@@ -148,6 +148,7 @@ namespace exmod::menu
         if (ImGui::Button("Stop music"))
             audio.stopMusic();
         ImGui::TextDisabled("saved volume: edit in Display; live music volume via setMusicVolumeLive.");
+        ImGui::TextDisabled("play sound / stop music / set live volume are game calls; each needs the Writes capability.");
     }
 
     void ViewTab::draw(const CubeEventArgs&)
