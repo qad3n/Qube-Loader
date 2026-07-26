@@ -469,3 +469,14 @@ typedef struct CubeChatApi
     int32_t (CUBE_CALL* input)(const struct CubeApi* api, CubeChatInput* out);
 } CubeChatApi;
 
+// --- appended in ABI 29 ---
+// A creature's stored appearance record (client only, read only). Writing appearance persists to the
+// character save, so no setter is exposed.
+typedef struct CubeAppearanceApi
+{
+    // Fills out with the local player's appearance; returns 1 on success, 0 if unavailable.
+    int32_t (CUBE_CALL* get)(const struct CubeApi* api, CubeAppearance* out);
+    // Fills out with an arbitrary creature's appearance (by live Creature address); 0 if unavailable.
+    int32_t (CUBE_CALL* of)(const struct CubeApi* api, uint32_t creatureAddress, CubeAppearance* out);
+} CubeAppearanceApi;
+

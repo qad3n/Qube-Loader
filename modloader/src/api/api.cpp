@@ -58,6 +58,7 @@ namespace modloader::api
                 spanOf("assets", api.assets),
                 spanOf("overlay", api.overlay),
                 spanOf("chat", api.chat),
+                spanOf("appearance", api.appearance),
             };
             const std::size_t subCount = sizeof(spans) / sizeof(spans[0]);
 
@@ -118,6 +119,7 @@ namespace modloader::api
         fillAssets(api);
         fillOverlay(api);
         fillChat(api);
+        fillAppearance(api);
         return validate(api) == 0;
     }
 }

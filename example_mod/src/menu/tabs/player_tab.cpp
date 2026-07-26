@@ -156,6 +156,22 @@ namespace exmod::menu
                 yesNo(player.hasPosition()), yesNo(player.hasState()));
             ImGui::EndTable();
         }
+
+        // Appearance record (read only), exercised on both tiers: the cube::Appearance wrapper here,
+        // and the raw g_api->appearance.of straight off the C ABI just below.
+        cube::Appearance appearance(g_api);
+        if (appearance.valid() && beginTable("hero_appear"))
+        {
+            row("Species", "%d", appearance.getSpecies());
+            row("Gender", "%s", appearance.isFemale() ? "female" : "male");
+            row("Style", "0x%08X", appearance.getStyle());
+            row("Colors", "%d / %d / %d", appearance.getColor0(), appearance.getColor1(), appearance.getColor2());
+            ImGui::EndTable();
+        }
+        CubeAppearance rawAppearance = {};
+        if (g_api->appearance.of(g_api, player.raw().address, &rawAppearance))
+            ImGui::TextDisabled("raw appearance.of(0x%08X) -> species %d", player.raw().address, rawAppearance.species);
+        ImGui::TextDisabled("appearance is read only; edits persist to the character save");
         ImGui::TextDisabled("selected target is 0 until you press the use key (R) on a creature;");
         ImGui::TextDisabled("for the crosshair/aim target see the Entities > Aim tab.");
         ImGui::SeparatorText("edit");

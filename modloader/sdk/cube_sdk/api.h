@@ -42,6 +42,8 @@ typedef struct CubeApi
     CubeOverlayApi overlay; // client only: register a draw callback; the loader owns the ImGui context + lifecycle
     // --- appended in ABI 28 (chat log) ---
     CubeChatApi chat; // client only: read the local chat log; CUBE_EVENT_CHAT_MESSAGE signals new lines
+    // --- appended in ABI 29 (character appearance) ---
+    CubeAppearanceApi appearance; // client only: read a creature's stored appearance record (read only)
 } CubeApi;
 
 // One declared dependency on another mod (CubeModInfo::deps, a null terminated array). The loader

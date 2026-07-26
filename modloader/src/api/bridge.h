@@ -229,4 +229,5 @@ namespace modloader::api
     void fillAssets(CubeApi& api);
     void fillOverlay(CubeApi& api);
     void fillChat(CubeApi& api);
+    void fillAppearance(CubeApi& api);
 }

@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define CUBE_ABI_VERSION 28
+#define CUBE_ABI_VERSION 29
 // Oldest mod ABI this loader still accepts. Held FIXED as CUBE_ABI_VERSION grows (growth is
 // additive only), so a mod built against any ABI in [CUBE_MIN_ABI_VERSION, CUBE_ABI_VERSION] keeps
 // loading. Raised to 25 because that revision removed struct fields and renumbered enums, so older
@@ -18,6 +18,8 @@
 // NOTE for 28: pure additive growth (CubeChatApi appended to CubeApi, CubeChatMessage/CubeChatInput
 // PODs, CUBE_EVENT_CHAT_MESSAGE appended before CUBE_EVENT_COUNT). No layout or enum value changed,
 // so the floor stays at 25.
+// NOTE for 29: pure additive growth (CubeAppearanceApi appended to CubeApi, CubeAppearance POD). No
+// layout or enum value changed, so the floor stays at 25.
 #define CUBE_MIN_ABI_VERSION 25
 #define CUBE_LOG_BUFFER 1024
 #define CUBE_CONFIG_STRING_MAX 256

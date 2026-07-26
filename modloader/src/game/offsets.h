@@ -419,6 +419,18 @@ namespace off
     constexpr uintptr_t kChatSegTextOff = 0x8; // segment node: std::u16string (SSO) text
     constexpr uintptr_t kChatSegColorOff = 0x20; // segment node: R,G,B bytes (0x20,0x21,0x22)
     constexpr int32_t kChatMaxMessages = 10; // the game's own history cap
+
+    // Character appearance. `Creature+0x1d28` is a heap ObjWithListMap; the appearance record is stored
+    // at its start (the game deserializes it there in Creature.cpp:884 and reads it there in
+    // creature_generateAppearance 0x43f7c0, which turns it into the rendered model at Creature+0x78).
+    // Applies to any creature (players carry their chosen values, NPCs/monsters a spawn-generated set).
+    constexpr uintptr_t kAppearanceMapOff = 0x1d28; // Creature: ObjWithListMap* (appearance record at +0)
+    constexpr uintptr_t kAppearanceSpeciesOff = 0x00; // record: u32 species/race selector (0..7 model switch)
+    constexpr uintptr_t kAppearanceGenderOff = 0x04; // record: byte, bit 0 = female (the panel's "Female")
+    constexpr uintptr_t kAppearanceStyleOff = 0x08; // record: u32 style/variant data
+    constexpr uintptr_t kAppearanceColor0Off = 0x10; // record: appearance color byte
+    constexpr uintptr_t kAppearanceColor1Off = 0x11; // record: appearance color byte
+    constexpr uintptr_t kAppearanceColor2Off = 0x12; // record: appearance color byte
     // MSVC 32 bit std::basic_string layout, relative to the string base: [buf 16 bytes][size@0x10][cap@0x14].
     // cap <= 7 (char16) means the text is inline at the base; otherwise the base holds a heap pointer.
     constexpr uintptr_t kStringSizeOff = 0x10; // std::u16string _Mysize

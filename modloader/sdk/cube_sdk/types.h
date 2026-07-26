@@ -322,3 +322,22 @@ typedef struct CubeChatInput
     int32_t valid; // 1 if the chat widget resolved
 } CubeChatInput;
 
+// --- appended in ABI 29 (character appearance) ---
+
+// A creature's stored appearance record (client only, read only). The game reads this to build the
+// rendered model (creature_generateAppearance); it applies to any creature - a player carries the
+// values chosen at character creation, an NPC/monster a spawn-generated set. Colors are raw palette
+// bytes. Writing appearance persists to the character save, so it is intentionally not exposed here.
+typedef struct CubeAppearance
+{
+    uint32_t structSize;
+    uint32_t address; // live Creature base pointer (0 if unavailable; for raw use)
+    int32_t species; // race/species selector (drives the model switch, 0..7)
+    int32_t gender; // 1 = female, 0 = male (record byte bit 0)
+    int32_t style; // style/variant data (raw)
+    int32_t color0; // appearance color byte
+    int32_t color1;
+    int32_t color2;
+    int32_t valid; // 1 if the appearance record resolved
+} CubeAppearance;
+
