@@ -1,0 +1,65 @@
+name: API gap or feature request
+description: Something the game exposes that a mod cannot reach through the loader API.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The project goal is that a mod never touches memory. If a mod needs raw addresses to do
+        something, that is an API gap and belongs here.
+
+  - type: textarea
+    id: gap
+    attributes:
+      label: What is missing
+      description: The game data, behavior, or event a mod cannot currently reach.
+      placeholder: No way to read a creature's equipped weapon durability.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer
+      description: A capability lands in the C ABI first, then gets an ergonomic C++ wrapper.
+      multiple: true
+      options:
+        - C ABI (cube_sdk.h)
+        - C++ wrapper (cube_mod.hpp)
+        - Event (subscription)
+        - Hook (game function detour)
+        - Loader service (config, save, manifest, messaging, localization, assets)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: What would you build with it
+      description: The concrete mod or behavior this unblocks.
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Reverse-engineering source
+      description: >
+        Offsets and struct layouts must be backed by verifiable work, never guessed. Link the
+        relevant part of https://github.com/qad3n/CubeWorld-Reversal, or any other evidence
+        (disassembly, Cheat Engine findings, a working proof of concept). Leave blank if you
+        do not have one; it just means the reversal has to happen first.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: access
+    attributes:
+      label: Read or write
+      options:
+        - Read only
+        - Write
+        - Both
+    validations:
+      required: true

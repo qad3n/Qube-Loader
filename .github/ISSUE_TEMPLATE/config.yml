@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or mod-authoring help
+    url: https://github.com/qad3n/Qube-Loader/discussions
+    about: Ask how to use the API, get help writing a mod, or share what you built.
+  - name: Wrong offset, struct, or field value
+    url: https://github.com/qad3n/CubeWorld-Reversal
+    about: The loader reads reverse-engineered data from this companion repo. Bad values usually start there.

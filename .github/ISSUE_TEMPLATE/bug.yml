@@ -1,0 +1,122 @@
+name: Bug report
+description: Something in the loader, the API, or the overlay does not work.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: the loader targets the **2013 alpha** build of Cube World only.
+        The Steam release (2019) is a different binary and is not supported.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: I am running the 2013 alpha `Cube.exe`, not the 2019 Steam release.
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Loader version
+      description: Release tag, or the commit SHA you built from (`git rev-parse --short HEAD`).
+      placeholder: de3a978
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows 10 / 11
+        - Wine
+        - Proton
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: platform-detail
+    attributes:
+      label: Platform detail
+      description: Wine or Proton version, and any d3d9 wrapper in use (DXVK, dgVoodoo, none).
+      placeholder: wine-10.0, DXVK 2.4
+    validations:
+      required: false
+
+  - type: input
+    id: abi
+    attributes:
+      label: ABI version
+      description: >
+        `CUBE_ABI_VERSION` the mod was built against. Found in `modloader/sdk/cube_sdk/core.h`,
+        and printed in `cube_mod.log` at load. Leave blank if the bug is not mod-specific.
+      placeholder: "29"
+    validations:
+      required: false
+
+  - type: textarea
+    id: mods
+    attributes:
+      label: Mods loaded
+      description: Contents of your `mods/` folder. Write "none" if the bug happens with no mods.
+      placeholder: |
+        example_mod.dll
+        example_lib.dll
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Inject the DLL with the game at the main menu
+        2. Load a character
+        3. Press INSERT to open the menu
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: If the game crashed, say whether it hung, closed, or showed a crash dialog.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safe-mode
+    attributes:
+      label: Safe mode
+      description: >
+        Set `overlay = 0` in `cube_mod.ini` and retry. This disables the D3D9 overlay, its probe
+        device, and render-driven events while mods and game-function hooks keep working, which
+        separates overlay bugs from loader-core bugs.
+      options:
+        - label: The bug still reproduces with `overlay = 0`.
+        - label: The bug goes away with `overlay = 0` (overlay-related).
+        - label: Not applicable (bug is unrelated to rendering or input).
+
+  - type: textarea
+    id: log
+    attributes:
+      label: cube_mod.log
+      description: >
+        Attach or paste `cube_mod.log` from next to the DLL. Set `log_level = trace` in
+        `cube_mod.ini` first if the default log shows nothing useful. This is automatically
+        formatted as code, no backticks needed.
+      render: log
+    validations:
+      required: true
