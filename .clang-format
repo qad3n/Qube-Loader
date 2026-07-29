@@ -1,0 +1,27 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++17
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 110
+BreakBeforeBraces: Allman
+NamespaceIndentation: All
+AccessModifierOffset: -4
+PointerAlignment: Left
+ReferenceAlignment: Left
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+SeparateDefinitionBlocks: Leave
+KeepEmptyLinesAtTheStartOfBlocks: false
+FixNamespaceComments: false
+# The SDK depends on umbrella-header order: cube_mod.hpp pulls cube/common.hpp, which pulls the
+# C ABI in cube_sdk.h. Reordering includes breaks the mingw build, which is the same reason
+# clangd's include-cleaner is off in .clangd.
+SortIncludes: false

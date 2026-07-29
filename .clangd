@@ -1,7 +1,3 @@
-# For full IntelliSense on the i686-w64-mingw32 cross target, launch clangd with
-#   --query-driver=/usr/bin/i686-w64-mingw32-*
-# (an editor/clangd CLI setting; clangd will not query a cross-compiler driver for its
-# system include paths unless that driver is allowlisted).
 CompileFlags:
   CompilationDatabase: build
   Compiler: i686-w64-mingw32-g++
@@ -9,12 +5,6 @@ CompileFlags:
     - -mno-*
     - -static-libgcc
     - -static-libstdc++
-# The SDK uses umbrella headers on purpose: cube_mod.hpp pulls in every cube/*.hpp, and cube/common.hpp
-# bundles the C ABI (cube_sdk.h) so a wrapper header like cube/combat.hpp gets CubeApi/CubeCombat
-# transitively. clangd's include-cleaner cannot see through that and reports the umbrella includes as
-# "unused" (and would suggest direct includes that break the layering). Removing an include it flags
-# would break the mingw build, so the include-cleaner is disabled here; real missing symbols still
-# surface as normal clang errors.
 Diagnostics:
   UnusedIncludes: None
   MissingIncludes: None
