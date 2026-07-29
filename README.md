@@ -30,6 +30,11 @@ An early proof of concept and a free-time hobby project, built for the alpha com
 
 Contributions are welcome. Covering the whole game in a mod API takes time.
 
+## Back up your saves
+
+The loader writes to game memory using reverse-engineered layouts, so a wrong offset can
+corrupt a character or a world. Copy your save folder before running it.
+
 ## How it works
 
 The design rule is "thin mod, fat loader." All offsets, pointer chains, struct layouts,
