@@ -14,25 +14,21 @@ With that API a mod can:
 The loader also runs a color-coded logger, captures the game's own debug output, and
 installs a crash handler, so you can develop without a debugger attached.
 
-## Status and expectations (read this first)
+## Status
 
-This is an early proof of concept and a free-time hobby project, built for fun and for the
-alpha community. Set expectations accordingly:
+An early proof of concept and a free-time hobby project, built for the alpha community.
 
-- Documentation is limited. This README plus the header comments in `modloader/sdk/`
-  are the current reference. Beyond that, read the source. Proper docs will come later.
-- Implemented features may be incomplete or not fully wired up. Everything is a work in
-  progress and the API surface grows over time.
-- There is no guarantee that a mod you build against a development build keeps working,
-  or stays binary-compatible, between updates. The ABI is versioned but still moving.
-- Expect inaccuracies and bugs. The loader is built directly against reverse-engineered
-  data (see below), and that data is not perfect.
-- I develop on Linux using Wine, not on Windows. Some issues are Wine-specific artifacts
-  of that environment and may behave differently on a real Windows machine (input,
-  D3D9, and console behavior are the usual suspects).
+- Documentation is limited to this README and the header comments in `modloader/sdk/`.
+  Beyond that, the source is the reference.
+- Features may be incomplete or not fully wired up. The API surface grows over time.
+- The ABI is versioned but still moving, so a mod built against one development build
+  can break on the next.
+- The loader is built on reverse-engineered data (see below), which is not perfect, so
+  wrong values and bugs happen.
+- Development happens on Linux under Wine, not on Windows. Input, D3D9, and console
+  behavior can differ on a real Windows machine.
 
-Contributions and community involvement are very welcome. Covering the whole game
-inside a mod API takes time, and help of any kind moves it forward faster.
+Contributions are welcome. Covering the whole game in a mod API takes time.
 
 ## How it works
 
@@ -40,8 +36,8 @@ The design rule is "thin mod, fat loader." All offsets, pointer chains, struct l
 guarded memory access, and hooking live inside the loader. A mod only ever sees named
 objects and helpers.
 
-- A mod thinks "I want the player" and reaches for `mod.hero()`. The loader has already
-  resolved the pointer chain, validated the object, and read the fields.
+- A mod asks for the player with `mod.player()`. The loader has already resolved the
+  pointer chain, validated the object, and read the fields.
 - Live game state is read once per frame and handed to mods as plain data.
 - Events are detected by the loader and delivered to any mod that subscribed.
 - Hooks let a mod run on the game thread when a real game function is called, so it can
@@ -72,9 +68,6 @@ mods            your DLLs, #include "cube_mod.hpp" only, zero addresses
 
 ## Roadmap
 
-What is implemented today is covered under "Loader services" and the feature examples
-below. Still ahead:
-
 - grow API coverage: more reads, writes, events, and built-in hooks for parts of the game
   not yet surfaced (the bulk of ongoing work)
 - a Lua scripting tier, so mods can be written without a C++ compiler (maybe)
@@ -100,7 +93,7 @@ modloader/            the loader DLL (cube_mod.dll) and its injector
     cube_sdk.h        umbrella for the raw versioned C ABI
     cube_sdk/         the C ABI split per concern (core, enums, types, apis, api, events_hooks)
     cube_mod.hpp      umbrella for the ergonomic C++ layer (this is what a mod includes)
-    cube/             the C++ layer split per domain (hero, world, entity, items, view, ...)
+    cube/             the C++ layer split per domain (player, world, creature, items, view, ...)
     imgui/            Dear ImGui (git submodule) - shipped with the SDK; the loader owns the
                       context + backends, mods build it core-only via cube_imgui.cmake
     cube_imgui.cmake  one-line helper a mod uses to compile ImGui core for its own build
@@ -115,14 +108,14 @@ example_lib/          a minimal headless companion mod: publishes an inter-mod s
 
 ## Your first mod
 
-Clone with submodules first. The loader vendors MinHook and the SDK ships ImGui as git
-submodules, so a plain `git clone` leaves them empty and the build fails:
+MinHook and ImGui are git submodules, so a plain `git clone` leaves them empty and the
+build fails. Clone with submodules:
 
 ```
 git clone --recurse-submodules https://github.com/qad3n/Qube-Loader
 ```
 
-(`--recursive` is an older alias for the same thing.) Already cloned without them? Pull them in:
+For a clone that already exists:
 
 ```
 git submodule update --init --recursive
@@ -153,33 +146,20 @@ macro generates for you. No offsets, no manual memory access.
 
 ## Core features and examples
 
-Everything below goes through `cube::` accessors. A mod never sees an address.
-
-A mod is as simple as one file:
-
-```cpp
-#include "cube_mod.hpp"
-
-CUBE_MOD("My Mod", "1.0.0", "you")
-{
-    mod.log.info("loaded, player class is %s", mod.hero().getClassName());
-}
-```
-
 ### Read live game state
 
-Hero, world, entities, items, camera, and more are all readable:
+Player, world, creatures, items, camera, and more are all readable:
 
 ```cpp
 CUBE_MOD("Reader", "1.0.0", "you")
 {
     mod.eventListener().onFrame([&]
     {
-        cube::Hero hero = mod.hero();
-        if (hero.isAlive())
+        cube::Player player = mod.player();
+        if (player.isAlive())
             mod.log.info("hp %.0f  pos %.1f,%.1f,%.1f",
-                hero.getHealth(),
-                hero.getPosition().x, hero.getPosition().y, hero.getPosition().z);
+                player.getHealth(),
+                player.getPosition().x, player.getPosition().y, player.getPosition().z);
     });
 }
 ```
@@ -194,7 +174,7 @@ CUBE_MOD("God Mode", "1.0.0", "you")
 {
     mod.eventListener().onFrame([&]
     {
-        mod.hero().setHealth(1000.0f); // refill every frame
+        mod.player().setHealth(1000.0f); // refill every frame
     });
 }
 ```
@@ -220,11 +200,10 @@ CUBE_MOD("Level Watcher", "1.0.0", "you")
 
 ### Draw an ImGui menu (overlay)
 
-The loader owns the entire overlay - the D3D9 hook, the ImGui context, the DX9 + Win32
-backends, the per-frame render, the toggle key, DPI scaling, device-reset recovery and the
-game input freeze. A mod just registers a draw callback and writes ImGui inside it: no
-hooking, no context, no lifecycle. Because the loader owns the one context, any number of
-mods can each draw their own menu.
+The loader owns the entire overlay: the D3D9 hook, the ImGui context, the DX9 + Win32
+backends, the per-frame render, the toggle key, DPI scaling, device-reset recovery, and
+the game input freeze. A mod registers a draw callback and writes ImGui inside it. There
+is one shared context, so any number of mods can each draw their own menu.
 
 ```cpp
 #include "cube_mod.hpp" // auto-enables mod.menu() when your build has ImGui (see below)
@@ -233,7 +212,7 @@ CUBE_MOD("My Menu", "1.0.0", "you")
 {
     mod.setCapabilities(cube::Capability::Overlay);
 
-    // INSERT toggles it; the game is frozen while it is open. That is the whole menu.
+    // INSERT toggles it by default; the game is frozen while it is open.
     mod.menu().window("My Menu", []
     {
         ImGui::Text("Hello from my mod");
@@ -244,24 +223,23 @@ CUBE_MOD("My Menu", "1.0.0", "you")
 }
 ```
 
-`window(title, fn)` wraps your widgets in a titled window. For full control (multiple
-windows, a custom layout) use `mod.menu().onDraw(fn)` instead. Optional knobs, all with
-sane defaults: `setToggleKey(VK_F1)`, `setOpen(true)`, `setPassthrough(true)` (a
-display-only HUD that leaves the game playable), `setUiScale(1.25f)`.
+`window(title, fn)` wraps your widgets in a titled window. For multiple windows or a
+custom layout, use `mod.menu().onDraw(fn)` instead. Optional settings, all with sane
+defaults: `setToggleKey(VK_F1)`, `setOpen(true)`, `setPassthrough(true)` (a display-only
+HUD that leaves the game playable), `setUiScale(1.25f)`.
 
-Want several menus with their own toggle keys? Call `mod.addMenu()` per menu (e.g. a HUD
-on F1 and a config panel on INSERT). Any number of mods can each run any number of menus -
-the loader draws them all in one shared context and freezes the game while any interactive
-one is open. A menu whose draw keeps throwing is isolated and disabled on its own, so a
-broken mod never takes the others down.
+`mod.addMenu()` adds a further menu with its own toggle key, e.g. a HUD on F1 next to the
+config panel on INSERT. The loader freezes the game while any interactive menu is open. A
+menu whose draw keeps throwing is disabled on its own, so a broken mod never takes the
+others down.
 
 ```cpp
 cube::Menu& hud = mod.addMenu();
 hud.setToggleKey(VK_F1).setPassthrough(true).window("HUD", [] { ImGui::Text("hp: ..."); });
 ```
 
-To put ImGui in your build, add one line to your `CMakeLists.txt` - it compiles ImGui core
-against the same submodule the loader ships, so the shared context is layout-compatible:
+One line in your `CMakeLists.txt` puts ImGui in your build. It compiles ImGui core against
+the same submodule the loader ships, so the shared context is layout-compatible:
 
 ```cmake
 include("${CMAKE_SOURCE_DIR}/modloader/sdk/cube_imgui.cmake")
@@ -307,8 +285,8 @@ unsigned live = mod.rebase(0x00525a30); // static address -> live address
 
 ## Loader services
 
-Beyond reading and hooking the game, the loader hands each mod a set of services so it
-never hand-rolls file I/O, versioning, or inter-mod plumbing. All are reached through `mod`.
+The loader hands each mod a set of services so it never hand-rolls file I/O, versioning,
+or inter-mod plumbing. All are reached through `mod`.
 
 ### Manifest: identity, capabilities, dependencies
 
@@ -424,22 +402,23 @@ game starts, and tails the live log:
 - Linux (Wine): `./run.sh`
 - Windows: `run.bat` (double-click, or run from a Developer Command Prompt)
 
-**Inject at startup, not mid game.** The loader must hook the game as it launches. The run
-script handles this for you, so it is the recommended way to play. Injecting by hand into a
-game that is already loaded into a world can misbehave or crash.
+**Inject at startup, not mid game.** The loader must hook the game as it launches, which
+is what the run script does. Injecting into a game that is already in a world can
+misbehave or crash.
 
 Override the game location with `GAME_DIR` / `GAME_EXE`.
 
-If you must inject manually, do it right after launching the game, before loading a world
-(either platform):
+In game, `INSERT` opens the example mod's menu.
+
+Manual injection, on either platform, right after launching the game and before loading a
+world:
 
 ```
 inject.exe Cube.exe path\to\cube_mod.dll
 ```
 
-Any DLL injector works. A log is written to `cube_mod.log` next to the DLL. Press `END`
-in the loader console to unload. The loader owns the ImGui overlay but draws nothing of
-its own; the example mod's menu is on INSERT in-game.
+Any DLL injector works. A log is written to `cube_mod.log` next to the DLL. `END` in the
+loader console unloads it.
 
 Loader settings come from defaults, then `cube_mod.ini` next to the DLL, then
 environment variables. See `cube_mod.ini.sample`.
