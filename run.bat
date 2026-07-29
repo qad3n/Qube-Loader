@@ -2,6 +2,8 @@
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
+set "SYS32=%SystemRoot%\System32"
+
 set "BUILD_DIR=%CD%\build"
 if not defined GAME_DIR set "GAME_DIR=%CD%\..\cube_game"
 if not defined GAME_EXE set "GAME_EXE=Cube.exe"
@@ -21,13 +23,13 @@ start "" /d "%GAME_DIR%" "%GAME_EXE%"
 
 set /a tries=0
 :waitproc
-tasklist /FI "IMAGENAME eq %GAME_EXE%" 2>nul | find /I "%GAME_EXE%" >nul && goto inject
+"%SYS32%\tasklist.exe" /FI "IMAGENAME eq %GAME_EXE%" /NH 2>nul | "%SYS32%\findstr.exe" /I /C:"%GAME_EXE%" >nul && goto inject
 set /a tries+=1
 if !tries! geq %RETRIES% (
     echo run: %GAME_EXE% never appeared
     exit /b 1
 )
-timeout /t 1 /nobreak >nul
+"%SYS32%\ping.exe" -n 2 127.0.0.1 >nul
 goto waitproc
 
 :inject
@@ -44,7 +46,7 @@ if !tries! geq %RETRIES% (
     echo run: injection failed
     exit /b 1
 )
-timeout /t 1 /nobreak >nul
+"%SYS32%\ping.exe" -n 2 127.0.0.1 >nul
 goto injectloop
 
 :done

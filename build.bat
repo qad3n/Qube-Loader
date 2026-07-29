@@ -5,7 +5,7 @@ setlocal
 cd /d "%~dp0"
 
 rem Vendored deps (MinHook, ImGui) are git submodules; check them out before configuring.
-where git >nul 2>nul && git submodule update --init --recursive
+"%SystemRoot%\System32\where.exe" git >nul 2>nul && git submodule update --init --recursive
 
 set "BUILD_DIR=build"
 if "%CUBE_MOD_BUILD_TYPE%"=="" set "CUBE_MOD_BUILD_TYPE=Release"
