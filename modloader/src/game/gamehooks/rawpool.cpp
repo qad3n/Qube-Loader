@@ -11,8 +11,8 @@
 #include <mutex>
 #include <utility>
 
-// Generic raw hook capture pool: precompiled detour slots per (cc, arity) so ret stack cleanup
-// matches the target (no runtime codegen). __cdecl + __thiscall, int/ptr return only (float needs installRawDetour).
+// Slots are precompiled per (cc, arity) so the ret stack cleanup matches the target; there is no
+// runtime codegen. int/ptr return only, float needs installRawDetour.
 
 namespace game::gamehooks::rawpool
 {
@@ -36,8 +36,10 @@ namespace game::gamehooks::rawpool
         std::mutex g_mutex;
 
         // Each arg is exposed as both int (argi) and float (argf); whichever view a handler changed
-        // wins. `self` is 0 for __cdecl. Guarded (no std::exception escapes); a bad deref is still uncatchable under mingw.
-        bool marshalAndDispatch(int slot, uint32_t self, const int32_t* args, CubeHookCall& call, int32_t* out)
+        // wins. `self` is 0 for __cdecl. Guarded (no std::exception escapes); a bad deref is still
+        // uncatchable under mingw.
+        bool marshalAndDispatch(int slot, uint32_t self, const int32_t* args, CubeHookCall& call,
+                                int32_t* out)
         {
             Slot& s = g_slots[slot];
             call.structSize = sizeof(CubeHookCall);
@@ -80,12 +82,13 @@ namespace game::gamehooks::rawpool
             void* trampoline = g_slots[SlotIndex].trampoline;
             if (cancel || !trampoline)
                 return call.overrideReturn ? call.returnI : 0;
-            typedef int32_t(__cdecl* Fn)(int32_t, int32_t, int32_t, int32_t);
+            typedef int32_t(__cdecl * Fn)(int32_t, int32_t, int32_t, int32_t);
             const int32_t real = reinterpret_cast<Fn>(trampoline)(out[0], out[1], out[2], out[3]);
             return call.overrideReturn ? call.returnI : real;
         }
 
-        // __thiscall (this in ECX, callee cleans) == __fastcall with a dummy edx on mingw; one detour per arity so ret cleanup matches.
+        // __thiscall (this in ECX, callee cleans) == __fastcall with a dummy edx on mingw; one detour per
+        // arity so ret cleanup matches.
         template <int SlotIndex>
         int32_t __fastcall thiscall0(void* ecx, void* edx)
         {
@@ -93,11 +96,12 @@ namespace game::gamehooks::rawpool
             const int32_t args[CUBE_HOOK_ARG_MAX] = {0, 0, 0, 0};
             CubeHookCall call = {};
             int32_t out[CUBE_HOOK_ARG_MAX] = {};
-            const bool cancel = marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
+            const bool cancel =
+                marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
             void* trampoline = g_slots[SlotIndex].trampoline;
             if (cancel || !trampoline)
                 return call.overrideReturn ? call.returnI : 0;
-            typedef int32_t(__fastcall* Fn)(void*, void*);
+            typedef int32_t(__fastcall * Fn)(void*, void*);
             const int32_t real = reinterpret_cast<Fn>(trampoline)(ecx, edx);
             return call.overrideReturn ? call.returnI : real;
         }
@@ -109,11 +113,12 @@ namespace game::gamehooks::rawpool
             const int32_t args[CUBE_HOOK_ARG_MAX] = {a0, 0, 0, 0};
             CubeHookCall call = {};
             int32_t out[CUBE_HOOK_ARG_MAX] = {};
-            const bool cancel = marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
+            const bool cancel =
+                marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
             void* trampoline = g_slots[SlotIndex].trampoline;
             if (cancel || !trampoline)
                 return call.overrideReturn ? call.returnI : 0;
-            typedef int32_t(__fastcall* Fn)(void*, void*, int32_t);
+            typedef int32_t(__fastcall * Fn)(void*, void*, int32_t);
             const int32_t real = reinterpret_cast<Fn>(trampoline)(ecx, edx, out[0]);
             return call.overrideReturn ? call.returnI : real;
         }
@@ -125,11 +130,12 @@ namespace game::gamehooks::rawpool
             const int32_t args[CUBE_HOOK_ARG_MAX] = {a0, a1, 0, 0};
             CubeHookCall call = {};
             int32_t out[CUBE_HOOK_ARG_MAX] = {};
-            const bool cancel = marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
+            const bool cancel =
+                marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
             void* trampoline = g_slots[SlotIndex].trampoline;
             if (cancel || !trampoline)
                 return call.overrideReturn ? call.returnI : 0;
-            typedef int32_t(__fastcall* Fn)(void*, void*, int32_t, int32_t);
+            typedef int32_t(__fastcall * Fn)(void*, void*, int32_t, int32_t);
             const int32_t real = reinterpret_cast<Fn>(trampoline)(ecx, edx, out[0], out[1]);
             return call.overrideReturn ? call.returnI : real;
         }
@@ -141,11 +147,12 @@ namespace game::gamehooks::rawpool
             const int32_t args[CUBE_HOOK_ARG_MAX] = {a0, a1, a2, 0};
             CubeHookCall call = {};
             int32_t out[CUBE_HOOK_ARG_MAX] = {};
-            const bool cancel = marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
+            const bool cancel =
+                marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
             void* trampoline = g_slots[SlotIndex].trampoline;
             if (cancel || !trampoline)
                 return call.overrideReturn ? call.returnI : 0;
-            typedef int32_t(__fastcall* Fn)(void*, void*, int32_t, int32_t, int32_t);
+            typedef int32_t(__fastcall * Fn)(void*, void*, int32_t, int32_t, int32_t);
             const int32_t real = reinterpret_cast<Fn>(trampoline)(ecx, edx, out[0], out[1], out[2]);
             return call.overrideReturn ? call.returnI : real;
         }
@@ -157,18 +164,20 @@ namespace game::gamehooks::rawpool
             const int32_t args[CUBE_HOOK_ARG_MAX] = {a0, a1, a2, a3};
             CubeHookCall call = {};
             int32_t out[CUBE_HOOK_ARG_MAX] = {};
-            const bool cancel = marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
+            const bool cancel =
+                marshalAndDispatch(SlotIndex, reinterpret_cast<uint32_t>(ecx), args, call, out);
             void* trampoline = g_slots[SlotIndex].trampoline;
             if (cancel || !trampoline)
                 return call.overrideReturn ? call.returnI : 0;
-            typedef int32_t(__fastcall* Fn)(void*, void*, int32_t, int32_t, int32_t, int32_t);
+            typedef int32_t(__fastcall * Fn)(void*, void*, int32_t, int32_t, int32_t, int32_t);
             const int32_t real = reinterpret_cast<Fn>(trampoline)(ecx, edx, out[0], out[1], out[2], out[3]);
             return call.overrideReturn ? call.returnI : real;
         }
 
         // Precompiled detour tables, filled once from the templates via an index sequence (no codegen).
         constexpr int kMaxArity = CUBE_HOOK_ARG_MAX; // 0..kMaxArity inclusive
-        static_assert(CUBE_HOOK_ARG_MAX == 4, "rawpool thiscall templates cover arity 0..4 only; add thiscallN if this changes");
+        static_assert(CUBE_HOOK_ARG_MAX == 4,
+                      "rawpool thiscall templates cover arity 0..4 only; add thiscallN if this changes");
         void* g_cdecl[kSlotMax] = {};
         void* g_thiscall[kMaxArity + 1][kSlotMax] = {};
         bool g_tablesReady = false;
@@ -218,7 +227,9 @@ namespace game::gamehooks::rawpool
             return false;
         if (cc != CUBE_CC_CDECL && cc != CUBE_CC_THISCALL)
         {
-            LOGC(Warn, kCategory, "0x%08X: convention %d not supported by the generic pool (use installRawDetour)", address, static_cast<int>(cc));
+            LOGC(Warn, kCategory,
+                 "0x%08X: convention %d not supported by the generic pool (use installRawDetour)", address,
+                 static_cast<int>(cc));
             return false;
         }
 
@@ -249,14 +260,17 @@ namespace game::gamehooks::rawpool
         }
 
         void* detour = detourFor(cc, argCount, slot);
-        if (!hooks::detour::create(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), detour, &g_slots[slot].trampoline))
+        if (!hooks::detour::create(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), detour,
+                                   &g_slots[slot].trampoline))
         {
             std::lock_guard<std::mutex> lock(g_mutex);
             g_slots[slot] = Slot{};
             return false;
         }
 
-        LOGC(Debug, kCategory, "generic slot %d armed at 0x%08X (cc %d, %d args, trampoline 0x%08X)", slot, address, static_cast<int>(cc), argCount, static_cast<uint32_t>(reinterpret_cast<uintptr_t>(g_slots[slot].trampoline)));
+        LOGC(Debug, kCategory, "generic slot %d armed at 0x%08X (cc %d, %d args, trampoline 0x%08X)", slot,
+             address, static_cast<int>(cc), argCount,
+             static_cast<uint32_t>(reinterpret_cast<uintptr_t>(g_slots[slot].trampoline)));
         return true;
     }
 
@@ -278,9 +292,10 @@ namespace game::gamehooks::rawpool
         if (slot < 0)
             return false;
 
-        // Wait out any in flight call through this slot before we free its trampoline, then remove.
+        void* const hooked = reinterpret_cast<void*>(static_cast<uintptr_t>(address));
+        hooks::detour::disable(hooked);
         barrier::drain(g_inFlight[slot], "raw hook");
-        hooks::detour::remove(reinterpret_cast<void*>(static_cast<uintptr_t>(address)));
+        hooks::detour::release(hooked);
         std::lock_guard<std::mutex> lock(g_mutex);
         g_slots[slot] = Slot{};
         return true;

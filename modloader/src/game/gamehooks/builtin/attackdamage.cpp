@@ -20,7 +20,7 @@ namespace game::gamehooks
 
         float __fastcall attackDamageDetour(void* self, void* edx)
         {
-            barrier::InFlight inflight(builtin::inFlight(CUBE_HOOK_ATTACK_DAMAGE));
+            builtin::Dispatching inflight(CUBE_HOOK_ATTACK_DAMAGE);
             const float real = g_attackDamageOrig ? g_attackDamageOrig(self, edx) : 0.0f;
             if (!g_attackDamageActive.load(std::memory_order_acquire))
                 return real;
@@ -32,8 +32,9 @@ namespace game::gamehooks
             call.argCount = 0;
             call.returnF = real;
 
-            guard::tryRunLoader("attackdamage dispatch", [&]() { dispatchBuiltin(CUBE_HOOK_ATTACK_DAMAGE, call); });
-            return call.returnF;
+            guard::tryRunLoader("attackdamage dispatch",
+                                [&]() { dispatchBuiltin(CUBE_HOOK_ATTACK_DAMAGE, call); });
+            return call.overrideReturn ? call.returnF : real;
         }
 
         struct Registrar
@@ -41,8 +42,9 @@ namespace game::gamehooks
             Registrar()
             {
                 builtin::registerDef(builtin::Def{CUBE_HOOK_ATTACK_DAMAGE, off::kStatCalcAttackDamageFn,
-                    reinterpret_cast<void*>(&attackDamageDetour),
-                    reinterpret_cast<void**>(&g_attackDamageOrig), &g_attackDamageActive});
+                                                  reinterpret_cast<void*>(&attackDamageDetour),
+                                                  reinterpret_cast<void**>(&g_attackDamageOrig),
+                                                  &g_attackDamageActive});
             }
         };
         const Registrar g_registrar;

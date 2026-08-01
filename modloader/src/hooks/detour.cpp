@@ -51,14 +51,16 @@ namespace hooks::detour
         MH_STATUS status = MH_CreateHook(target, detourFn, original);
         if (status != MH_OK)
         {
-            LOGC(Error, kCategory, "MH_CreateHook(0x%X) failed: %s", fmt::ptr(target), MH_StatusToString(status));
+            LOGC(Error, kCategory, "MH_CreateHook(0x%X) failed: %s", fmt::ptr(target),
+                 MH_StatusToString(status));
             return false;
         }
 
         status = MH_EnableHook(target);
         if (status != MH_OK)
         {
-            LOGC(Error, kCategory, "MH_EnableHook(0x%X) failed: %s", fmt::ptr(target), MH_StatusToString(status));
+            LOGC(Error, kCategory, "MH_EnableHook(0x%X) failed: %s", fmt::ptr(target),
+                 MH_StatusToString(status));
             MH_RemoveHook(target);
             return false;
         }
@@ -67,21 +69,39 @@ namespace hooks::detour
         return true;
     }
 
-    bool remove(void* target)
+    bool disable(void* target)
     {
         if (!target)
             return false;
 
-        MH_STATUS status = MH_DisableHook(target);
-        if (status != MH_OK && status != MH_ERROR_NOT_CREATED)
-            LOGC(Warn, kCategory, "MH_DisableHook(0x%X) failed: %s", fmt::ptr(target), MH_StatusToString(status));
-
-        status = MH_RemoveHook(target);
+        const MH_STATUS status = MH_DisableHook(target);
         if (status != MH_OK && status != MH_ERROR_NOT_CREATED)
         {
-            LOGC(Warn, kCategory, "MH_RemoveHook(0x%X) failed: %s", fmt::ptr(target), MH_StatusToString(status));
+            LOGC(Warn, kCategory, "MH_DisableHook(0x%X) failed: %s", fmt::ptr(target),
+                 MH_StatusToString(status));
             return false;
         }
         return true;
+    }
+
+    bool release(void* target)
+    {
+        if (!target)
+            return false;
+
+        const MH_STATUS status = MH_RemoveHook(target);
+        if (status != MH_OK && status != MH_ERROR_NOT_CREATED)
+        {
+            LOGC(Warn, kCategory, "MH_RemoveHook(0x%X) failed: %s", fmt::ptr(target),
+                 MH_StatusToString(status));
+            return false;
+        }
+        return true;
+    }
+
+    bool remove(void* target)
+    {
+        disable(target);
+        return release(target);
     }
 }

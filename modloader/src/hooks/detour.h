@@ -10,6 +10,13 @@ namespace hooks::detour
     // MinHook is initialized lazily on the first create(), so there is no separate init step.
     bool create(void* target, void* detourFn, void** original);
 
-    // Disable and remove a hook previously installed on `target`.
+    // Restore the prologue; the trampoline stays alive for threads still inside the detour.
+    bool disable(void* target);
+
+    // Frees the trampoline. Releasing while a thread is still inside the detour jumps into freed
+    // code and kills the game (no SEH on mingw): disable, drain (util/inflight.h), then release.
+    bool release(void* target);
+
+    // Coupled disable + release. Only where nothing can be in flight, i.e. install rollback.
     bool remove(void* target);
 }

@@ -1,6 +1,7 @@
 #include "hooks/dinput.h"
 #include "hooks/detour.h"
 #include "core/log.h"
+#include "util/inflight.h"
 
 #define DIRECTINPUT_VERSION 0x0800
 #include <windows.h>
@@ -15,8 +16,8 @@ namespace hooks::dinput
     namespace
     {
         constexpr char kCategory[] = "dinput";
-        constexpr std::size_t kGetDeviceStateSlot = 9; // IDirectInputDevice8 vtable: Acquire 7, Unacquire 8, GetDeviceState 9
-        constexpr DWORD kTeardownDrainMs = 30;
+        constexpr std::size_t kGetDeviceStateSlot =
+            9; // IDirectInputDevice8 vtable: Acquire 7, Unacquire 8, GetDeviceState 9
         // Buffer size tells the devices apart: the game reads its keyboard as 256 bytes and its mouse as
         // a DIMOUSESTATE (0x10) / DIMOUSESTATE2 (0x14). Nothing else is polled.
         constexpr DWORD kMouseStateMaxBytes = 0x14;
@@ -45,7 +46,7 @@ namespace hooks::dinput
         // 256 byte keyboard state and the DIMOUSESTATE, so one memset covers every device.
         HRESULT WINAPI hkGetDeviceState(IDirectInputDevice8W* device, DWORD cbData, LPVOID lpvData)
         {
-            g_inFlight.fetch_add(1);
+            barrier::InFlight inflight(g_inFlight);
             const HRESULT hr = g_origGetDeviceState(device, cbData, lpvData);
 
             if (SUCCEEDED(hr) && lpvData && cbData)
@@ -70,7 +71,6 @@ namespace hooks::dinput
                     std::memset(lpvData, 0, cbData);
             }
 
-            g_inFlight.fetch_sub(1);
             return hr;
         }
 
@@ -79,11 +79,13 @@ namespace hooks::dinput
         void** acquireVtable()
         {
             IDirectInput8W* factory = nullptr;
-            const HRESULT created = DirectInput8Create(GetModuleHandleW(nullptr), DIRECTINPUT_VERSION,
-                                                       IID_IDirectInput8W, reinterpret_cast<void**>(&factory), nullptr);
+            const HRESULT created =
+                DirectInput8Create(GetModuleHandleW(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W,
+                                   reinterpret_cast<void**>(&factory), nullptr);
             if (FAILED(created) || factory == nullptr)
             {
-                LOGC(Error, kCategory, "DirectInput8Create failed (hr 0x%08X)", static_cast<unsigned>(created));
+                LOGC(Error, kCategory, "DirectInput8Create failed (hr 0x%08X)",
+                     static_cast<unsigned>(created));
                 return nullptr;
             }
 
@@ -96,7 +98,8 @@ namespace hooks::dinput
                 probe->Release();
             }
             else
-                LOGC(Error, kCategory, "probe CreateDevice(SysMouse) failed (hr 0x%08X)", static_cast<unsigned>(device));
+                LOGC(Error, kCategory, "probe CreateDevice(SysMouse) failed (hr 0x%08X)",
+                     static_cast<unsigned>(device));
 
             factory->Release();
             return vtable;
@@ -112,7 +115,8 @@ namespace hooks::dinput
         void** vtable = acquireVtable();
         if (!vtable)
         {
-            LOGC(Warn, kCategory, "could not obtain the DirectInput device vtable; game input will not be blocked");
+            LOGC(Warn, kCategory,
+                 "could not obtain the DirectInput device vtable; game input will not be blocked");
             return false;
         }
 
@@ -126,7 +130,8 @@ namespace hooks::dinput
         }
 
         g_installed = true;
-        LOGC(Debug, kCategory, "GetDeviceState hooked (slot %zu); zeroes the game's input while the menu is open",
+        LOGC(Debug, kCategory,
+             "GetDeviceState hooked (slot %zu); zeroes the game's input while the menu is open",
              kGetDeviceStateSlot);
         return true;
     }
@@ -139,11 +144,9 @@ namespace hooks::dinput
         g_blocked.store(false); // never leave the game's input zeroed if we unload while a menu is open
         g_mouseSettle.store(0);
 
-        // Close the hook path, then drain before MinHook frees the trampoline. mingw has no SEH, so an
-        // in flight GetDeviceState call is an inherent (tiny) window.
-        detour::remove(g_getDeviceStateTarget);
-        while (g_inFlight.load() > 0)
-            Sleep(kTeardownDrainMs);
+        detour::disable(g_getDeviceStateTarget);
+        barrier::drain(g_inFlight, "dinput GetDeviceState");
+        detour::release(g_getDeviceStateTarget);
 
         g_origGetDeviceState = nullptr;
         g_getDeviceStateTarget = nullptr;

@@ -1,6 +1,4 @@
 #pragma once
-// Built in game function detours: a registry of hand written detours (one per CubeHook, each in its
-// own builtin/<hook>.cpp) that the bus arms/disarms on subscriber refcount edges.
 #include "cube_sdk.h"
 
 #include <atomic>
@@ -16,6 +14,8 @@ namespace game::gamehooks
     void setBuiltinActive(CubeHook hook, bool on);
     // Disarm the detour backing `hook` (last holder), with a short drain for an in flight call.
     void disarmBuiltin(CubeHook hook);
+    // Complete any disarm that was deferred because it was requested from inside its own detour.
+    void flushPendingDisarms();
     // Remove any still installed built in detour (loader teardown sweep).
     void shutdownBuiltin();
 
@@ -35,5 +35,24 @@ namespace game::gamehooks
         void registerDef(const Def& def);
         // Per hook in flight counter, bumped around each detour body so disarm can drain it.
         std::atomic<int>& inFlight(CubeHook hook);
+
+        // Scoped marker for a detour body: bumps inFlight and records that THIS thread is inside the
+        // detour. A handler that detaches its own hook would otherwise drain against its own frame,
+        // stalling the game thread for the full bounded wait and then freeing the trampoline it is
+        // still executing in.
+        class Dispatching
+        {
+        public:
+            explicit Dispatching(CubeHook hook);
+            ~Dispatching();
+
+            Dispatching(const Dispatching&) = delete;
+            Dispatching& operator=(const Dispatching&) = delete;
+
+        private:
+            CubeHook m_hook;
+        };
+
+        bool insideDetour(CubeHook hook);
     }
 }

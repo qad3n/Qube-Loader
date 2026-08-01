@@ -4,6 +4,7 @@
 #include "core/log.h"
 #include "core/mem.h"
 #include "util/fmt.h"
+#include "util/inflight.h"
 
 #include <atomic>
 #include <cstddef>
@@ -14,7 +15,6 @@ namespace hooks::d3d9
     {
         constexpr char kCategory[] = "d3d9";
         constexpr char kProbeClass[] = "CubeModD3DProbe";
-        constexpr DWORD kTeardownDrainMs = 100;
         constexpr int kProbeWindowSize = 64;
 
         // IDirect3DDevice9 vtable slots we intercept (stable across d3d9 and Wine).
@@ -34,6 +34,7 @@ namespace hooks::d3d9
         EndSceneFn g_origEndScene = nullptr; // MinHook trampoline
         ResetFn g_origReset = nullptr;
         std::atomic<bool> g_active{false};
+        std::atomic<int> g_inFlight{0};
         bool g_windowHooked = false; // render thread only
 
         // Borderless coercion state (render thread only). The game runs in D3D9 EXCLUSIVE fullscreen,
@@ -68,7 +69,8 @@ namespace hooks::d3d9
                 g_styleSaved = true;
             }
 
-            const LONG_PTR newStyle = (style & ~static_cast<LONG_PTR>(WS_OVERLAPPEDWINDOW)) | WS_POPUP | WS_VISIBLE;
+            const LONG_PTR newStyle =
+                (style & ~static_cast<LONG_PTR>(WS_OVERLAPPEDWINDOW)) | WS_POPUP | WS_VISIBLE;
             const LONG_PTR newExStyle = exStyle & ~static_cast<LONG_PTR>(WS_EX_TOPMOST);
             SetWindowLongPtrA(hwnd, GWL_STYLE, newStyle);
             SetWindowLongPtrA(hwnd, GWL_EXSTYLE, newExStyle);
@@ -84,8 +86,11 @@ namespace hooks::d3d9
             // steal focus, SWP_FRAMECHANGED so the style change takes effect.
             SetWindowPos(hwnd, HWND_NOTOPMOST, mon.left, mon.top, mon.right - mon.left, mon.bottom - mon.top,
                          SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-            LOGC(Info, kCategory, "forced borderless windowed on hwnd 0x%X (%ldx%ld) to fix exclusive-fullscreen alt-tab/minimize/freeze",
-                 fmt::ptr(hwnd), static_cast<long>(mon.right - mon.left), static_cast<long>(mon.bottom - mon.top));
+            LOGC(Info, kCategory,
+                 "forced borderless windowed on hwnd 0x%X (%ldx%ld) to fix exclusive-fullscreen "
+                 "alt-tab/minimize/freeze",
+                 fmt::ptr(hwnd), static_cast<long>(mon.right - mon.left),
+                 static_cast<long>(mon.bottom - mon.top));
         }
 
         void restoreWindowStyle()
@@ -119,6 +124,7 @@ namespace hooks::d3d9
 
         HRESULT WINAPI hkEndScene(IDirect3DDevice9* device)
         {
+            barrier::InFlight inflight(g_inFlight);
             if (g_active.load())
             {
                 ensureWindowHook(device);
@@ -137,6 +143,7 @@ namespace hooks::d3d9
 
         HRESULT WINAPI hkReset(IDirect3DDevice9* device, D3DPRESENT_PARAMETERS* pp)
         {
+            barrier::InFlight inflight(g_inFlight);
             // Force borderless windowed: if the game is resetting into exclusive fullscreen, flip the
             // present params to windowed so the device never takes exclusive mode again. The game already
             // sized the back buffer to the target resolution, so we leave BackBufferWidth/Height alone and
@@ -180,9 +187,9 @@ namespace hooks::d3d9
                 return false;
             }
 
-            HWND probeWnd = CreateWindowExA(0, kProbeClass, kProbeClass, WS_OVERLAPPEDWINDOW,
-                                            0, 0, kProbeWindowSize, kProbeWindowSize,
-                                            nullptr, nullptr, self, nullptr);
+            HWND probeWnd =
+                CreateWindowExA(0, kProbeClass, kProbeClass, WS_OVERLAPPEDWINDOW, 0, 0, kProbeWindowSize,
+                                kProbeWindowSize, nullptr, nullptr, self, nullptr);
             if (probeWnd == nullptr)
             {
                 LOGC(Error, kCategory, "probe window creation failed");
@@ -204,11 +211,12 @@ namespace hooks::d3d9
             // environment detail that explains an overlay problem on a given machine.
             D3DADAPTER_IDENTIFIER9 adapter = {};
             if (SUCCEEDED(d3d->GetAdapterIdentifier(D3DADAPTER_DEFAULT, 0, &adapter)))
-                LOGC(Info, kCategory, "D3D9 adapter: %s | driver %s %u.%u.%u.%u | vendor 0x%04X device 0x%04X",
-                     adapter.Description, adapter.Driver,
-                     HIWORD(adapter.DriverVersion.HighPart), LOWORD(adapter.DriverVersion.HighPart),
-                     HIWORD(adapter.DriverVersion.LowPart), LOWORD(adapter.DriverVersion.LowPart),
-                     static_cast<unsigned>(adapter.VendorId), static_cast<unsigned>(adapter.DeviceId));
+                LOGC(Info, kCategory,
+                     "D3D9 adapter: %s | driver %s %u.%u.%u.%u | vendor 0x%04X device 0x%04X",
+                     adapter.Description, adapter.Driver, HIWORD(adapter.DriverVersion.HighPart),
+                     LOWORD(adapter.DriverVersion.HighPart), HIWORD(adapter.DriverVersion.LowPart),
+                     LOWORD(adapter.DriverVersion.LowPart), static_cast<unsigned>(adapter.VendorId),
+                     static_cast<unsigned>(adapter.DeviceId));
 
             D3DPRESENT_PARAMETERS pp = {};
             pp.Windowed = TRUE;
@@ -234,7 +242,8 @@ namespace hooks::d3d9
                     g_resetTarget = vtable[slotIndex(Slot::Reset)];
                 }
                 else
-                    LOGC(Error, kCategory, "device vtable unreadable (nonstandard d3d9 wrapper?); overlay disabled");
+                    LOGC(Error, kCategory,
+                         "device vtable unreadable (nonstandard d3d9 wrapper?); overlay disabled");
                 probeDev->Release();
             }
             else
@@ -286,7 +295,8 @@ namespace hooks::d3d9
         }
 
         g_active.store(true);
-        LOGC(Debug, kCategory, "hooked EndScene (slot %u) and Reset (slot %u) via MinHook", static_cast<unsigned>(slotIndex(Slot::EndScene)), static_cast<unsigned>(slotIndex(Slot::Reset)));
+        LOGC(Debug, kCategory, "hooked EndScene (slot %u) and Reset (slot %u) via MinHook",
+             static_cast<unsigned>(slotIndex(Slot::EndScene)), static_cast<unsigned>(slotIndex(Slot::Reset)));
         return true;
     }
 
@@ -295,14 +305,14 @@ namespace hooks::d3d9
         if (!g_active.load())
             return;
 
-        // Close the hook path, then drain before MinHook frees the trampolines (hooks still tail call
-        // the trampoline when inactive). wine: mingw has no SEH, so the in flight window is inherent.
         g_active.store(false);
         restoreWindowStyle(); // put the game's own window style back before we drop the WndProc hook
         hooks::window::restore();
-        Sleep(kTeardownDrainMs);
-        detour::remove(g_endSceneTarget);
-        detour::remove(g_resetTarget);
+        detour::disable(g_endSceneTarget);
+        detour::disable(g_resetTarget);
+        barrier::drain(g_inFlight, "d3d9 EndScene/Reset");
+        detour::release(g_endSceneTarget);
+        detour::release(g_resetTarget);
         // MinHook shutdown lives in loader teardown (shared with input_block), not here.
 
         g_origEndScene = nullptr;

@@ -1,6 +1,5 @@
 #include "game/gamehooks/builtin/builtin.h"
 #include "game/gamehooks/gamehooks.h"
-#include "game/signature.h"
 #include "hooks/detour.h"
 #include "core/mem.h"
 #include "core/log.h"
@@ -25,6 +24,12 @@ namespace game::gamehooks
         // dispatch gate (Def::active): a detour can be installed yet pass through (a reservation with
         // no subscriber), so "installed" tracks the hook and "active" tracks whether handlers run.
         std::atomic<bool> g_installed[CUBE_HOOK_COUNT];
+
+        // Set when a disarm is requested from inside the hook's own detour; flushed from a thread that
+        // is not executing it (next arm, or the teardown sweep).
+        std::atomic<bool> g_pendingDisarm[CUBE_HOOK_COUNT];
+
+        thread_local int g_detourDepth[CUBE_HOOK_COUNT];
 
         // Function local (Meyers) so registration from any TU's static init is order safe.
         std::vector<builtin::Def>& defs()
@@ -66,10 +71,29 @@ namespace game::gamehooks
         {
             return g_inFlight[hook];
         }
+
+        Dispatching::Dispatching(CubeHook hook) : m_hook(hook)
+        {
+            ++g_detourDepth[hook];
+            g_inFlight[hook].fetch_add(1, std::memory_order_acq_rel);
+        }
+
+        Dispatching::~Dispatching()
+        {
+            g_inFlight[m_hook].fetch_sub(1, std::memory_order_acq_rel);
+            --g_detourDepth[m_hook];
+        }
+
+        bool insideDetour(CubeHook hook)
+        {
+            return g_detourDepth[hook] > 0;
+        }
     }
 
     bool armBuiltin(CubeHook hook)
     {
+        flushPendingDisarms();
+
         const builtin::Def* def = defOf(hook);
 
         if (!def)
@@ -81,28 +105,21 @@ namespace game::gamehooks
         if (g_installed[hook].load())
             return true;
 
-        // Refuse to patch a target whose bytes do not match the RE target build: on a different
-        // Cube.exe the pinned address is mid function and hooking it would corrupt the game.
-        if (!signature::verifyTarget(def->target))
-        {
-            LOGC(Warn, kCategory, "built-in hook %s NOT armed: build signature mismatch at static 0x%X (wrong Cube.exe)",
-                 hookName(hook), fmt::ptr(reinterpret_cast<void*>(def->target)));
-            return false;
-        }
-
         void* target = rebasePtr(def->target);
 
         if (!hooks::detour::create(target, def->detour, def->original))
         {
-            LOGC(Warn, kCategory, "built-in hook %s failed to arm at 0x%X (static 0x%X)",
-                 hookName(hook), fmt::ptr(target), fmt::ptr(reinterpret_cast<void*>(def->target)));
+            LOGC(Warn, kCategory, "built-in hook %s failed to arm at 0x%X (static 0x%X)", hookName(hook),
+                 fmt::ptr(target), fmt::ptr(reinterpret_cast<void*>(def->target)));
             return false;
         }
 
         // Installed but NOT active: the detour runs the original untouched (pass through) until a real
         // subscriber flips the dispatch gate. This keeps an observation reservation vanilla.
         g_installed[hook].store(true, std::memory_order_release);
-        LOGC(Debug, kCategory, "armed built-in hook %s at 0x%X (static 0x%X, trampoline 0x%X)", hookName(hook), fmt::ptr(target), fmt::ptr(reinterpret_cast<void*>(def->target)), fmt::ptr(*def->original));
+        LOGC(Debug, kCategory, "armed built-in hook %s at 0x%X (static 0x%X, trampoline 0x%X)",
+             hookName(hook), fmt::ptr(target), fmt::ptr(reinterpret_cast<void*>(def->target)),
+             fmt::ptr(*def->original));
         return true;
     }
 
@@ -119,14 +136,35 @@ namespace game::gamehooks
         if (!def || !g_installed[hook].load())
             return;
 
-        def->active->store(false, std::memory_order_release); // stop dispatching (pass through) first
-        g_installed[hook].store(false, std::memory_order_release);
-        barrier::drain(g_inFlight[def->hook], hookName(hook)); // wait out any in flight call
-        hooks::detour::remove(rebasePtr(def->target));
+        // Requested by a handler detaching its own hook: the gate closes now (pass through, so the
+        // game is vanilla), but freeing the trampoline has to wait until this thread has left it.
+        if (builtin::insideDetour(hook))
+        {
+            def->active->store(false, std::memory_order_release);
+            g_pendingDisarm[hook].store(true, std::memory_order_release);
+            return;
+        }
 
+        def->active->store(false, std::memory_order_release);
+        g_installed[hook].store(false, std::memory_order_release);
+        void* const hooked = rebasePtr(def->target);
+        hooks::detour::disable(hooked);
+        barrier::drain(g_inFlight[def->hook], hookName(hook));
+        hooks::detour::release(hooked);
+
+        g_pendingDisarm[hook].store(false, std::memory_order_release);
         *def->original = nullptr;
         LOGC(Debug, kCategory, "disarmed built-in hook %s at 0x%X", hookName(hook),
              fmt::ptr(rebasePtr(def->target)));
+    }
+
+    void flushPendingDisarms()
+    {
+        for (const builtin::Def& def : defs())
+        {
+            if (g_pendingDisarm[def.hook].load(std::memory_order_acquire) && !builtin::insideDetour(def.hook))
+                disarmBuiltin(def.hook);
+        }
     }
 
     void shutdownBuiltin()

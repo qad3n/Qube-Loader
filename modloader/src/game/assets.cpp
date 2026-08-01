@@ -1,6 +1,5 @@
 #include "game/assets.h"
 #include "game/assetcodec.h"
-#include "game/signature.h"
 #include "game/offsets.h"
 #include "hooks/detour.h"
 #include "core/mem.h"
@@ -23,20 +22,22 @@ namespace game::assets
     {
         constexpr char kCategory[] = "assets";
         constexpr char kRawExtension[] = ".cub"; // data1 is stored un obfuscated; all other DBs reencode
-        constexpr uint32_t kMaxKeyLength = 260;  // filename key upper bound (bounds the guarded string read)
+        constexpr uint32_t kMaxKeyLength = 260; // filename key upper bound (bounds the guarded string read)
         constexpr int32_t kMaxBlobBytes = 64 * 1024 * 1024; // sanity cap on a single override blob
-        constexpr uint8_t kSelfTestLen = 64;     // codec round trip sample size
-        constexpr uint8_t kSelfTestStep = 7;     // arbitrary non trivial byte pattern for the self test
+        constexpr uint8_t kSelfTestLen = 64; // codec round trip sample size
+        constexpr uint8_t kSelfTestStep = 7; // arbitrary non trivial byte pattern for the self test
 
         // db::loadBlobByKey is __thiscall(Database* this, std::string* key, void** outBlob, size_t*
         // outSize). On mingw a __thiscall with stack args is ABI identical to __fastcall(self, edx, ...):
         // ECX is self, EDX is an unused dummy, and the three stack args follow.
-        typedef uint32_t(__fastcall* LoadBlobFn)(void* self, void* edx, void* key, void** outBlob, uint32_t* outSize);
+        typedef uint32_t(__fastcall* LoadBlobFn)(void* self, void* edx, void* key, void** outBlob,
+                                                 uint32_t* outSize);
         typedef void*(__cdecl* OperatorNewFn)(uint32_t size);
 
         std::mutex g_mutex;
+        std::mutex g_installMutex; // serializes install/remove; g_mutex only covers g_overrides
         std::map<std::string, std::vector<uint8_t>> g_overrides; // key (filename) to plaintext bytes
-        int32_t g_key[off::kBlobShuffleKeyCount] = {};           // shuffle key, loaded from .rdata at install
+        int32_t g_key[off::kBlobShuffleKeyCount] = {}; // shuffle key, loaded from .rdata at install
 
         LoadBlobFn g_original = nullptr;
         std::atomic<bool> g_active{false};
@@ -75,7 +76,8 @@ namespace game::assets
         {
             uint32_t size = 0;
             uint32_t cap = 0;
-            if (!mem::read(obj + off::kStdStringSizeOff, size) || !mem::read(obj + off::kStdStringCapOff, cap))
+            if (!mem::read(obj + off::kStdStringSizeOff, size) ||
+                !mem::read(obj + off::kStdStringCapOff, cap))
                 return false;
             if (size == 0 || size > kMaxKeyLength)
                 return false;
@@ -144,10 +146,8 @@ namespace game::assets
                 // Isolate a CPU fault in the override path (this runs on the game's asset streaming
                 // thread at load). On a fault handled stays false and we fall through to the original
                 // read below, the game loads the vanilla blob and keeps running.
-                guard::tryRunLoader("asset override", [&]()
-                {
-                    handled = tryOverride(keyStr, outBlob, outSize, result);
-                });
+                guard::tryRunLoader("asset override",
+                                    [&]() { handled = tryOverride(keyStr, outBlob, outSize, result); });
                 if (handled)
                     return result;
             }
@@ -178,20 +178,19 @@ namespace game::assets
 
     bool install()
     {
+        // Two mods registering their first override concurrently would otherwise both patch.
+        std::lock_guard<std::mutex> lock(g_installMutex);
         if (g_installed)
             return true;
-        if (!signature::compatibleBuild())
-        {
-            LOGC(Warn, kCategory, "asset injection disabled (Cube.exe build mismatch)");
-            return false;
-        }
         if (!loadKeyTable() || !selfTest())
         {
-            LOGC(Warn, kCategory, "asset injection disabled (codec key @0x%08X unavailable or self-test failed)",
+            LOGC(Warn, kCategory,
+                 "asset injection disabled (codec key @0x%08X unavailable or self-test failed)",
                  fmt::u32(off::kBlobShuffleKey));
             return false;
         }
-        if (!hooks::detour::create(target(), reinterpret_cast<void*>(&detour), reinterpret_cast<void**>(&g_original)))
+        if (!hooks::detour::create(target(), reinterpret_cast<void*>(&detour),
+                                   reinterpret_cast<void**>(&g_original)))
         {
             LOGC(Warn, kCategory, "asset injection detour failed to install");
             return false;
@@ -205,12 +204,15 @@ namespace game::assets
 
     void remove()
     {
+        std::lock_guard<std::mutex> installLock(g_installMutex);
         if (!g_installed)
             return;
 
-        g_active.store(false, std::memory_order_release); // flip to pass through first
-        barrier::drain(g_inFlight, kCategory);             // drain in flight calls before unpatching
-        hooks::detour::remove(target());
+        g_active.store(false, std::memory_order_release);
+        void* const hooked = target();
+        hooks::detour::disable(hooked);
+        barrier::drain(g_inFlight, kCategory);
+        hooks::detour::release(hooked);
         g_original = nullptr;
         g_installed = false;
 
@@ -218,9 +220,11 @@ namespace game::assets
         g_overrides.clear();
     }
 
+    // Whether an override can actually take effect: the codec key must load, the self test must pass,
+    // and the detour must install.
     bool available()
     {
-        return signature::compatibleBuild();
+        return install();
     }
 
     bool setOverride(const std::string& key, const void* data, int32_t size)
@@ -235,8 +239,8 @@ namespace game::assets
 
         // Demand driven: the loadBlobByKey detour goes in when the FIRST override exists, not at setup,
         // so a session with no asset override leaves the game unpatched. install() is idempotent.
-        install();
-        return true;
+        // Its result is the caller's answer: a stored override with no detour behind it never applies.
+        return install();
     }
 
     bool removeOverride(const std::string& key)

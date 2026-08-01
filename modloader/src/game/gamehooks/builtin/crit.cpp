@@ -21,7 +21,7 @@ namespace game::gamehooks
 
         char __fastcall critDetour(void* self, void* edx)
         {
-            barrier::InFlight inflight(builtin::inFlight(CUBE_HOOK_CRIT_ROLL));
+            builtin::Dispatching inflight(CUBE_HOOK_CRIT_ROLL);
             const char real = g_critOrig ? g_critOrig(self, edx) : 0;
             char result = real; // vanilla roll stands unless a mod handler explicitly overrides it
 
@@ -52,8 +52,8 @@ namespace game::gamehooks
             Registrar()
             {
                 builtin::registerDef(builtin::Def{CUBE_HOOK_CRIT_ROLL, off::kCritRollFn,
-                    reinterpret_cast<void*>(&critDetour),
-                    reinterpret_cast<void**>(&g_critOrig), &g_critActive});
+                                                  reinterpret_cast<void*>(&critDetour),
+                                                  reinterpret_cast<void**>(&g_critOrig), &g_critActive});
             }
         };
         const Registrar g_registrar;
