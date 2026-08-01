@@ -3,7 +3,9 @@
 #include "hooks/d3d9_hook.h"
 #include "hooks/input_block.h"
 #include "core/log.h"
+#include "loader/core/owner_name.h"
 #include "util/guard.h"
+#include "util/inflight.h"
 
 #include "imgui.h"
 #include "imgui_impl_dx9.h"
@@ -18,7 +20,8 @@
 
 // Forward declared per the imgui_impl_win32.h instructions (kept in a '#if 0' block there to avoid
 // pulling <windows.h> into the header).
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam,
+                                                             LPARAM lParam);
 
 namespace modloader::overlay
 {
@@ -26,7 +29,6 @@ namespace modloader::overlay
     {
         constexpr char kCategory[] = "overlay";
         constexpr LPARAM kKeyRepeatMask = 0x40000000; // WM_KEYDOWN lParam bit 30: key already down
-        constexpr DWORD kDrainMs = 32; // let an in flight frame finish before an owner's code is freed
         constexpr int kMaxMenuFaults = 8; // disable a menu that keeps throwing, so it can't burn CPU/log
         // ImGui's clocks (double click, key repeat, tooltip delay, animations) run off io.DeltaTime.
         // The Win32 backend derives it from wall clock, so the first frame after the menu reopens would
@@ -48,6 +50,28 @@ namespace modloader::overlay
         };
 
         std::mutex g_mutex; // guards g_menus / g_nextHandle / g_token / g_armed
+        std::atomic<int> g_drawInFlight{0};
+        std::atomic<bool> g_enabled{true};
+        std::atomic<bool> g_shutdown{false};
+
+        bool acceptingMenus(const CubeApi* owner)
+        {
+            if (!g_enabled.load(std::memory_order_acquire))
+            {
+                LOGC(Warn, kCategory, "'%s' menu refused: overlay disabled by config (overlay=0 safe mode)",
+                     ownerName(owner));
+                return false;
+            }
+            // Re-arming from a SHUTDOWN handler would reinstall the D3D9 hook and WndProc subclass
+            // that nothing tears down again, leaving the window proc in unmapped memory after eject.
+            if (g_shutdown.load(std::memory_order_acquire))
+            {
+                LOGC(Warn, kCategory, "'%s' menu refused: the overlay is already shut down",
+                     ownerName(owner));
+                return false;
+            }
+            return true;
+        }
         std::vector<Menu> g_menus;
         uint32_t g_nextHandle = 1; // 0 is the invalid handle
         hooks::render::Token g_token = hooks::render::kInvalidToken;
@@ -89,6 +113,14 @@ namespace modloader::overlay
             return nullptr;
         }
 
+        // Handles are sequential, so without the owner check a mod could drive another mod's menus
+        // by guessing one.
+        Menu* findOwnedLocked(const CubeApi* owner, uint32_t handle)
+        {
+            Menu* m = findLocked(handle);
+            return (m && m->owner == owner) ? m : nullptr;
+        }
+
         // Refresh the cached aggregates (any visible / any interactive) from the current menu set and
         // push the input freeze on a change edge. Scans once under the lock, then calls the hook outside
         // it (never hold g_mutex across a hook call). Called on every visibility/passthrough change, so
@@ -97,6 +129,9 @@ namespace modloader::overlay
         {
             bool anyVisible = false;
             bool anyInteractive = false;
+            // A failed ImGui init draws nothing, so treating menus as visible here would freeze the
+            // game behind an overlay that can never appear or be toggled away.
+            if (!g_initFailed.load())
             {
                 std::lock_guard<std::mutex> lock(g_mutex);
                 for (const Menu& m : g_menus)
@@ -132,7 +167,8 @@ namespace modloader::overlay
                 {
                     m->fn = nullptr; // disabled: the snapshot + aggregate scans skip fn == nullptr
                     disabled = true;
-                    LOGC(Warn, kCategory, "menu %u disabled after %d draw faults (owner mod broken)", handle, m->faults);
+                    LOGC(Warn, kCategory, "menu %u disabled after %d draw faults (owner mod broken)", handle,
+                         m->faults);
                 }
             }
             // Refresh outside the lock: a disabled menu no longer counts as visible/interactive, so if it
@@ -276,10 +312,21 @@ namespace modloader::overlay
         {
             switch (msg)
             {
-                case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK: case WM_LBUTTONUP: return 1u << 0;
-                case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK: case WM_RBUTTONUP: return 1u << 1;
-                case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK: case WM_MBUTTONUP: return 1u << 2;
-                case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK: case WM_XBUTTONUP:
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONDBLCLK:
+                case WM_LBUTTONUP:
+                    return 1u << 0;
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONDBLCLK:
+                case WM_RBUTTONUP:
+                    return 1u << 1;
+                case WM_MBUTTONDOWN:
+                case WM_MBUTTONDBLCLK:
+                case WM_MBUTTONUP:
+                    return 1u << 2;
+                case WM_XBUTTONDOWN:
+                case WM_XBUTTONDBLCLK:
+                case WM_XBUTTONUP:
                     return (GET_XBUTTON_WPARAM(wParam) == XBUTTON1) ? (1u << 3) : (1u << 4);
                 default:
                     return 0;
@@ -290,10 +337,14 @@ namespace modloader::overlay
         {
             switch (msg)
             {
-                case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
-                case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
-                case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
-                case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONDBLCLK:
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONDBLCLK:
+                case WM_MBUTTONDOWN:
+                case WM_MBUTTONDBLCLK:
+                case WM_XBUTTONDOWN:
+                case WM_XBUTTONDBLCLK:
                     return true;
                 default:
                     return false;
@@ -304,6 +355,7 @@ namespace modloader::overlay
 
         void CUBE_CALL onRender(IDirect3DDevice9* device)
         {
+            barrier::InFlight inflight(g_drawInFlight);
             if (!g_ready.load())
             {
                 if (g_initFailed.load())
@@ -312,7 +364,9 @@ namespace modloader::overlay
                 if (!initImGui(device, hooks::d3d9::window()))
                 {
                     g_initFailed.store(true);
-                    hooks::input_block::setBlocked(false); // never leave the game frozen with no menu
+                    // Through the edge tracker, or it stays stale and the next edge misfires.
+                    if (g_inputBlocked.exchange(false))
+                        hooks::input_block::setBlocked(false);
                     LOGC(Error, kCategory, "ImGui init failed; overlay disabled this session");
                     return;
                 }
@@ -458,10 +512,19 @@ namespace modloader::overlay
 
     }
 
+    void setEnabled(bool enabled)
+    {
+        g_enabled.store(enabled, std::memory_order_release);
+    }
+
     uint32_t registerMenu(const CubeApi* owner, DrawFn fn, void* user, uint32_t toggleKey, bool startOpen)
     {
         if (!owner || !fn)
             return 0;
+
+        if (!acceptingMenus(owner))
+            return 0;
+
         uint32_t handle = 0;
         bool needArm = false;
         {
@@ -485,6 +548,20 @@ namespace modloader::overlay
             callbacks.onDeviceReset = &onDeviceReset;
             callbacks.onWndProc = &onWndProc;
             const hooks::render::Token token = hooks::render::subscribe(callbacks);
+            if (token == hooks::render::kInvalidToken)
+            {
+                // No frame will ever run, so nothing would clear an input freeze this menu arms.
+                std::lock_guard<std::mutex> lock(g_mutex);
+                g_armed = false;
+                for (size_t i = g_menus.size(); i > 0; --i)
+                {
+                    if (g_menus[i - 1].handle == handle)
+                        g_menus.erase(g_menus.begin() + static_cast<std::ptrdiff_t>(i - 1));
+                }
+                LOGC(Error, kCategory, "'%s' menu refused: the D3D9 render dispatch failed to arm",
+                     ownerName(owner));
+                return 0;
+            }
             {
                 std::lock_guard<std::mutex> lock(g_mutex);
                 g_token = token;
@@ -536,19 +613,19 @@ namespace modloader::overlay
         if (removed)
         {
             syncAggregates();
-            // Called only on the unload (loader) thread, never from a draw. A frame already dispatching
-            // holds a snapshot of this owner's draw fn; drain it before the caller frees the mod's code.
+            // A dispatching frame holds a snapshot of this owner's draw fn and the caller frees its
+            // code the moment we return.
             if (armed)
-                Sleep(kDrainMs);
+                barrier::drain(g_drawInFlight, "overlay draw");
         }
     }
 
-    bool setVisible(uint32_t handle, bool visible)
+    bool setVisible(const CubeApi* owner, uint32_t handle, bool visible)
     {
         bool ok = false;
         {
             std::lock_guard<std::mutex> lock(g_mutex);
-            if (Menu* m = findLocked(handle))
+            if (Menu* m = findOwnedLocked(owner, handle))
             {
                 m->visible = visible;
                 ok = true;
@@ -566,10 +643,10 @@ namespace modloader::overlay
         return m && m->visible;
     }
 
-    bool setToggleKey(uint32_t handle, uint32_t vkey)
+    bool setToggleKey(const CubeApi* owner, uint32_t handle, uint32_t vkey)
     {
         std::lock_guard<std::mutex> lock(g_mutex);
-        if (Menu* m = findLocked(handle))
+        if (Menu* m = findOwnedLocked(owner, handle))
         {
             m->toggleKey = vkey;
             return true;
@@ -577,12 +654,12 @@ namespace modloader::overlay
         return false;
     }
 
-    bool setPassthrough(uint32_t handle, bool passthrough)
+    bool setPassthrough(const CubeApi* owner, uint32_t handle, bool passthrough)
     {
         bool ok = false;
         {
             std::lock_guard<std::mutex> lock(g_mutex);
-            if (Menu* m = findLocked(handle))
+            if (Menu* m = findOwnedLocked(owner, handle))
             {
                 m->passthrough = passthrough;
                 ok = true;
@@ -642,6 +719,8 @@ namespace modloader::overlay
 
     void shutdown()
     {
+        g_shutdown.store(true, std::memory_order_release);
+
         // Stop per frame delivery FIRST (drains an in flight frame) so no render callback runs while we
         // destroy the context, then release the freeze and tear ImGui down.
         hooks::render::Token token = hooks::render::kInvalidToken;

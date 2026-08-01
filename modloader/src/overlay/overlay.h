@@ -12,7 +12,12 @@
 
 namespace modloader::overlay
 {
-    typedef void (CUBE_CALL* DrawFn)(void* user); // runs between the loader's NewFrame and Render
+    typedef void(CUBE_CALL* DrawFn)(void* user); // runs between the loader's NewFrame and Render
+
+    // Safe mode gate (config overlay=0). Must be set before mods load: registerMenu arms the D3D9
+    // render dispatch on its own, so without this a mod registering a menu in its init re-installs
+    // the very hooks safe mode promises not to install.
+    void setEnabled(bool enabled);
 
     // Register a menu owned by `owner` (attributes faults + scopes unregisterOwner). Returns a nonzero
     // handle, 0 on bad args. Arms the overlay (subscribes to render_dispatch) on the first menu.
@@ -23,11 +28,11 @@ namespace modloader::overlay
     void unregisterOwner(const CubeApi* owner);
 
     // Per menu visibility + toggle key + HUD passthrough. setVisible recomputes the aggregate input
-    // freeze. Each returns false on an unknown handle.
-    bool setVisible(uint32_t handle, bool visible);
+    // freeze. Mutators require the menu to belong to `owner`; each returns false otherwise.
+    bool setVisible(const CubeApi* owner, uint32_t handle, bool visible);
     bool isVisible(uint32_t handle);
-    bool setToggleKey(uint32_t handle, uint32_t vkey);
-    bool setPassthrough(uint32_t handle, bool passthrough);
+    bool setToggleKey(const CubeApi* owner, uint32_t handle, uint32_t vkey);
+    bool setPassthrough(const CubeApi* owner, uint32_t handle, bool passthrough);
     bool passthrough(uint32_t handle);
 
     // Shared user UI scale (clamped [kMinUiScale, kMaxUiScale]) applied on top of the monitor DPI.

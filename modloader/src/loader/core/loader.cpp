@@ -10,6 +10,7 @@
 #include "api/context.h"
 #include "core/log.h"
 #include "core/paths.h"
+#include "core/faultguard.h"
 #include "util/guard.h"
 #include "cube_sdk.h"
 
@@ -29,13 +30,15 @@ namespace modloader
         constexpr char kInitExport[] = "CubeMod_Init";
         constexpr char kShutdownExport[] = "CubeMod_Shutdown";
 
+        // FindFirstFile matches "*.dll" case-insensitively, so the strip must be too: keeping ".DLL"
+        // in the stem would fork the mod's id, config, storage and strike record.
         std::string stemOf(const char* fileName)
         {
             std::string name = fileName;
-            const size_t dot = name.rfind(kDllSuffix);
+            constexpr size_t suffixLen = sizeof(kDllSuffix) - 1;
 
-            if (dot != std::string::npos && dot == name.size() - (sizeof(kDllSuffix) - 1))
-                name.erase(dot);
+            if (name.size() > suffixLen && _stricmp(name.c_str() + name.size() - suffixLen, kDllSuffix) == 0)
+                name.erase(name.size() - suffixLen);
 
             return name;
         }
@@ -62,6 +65,7 @@ namespace modloader
         game::gamehooks::unsubscribeOwner(api);
         services::unregisterOwner(api);
         modassets::dropOwner(ownerStem(api));
+        faultguard::clearQuarantine(api);
     }
 
     namespace
@@ -76,11 +80,12 @@ namespace modloader
                 return;
             }
 
-            CubeModInitFn init = reinterpret_cast<CubeModInitFn>(
-                reinterpret_cast<void*>(GetProcAddress(module, kInitExport)));
+            CubeModInitFn init =
+                reinterpret_cast<CubeModInitFn>(reinterpret_cast<void*>(GetProcAddress(module, kInitExport)));
             if (!init)
             {
-                LOGC(Warn, kCategory, "%s has no %s export; not a cube mod, skipping", stem.c_str(), kInitExport);
+                LOGC(Warn, kCategory, "%s has no %s export; not a cube mod, skipping", stem.c_str(),
+                     kInitExport);
                 FreeLibrary(module);
                 return;
             }
@@ -92,7 +97,8 @@ namespace modloader
 
             if (!api::fill(mod->context.api))
             {
-                LOGC(Warn, kCategory, "%s: CubeApi failed to initialize completely (see api errors above); skipping",
+                LOGC(Warn, kCategory,
+                     "%s: CubeApi failed to initialize completely (see api errors above); skipping",
                      stem.c_str());
                 FreeLibrary(module);
                 return;
@@ -104,15 +110,16 @@ namespace modloader
             CubeModInfo* info = nullptr;
             const std::string initLabel = std::string("mod '") + stem + "' init";
 
-            const bool initOk = guard::tryRun(initLabel.c_str(), &mod->context.api, [&]()
-            {
-                info = init(&mod->context.api);
-            });
+            const bool initOk = guard::tryRun(initLabel.c_str(), &mod->context.api,
+                                              [&]() { info = init(&mod->context.api); });
 
             if (!initOk)
             {
-                LOGC(Warn, kCategory, "%s: CubeMod_Init threw; unloading (its handlers were dropped)", stem.c_str());
-                modregistry::recordFault(stem);
+                LOGC(Warn, kCategory, "%s: CubeMod_Init threw; unloading (its handlers were dropped)",
+                     stem.c_str());
+                // A CPU fault already struck via faultguard::onFault; only strike the exception path.
+                if (!faultguard::isQuarantined(&mod->context.api))
+                    modregistry::recordFault(stem);
                 detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
@@ -122,7 +129,8 @@ namespace modloader
             // loader is older than the mod's ABI), not a crash, so it takes no fault strike.
             if (!info)
             {
-                conflict::error("mod '%s' declined to load; it is likely built against a newer ABI than v%u, so update the loader",
+                conflict::error("mod '%s' declined to load; it is likely built against a newer ABI than v%u, "
+                                "so update the loader",
                                 stem.c_str(), static_cast<unsigned>(CUBE_ABI_VERSION));
                 detachOwner(&mod->context.api);
                 FreeLibrary(module);
@@ -131,7 +139,8 @@ namespace modloader
 
             if (!info->name)
             {
-                LOGC(Warn, kCategory, "%s: CubeMod_Init returned info without a name; unloading", stem.c_str());
+                LOGC(Warn, kCategory, "%s: CubeMod_Init returned info without a name; unloading",
+                     stem.c_str());
                 detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
@@ -160,7 +169,8 @@ namespace modloader
                     mod->deps.push_back(dep);
                 }
             }
-            if (info->structSize >= offsetof(CubeModInfo, updateUrl) + sizeof(info->updateUrl) && info->updateUrl)
+            if (info->structSize >= offsetof(CubeModInfo, updateUrl) + sizeof(info->updateUrl) &&
+                info->updateUrl)
                 mod->updateUrl = info->updateUrl;
             mod->version = info->version ? info->version : "";
             mod->context.id = (declaredId && declaredId[0]) ? declaredId : stem;
@@ -171,9 +181,10 @@ namespace modloader
             if (mod->requiredAbi != 0 &&
                 (mod->requiredAbi < CUBE_MIN_ABI_VERSION || mod->requiredAbi > CUBE_ABI_VERSION))
             {
-                conflict::error("mod '%s' was built against ABI v%u, but this loader serves v%u..v%u; rebuild the mod",
-                                mod->context.id.c_str(), static_cast<unsigned>(mod->requiredAbi),
-                                static_cast<unsigned>(CUBE_MIN_ABI_VERSION), static_cast<unsigned>(CUBE_ABI_VERSION));
+                conflict::error(
+                    "mod '%s' was built against ABI v%u, but this loader serves v%u..v%u; rebuild the mod",
+                    mod->context.id.c_str(), static_cast<unsigned>(mod->requiredAbi),
+                    static_cast<unsigned>(CUBE_MIN_ABI_VERSION), static_cast<unsigned>(CUBE_ABI_VERSION));
                 detachOwner(&mod->context.api);
                 FreeLibrary(module);
                 return;
@@ -185,18 +196,24 @@ namespace modloader
             if (priorSameId > 0)
             {
                 mod->context.category = mod->context.id + "#" + std::to_string(priorSameId + 1);
-                conflict::error("two mods share id '%s'; loading both (as '%s' and '%s'). State keyed by id will collide and the game may crash or misbehave - give one a distinct id or remove it",
-                                mod->context.id.c_str(), mod->context.id.c_str(), mod->context.category.c_str());
+                conflict::error(
+                    "two mods share id '%s'; loading both (as '%s' and '%s'). State keyed by id will collide "
+                    "and the game may crash or misbehave - give one a distinct id or remove it",
+                    mod->context.id.c_str(), mod->context.id.c_str(), mod->context.category.c_str());
             }
             else
             {
                 mod->context.category = mod->context.id;
             }
-            mod->shutdown = reinterpret_cast<CubeModShutdownFn>(reinterpret_cast<void*>(GetProcAddress(module, kShutdownExport)));
+            mod->shutdown = reinterpret_cast<CubeModShutdownFn>(
+                reinterpret_cast<void*>(GetProcAddress(module, kShutdownExport)));
 
-            LOGC(Info, kCategory, "loaded %s v%s by %s", info->name, info->version ? info->version : "?", info->author ? info->author : "?");
+            LOGC(Info, kCategory, "loaded %s v%s by %s", info->name, info->version ? info->version : "?",
+                 info->author ? info->author : "?");
             const std::string handlers = modloader::events::describeOwner(&mod->context.api);
-            LOGC(Debug, kCategory, "  '%s': shutdown export %s; event handlers: %s", info->name, mod->shutdown ? "present" : "absent", handlers.empty() ? "none (inert unless it polls the API each frame)" : handlers.c_str());
+            LOGC(Debug, kCategory, "  '%s': shutdown export %s; event handlers: %s", info->name,
+                 mod->shutdown ? "present" : "absent",
+                 handlers.empty() ? "none (inert unless it polls the API each frame)" : handlers.c_str());
             loadedMods().push_back(std::move(mod));
         }
 
@@ -225,8 +242,7 @@ namespace modloader
 
             const std::string full = paths::join(modsDir, entry.cFileName);
             loadOne(full, stem);
-        }
-        while (FindNextFileA(find, &entry));
+        } while (FindNextFileA(find, &entry));
 
         FindClose(find);
     }

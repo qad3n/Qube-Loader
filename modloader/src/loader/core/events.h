@@ -16,6 +16,8 @@ namespace modloader::events
     // Dispatches to every subscriber of args.event; returns 1 if any callback set args.swallow.
     int32_t emit(const CubeEventArgs& args);
     void clear();
+    // Whether anything is listening. Lets the per frame poller skip sourcing work nothing wants.
+    bool hasSubscriber(CubeEvent event);
     // Human readable event name for logs (shared with the api bridge).
     const char* eventName(CubeEvent event);
     // Comma joined names of the events a mod is subscribed to (empty if none), for load time logging.

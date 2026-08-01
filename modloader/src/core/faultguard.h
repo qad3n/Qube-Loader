@@ -22,4 +22,8 @@ namespace faultguard
     // dispatch path (fast no op when nothing is quarantined).
     bool isQuarantined(const CubeApi* owner);
 
+    // Must run before the owner's CubeApi is freed: the set keys on the raw pointer, so a stale
+    // entry silently disables whatever mod is allocated at that address next.
+    void clearQuarantine(const CubeApi* owner);
+
 }

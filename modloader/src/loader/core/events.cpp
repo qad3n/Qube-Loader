@@ -5,8 +5,10 @@
 #include "core/log.h"
 #include "core/faultguard.h"
 #include "util/guard.h"
+#include "util/inflight.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <mutex>
@@ -31,12 +33,15 @@ namespace modloader::events
         };
 
         OwnerRegistry<Subscription> g_registry;
+        std::atomic<int> g_dispatchInFlight{0};
 
         // Live subscriber count per event, so a detour backed event can arm its backing on the zero to
         // one edge and drop it on the one to zero edge. Guarded by its own mutex: the registry's lock is
         // held while it erases, and eventbacking patches the game, which must not run under that lock.
         std::mutex g_countMutex;
-        int32_t g_eventSubs[CUBE_EVENT_COUNT] = {};
+        // Atomic so the per frame poller can read it lock free from the render thread; the mutex still
+        // serializes the 0->1 / 1->0 edges that arm and release a backing.
+        std::atomic<int32_t> g_eventSubs[CUBE_EVENT_COUNT] = {};
 
         bool validEvent(CubeEvent event)
         {
@@ -49,7 +54,7 @@ namespace modloader::events
             bool first = false;
             {
                 std::lock_guard<std::mutex> lock(g_countMutex);
-                first = (g_eventSubs[event]++ == 0);
+                first = (g_eventSubs[event].fetch_add(1) == 0);
             }
             if (first)
                 eventbacking::retainEvent(event);
@@ -63,8 +68,8 @@ namespace modloader::events
                 bool last = false;
                 {
                     std::lock_guard<std::mutex> lock(g_countMutex);
-                    if (g_eventSubs[event] > 0)
-                        last = (--g_eventSubs[event] == 0);
+                    if (g_eventSubs[event].load() > 0)
+                        last = (g_eventSubs[event].fetch_sub(1) == 1);
                 }
                 if (last)
                     eventbacking::releaseEvent(event);
@@ -187,6 +192,8 @@ namespace modloader::events
                 return "WORLD_ENTER";
             case CUBE_EVENT_WORLD_EXIT:
                 return "WORLD_EXIT";
+            case CUBE_EVENT_CHAT_MESSAGE:
+                return "CHAT_MESSAGE";
             default:
                 return "?";
         }
@@ -199,7 +206,8 @@ namespace modloader::events
 
         const uint32_t token = g_registry.add(Subscription{owner, 0, event, fn, user});
         noteSubscribed(event);
-        LOGC(Trace, kCategory, "'%s' subscribed %s (token %u, %zu total)", ownerName(owner), eventName(event), token, g_registry.size());
+        LOGC(Trace, kCategory, "'%s' subscribed %s (token %u, %zu total)", ownerName(owner), eventName(event),
+             token, g_registry.size());
 
         return token;
     }
@@ -210,8 +218,8 @@ namespace modloader::events
             return 0;
 
         std::vector<CubeEvent> removed;
-        const std::size_t dropped = g_registry.removeToken(token,
-            [&removed](const Subscription& sub) { removed.push_back(sub.event); });
+        const std::size_t dropped = g_registry.removeToken(token, [&removed](const Subscription& sub)
+                                                           { removed.push_back(sub.event); });
         noteUnsubscribed(removed);
         if (dropped)
             LOGC(Debug, kCategory, "unsubscribed token %u", token);
@@ -219,19 +227,32 @@ namespace modloader::events
         return dropped ? 1 : 0;
     }
 
+    bool hasSubscriber(CubeEvent event)
+    {
+        return validEvent(event) && g_eventSubs[event].load(std::memory_order_relaxed) > 0;
+    }
+
     void unsubscribeOwner(const CubeApi* owner)
     {
         std::vector<CubeEvent> removed;
-        const std::size_t dropped = g_registry.removeOwner(owner,
-            [&removed](const Subscription& sub) { removed.push_back(sub.event); });
+        const std::size_t dropped = g_registry.removeOwner(owner, [&removed](const Subscription& sub)
+                                                           { removed.push_back(sub.event); });
         noteUnsubscribed(removed);
 
         if (dropped)
-            LOGC(Debug, kCategory, "dropped %zu subscription(s) for an unloaded mod", dropped);
+        {
+            // The caller unmaps the mod's DLL as soon as we return.
+            barrier::drain(g_dispatchInFlight, "event unsubscribe");
+            LOGC(Debug, kCategory, "dropped %zu subscription(s) for an unloaded mod (drained)", dropped);
+        }
     }
 
     int32_t emit(const CubeEventArgs& args)
     {
+        // Before the snapshot, not just around the dispatch: the unmap window opens the moment
+        // subscriptions are copied out of the registry.
+        barrier::InFlight inflight(g_dispatchInFlight);
+
         // Reused per thread snapshot buffer so a hot event does not heap allocate each frame. A
         // synchronous re emit would clobber it, so an in use flag falls back to a fresh local vector.
         static thread_local std::vector<Subscription> shared;
@@ -243,18 +264,22 @@ namespace modloader::events
         g_registry.snapshotInto(matched, [&](const Subscription& sub) { return sub.event == args.event; });
 
         // Dispatch low to high priority so the highest priority mod runs last (final say on swallow);
-        // within one priority, a dependency's lower topological rank runs before its dependents;
-        // stable_sort keeps load order when both are equal.
-        std::stable_sort(matched.begin(), matched.end(), [](const Subscription& a, const Subscription& b)
-        {
-            if (ownerPriority(a.owner) != ownerPriority(b.owner))
-                return ownerPriority(a.owner) < ownerPriority(b.owner);
-            return ownerOrder(a.owner) < ownerOrder(b.owner);
-        });
+        // within one priority, a dependency's lower topological rank runs before its dependents. The
+        // monotonic token breaks remaining ties, which makes this equivalent to a stable sort without
+        // the per call temporary buffer stable_sort allocates.
+        std::sort(matched.begin(), matched.end(),
+                  [](const Subscription& a, const Subscription& b)
+                  {
+                      if (ownerPriority(a.owner) != ownerPriority(b.owner))
+                          return ownerPriority(a.owner) < ownerPriority(b.owner);
+                      if (ownerOrder(a.owner) != ownerOrder(b.owner))
+                          return ownerOrder(a.owner) < ownerOrder(b.owner);
+                      return a.token < b.token;
+                  });
 
         if (!matched.empty() && !isHighFrequency(args.event))
             LOGC(Trace, kCategory, "%s -> %zu listener(s) (subject=0x%08X param=%d param2=%d amount=%.1f)",
-                eventName(args.event), matched.size(), args.subject, args.param, args.param2, args.amount);
+                 eventName(args.event), matched.size(), args.subject, args.param, args.param2, args.amount);
 
         int32_t swallow = 0;
         for (const Subscription& sub : matched)
@@ -268,17 +293,16 @@ namespace modloader::events
             // Stack label (no heap alloc) for attribution if the callback throws/faults.
 
             char label[kLabelMax];
-            std::snprintf(label, sizeof(label), "mod '%s' %s callback", ownerName(sub.owner), eventName(sub.event));
-            guard::tryRun(label, sub.owner, [&]()
-            {
-                sub.fn(&callArgs);
-            });
+            std::snprintf(label, sizeof(label), "mod '%s' %s callback", ownerName(sub.owner),
+                          eventName(sub.event));
+            guard::tryRun(label, sub.owner, [&]() { sub.fn(&callArgs); });
 
             if (callArgs.swallow)
             {
                 swallow = 1;
                 if (args.event == CUBE_EVENT_WNDPROC)
-                    LOGC(Trace, kCategory, "WNDPROC msg 0x%04X swallowed by '%s'", args.msg, ownerName(sub.owner));
+                    LOGC(Trace, kCategory, "WNDPROC msg 0x%04X swallowed by '%s'", args.msg,
+                         ownerName(sub.owner));
             }
         }
 
@@ -299,7 +323,7 @@ namespace modloader::events
         {
             std::lock_guard<std::mutex> lock(g_countMutex);
             for (int32_t i = 0; i < CUBE_EVENT_COUNT; ++i)
-                g_eventSubs[i] = 0;
+                g_eventSubs[i].store(0);
         }
         // Every subscription is gone, so nothing can still want a detour armed on its behalf.
         eventbacking::releaseAll();
@@ -308,25 +332,23 @@ namespace modloader::events
     std::string describeOwner(const CubeApi* owner)
     {
         std::string out;
-        g_registry.forEach([&](const Subscription& sub)
-        {
-            if (sub.owner != owner)
-                return;
+        g_registry.forEach(
+            [&](const Subscription& sub)
+            {
+                if (sub.owner != owner)
+                    return;
 
-            if (!out.empty())
-                out += ", ";
+                if (!out.empty())
+                    out += ", ";
 
-            out += eventName(sub.event);
-        });
+                out += eventName(sub.event);
+            });
 
         return out;
     }
 
     void forEachSubscription(const std::function<void(const CubeApi*, const char*)>& fn)
     {
-        g_registry.forEach([&](const Subscription& sub)
-        {
-            fn(sub.owner, eventName(sub.event));
-        });
+        g_registry.forEach([&](const Subscription& sub) { fn(sub.owner, eventName(sub.event)); });
     }
 }

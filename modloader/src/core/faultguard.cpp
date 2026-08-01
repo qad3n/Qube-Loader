@@ -7,13 +7,14 @@
 #include <windows.h>
 #include <atomic>
 #include <csetjmp>
+#include <cstddef>
 #include <mutex>
 #include <vector>
 
 // longjmp out of a vectored handler is only safe with DWARF-2 EH (static unwind tables). Under SjLj
 // EH it would corrupt the thread's exception registration chain, so refuse to build that way.
 #ifdef __USING_SJLJ_EXCEPTIONS__
-#error "faultguard requires the DWARF-2 EH mingw toolchain, not SjLj (see comment above)."
+    #error "faultguard requires the DWARF-2 EH mingw toolchain, not SjLj (see comment above)."
 #endif
 
 // Only faults inside a live guard frame (g_top set) are isolated; a real crash falls through to
@@ -93,7 +94,8 @@ namespace faultguard
             {
                 // Loader's own game thread detour (no mod to disable): recover and log so it is never a
                 // silent crash; the caller applies its safe fallback (e.g. the vanilla result).
-                LOGC(Error, kCategory, "loader detour '%s' faulted (%s @0x%08X) - recovered; the game continues",
+                LOGC(Error, kCategory,
+                     "loader detour '%s' faulted (%s @0x%08X) - recovered; the game continues",
                      what ? what : "?", core::exceptionName(code), static_cast<unsigned>(addr));
                 return;
             }
@@ -116,7 +118,8 @@ namespace faultguard
                 return EXCEPTION_CONTINUE_SEARCH; // not inside a mod callback: real crash goes to crash.cpp
 
             frame->faultCode = static_cast<uint32_t>(code);
-            frame->faultAddr = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(ep->ExceptionRecord->ExceptionAddress));
+            frame->faultAddr =
+                static_cast<uint32_t>(reinterpret_cast<uintptr_t>(ep->ExceptionRecord->ExceptionAddress));
 
             longjmp(frame->jb, 1); // unwind to the runGuarded boundary (does not return)
         }
@@ -213,5 +216,21 @@ namespace faultguard
                 return true;
         }
         return false;
+    }
+
+    void clearQuarantine(const CubeApi* owner)
+    {
+        if (!owner || g_count.load(std::memory_order_acquire) == 0)
+            return;
+
+        std::lock_guard<std::mutex> lock(g_quarMutex);
+        for (size_t i = g_quarantined.size(); i > 0; --i)
+        {
+            if (g_quarantined[i - 1] != owner)
+                continue;
+
+            g_quarantined.erase(g_quarantined.begin() + static_cast<std::ptrdiff_t>(i - 1));
+            g_count.store(static_cast<int>(g_quarantined.size()), std::memory_order_release);
+        }
     }
 }

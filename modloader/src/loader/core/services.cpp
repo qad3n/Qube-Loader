@@ -5,7 +5,9 @@
 #include "core/faultguard.h"
 #include "core/log.h"
 #include "util/guard.h"
+#include "util/inflight.h"
 
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -38,6 +40,7 @@ namespace modloader::services
         };
 
         OwnerRegistry<Service> g_services;
+        std::atomic<int> g_dispatchInFlight{0};
         OwnerRegistry<MessageSub> g_messages;
 
         // Resolve a target mod's CubeApi from its manifest id (nullptr if no loaded mod owns that id).
@@ -59,7 +62,8 @@ namespace modloader::services
 
         // Replace an existing same name service from this owner so a reregister updates in place.
         const std::string wanted = name;
-        g_services.removeIf([owner, &wanted](const Service& s) { return s.owner == owner && s.name == wanted; });
+        g_services.removeIf([owner, &wanted](const Service& s)
+                            { return s.owner == owner && s.name == wanted; });
 
         Service service;
         service.owner = owner;
@@ -77,9 +81,7 @@ namespace modloader::services
             return false;
         const std::string wanted = name;
         const std::size_t removed = g_services.removeIf([owner, &wanted](const Service& s)
-        {
-            return s.owner == owner && s.name == wanted;
-        });
+                                                        { return s.owner == owner && s.name == wanted; });
         if (removed)
             LOGC(Debug, kCategory, "'%s' unregistered service '%s'", ownerId(owner), name);
         return removed > 0;
@@ -93,16 +95,17 @@ namespace modloader::services
         const std::string wanted = name;
         void* best = nullptr;
         uint32_t bestVersion = 0;
-        g_services.forEach([&](const Service& s)
-        {
-            if (s.name != wanted || s.version < minVersion)
-                return;
-            if (!best || s.version > bestVersion)
+        g_services.forEach(
+            [&](const Service& s)
             {
-                best = s.impl;
-                bestVersion = s.version;
-            }
-        });
+                if (s.name != wanted || s.version < minVersion)
+                    return;
+                if (!best || s.version > bestVersion)
+                {
+                    best = s.impl;
+                    bestVersion = s.version;
+                }
+            });
 
         if (best && outVersion)
             *outVersion = bestVersion;
@@ -127,13 +130,12 @@ namespace modloader::services
         if (!owner || !token)
             return false;
         const std::size_t removed = g_messages.removeIf([owner, token](const MessageSub& s)
-        {
-            return s.owner == owner && s.token == token;
-        });
+                                                        { return s.owner == owner && s.token == token; });
         return removed > 0;
     }
 
-    int32_t sendMessage(const CubeApi* sender, const char* targetModId, uint32_t msgId, void* payload, uint32_t payloadSize)
+    int32_t sendMessage(const CubeApi* sender, const char* targetModId, uint32_t msgId, void* payload,
+                        uint32_t payloadSize)
     {
         if (!targetModId)
             return kNoTarget;
@@ -144,6 +146,10 @@ namespace modloader::services
             LOGC(Debug, kCategory, "'%s' sendMessage to unknown mod id '%s'", ownerId(sender), targetModId);
             return kNoTarget;
         }
+
+        // Before the snapshot, not just around the dispatch: the unmap window opens the moment
+        // handlers are copied out of the registry.
+        barrier::InFlight inflight(g_dispatchInFlight);
 
         std::vector<MessageSub> handlers;
         g_messages.snapshotInto(handlers, [target](const MessageSub& s) { return s.owner == target; });
@@ -167,11 +173,9 @@ namespace modloader::services
 
             char label[kLabelMax];
             std::snprintf(label, sizeof(label), "mod '%s' message handler", ownerName(sub.owner));
-            guard::tryRun(label, sub.owner, [&]()
-            {
-                sub.fn(sub.owner, &args, sub.user);
-            });
-            result = args.result;
+            const bool ran = guard::tryRun(label, sub.owner, [&]() { sub.fn(sub.owner, &args, sub.user); });
+            if (ran)
+                result = args.result;
         }
         return result;
     }
@@ -181,8 +185,13 @@ namespace modloader::services
         const std::size_t services = g_services.removeOwner(owner);
         const std::size_t messages = g_messages.removeOwner(owner);
         if (services || messages)
-            LOGC(Trace, kCategory, "dropped %zu service(s) + %zu message handler(s) for an unloaded mod",
-                 services, messages);
+        {
+            // The caller unmaps the mod's DLL as soon as we return.
+            barrier::drain(g_dispatchInFlight, "message unregister");
+            LOGC(Trace, kCategory,
+                 "dropped %zu service(s) + %zu message handler(s) for an unloaded mod (drained)", services,
+                 messages);
+        }
     }
 
     void clear()
