@@ -9,7 +9,6 @@
 #include "loader/game/gameevents.h"
 #include "loader/core/writeguard.h"
 #include "game/gamehooks/gamehooks.h"
-#include "game/signature.h"
 #include "game/assets.h"
 #include "game/view.h"
 #include "hooks/render_dispatch.h"
@@ -23,6 +22,7 @@
 #include "cube_sdk.h"
 
 #include <windows.h>
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -41,14 +41,9 @@ namespace modloader
         // Wire the loader's non game side hooks. NOTHING here patches a game function: every game
         // function detour is now demand driven (a mod subscribes to a detour backed event, calls a pull
         // API, or registers an asset override), so with no mod loaded, or a mod that only reads state,
-        // the game binary is untouched. The build guard moved down into each arm path
-        // (CaptureDetour::install / armBuiltin / assets::install all call signature::verifyTarget), so a
-        // mismatched Cube.exe refuses the arm instead of the whole setup.
+        // the game binary is untouched.
         void installModHooks(bool overlayEnabled)
         {
-            if (!game::signature::compatibleBuild())
-                LOGC(Warn, kCategory, "Cube.exe build mismatch: game-function hooks will refuse to arm (R-select, E-pickup, asset overrides, hook subscriptions); overlay and guarded reads still work");
-
             // The input freeze (user32 IAT by import name) and DI suspend (system DLL vtable) drive the
             // overlay's input handoff. In safe mode (overlay off) there is no overlay to feed, so skip
             // them too and leave the game's own input untouched.
@@ -77,10 +72,7 @@ namespace modloader
             if (mod->shutdown)
             {
                 const std::string shutdownLabel = std::string("mod '") + mod->name + "' shutdown";
-                guard::tryRun(shutdownLabel.c_str(), &mod->context.api, [&]()
-                {
-                    mod->shutdown();
-                });
+                guard::tryRun(shutdownLabel.c_str(), &mod->context.api, [&]() { mod->shutdown(); });
             }
 
             // Drop any overlay menus this mod registered (drains an in flight frame) before its code is
@@ -119,8 +111,8 @@ namespace modloader
         LOGC(Debug, kCategory, "scanning for mods in %s", modsDir.c_str());
         if (!CreateDirectoryA(modsDir.c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
         {
-            LOGC(Warn, kCategory, "cannot create mods dir %s (error %lu); no mods loaded",
-                 modsDir.c_str(), static_cast<unsigned long>(GetLastError()));
+            LOGC(Warn, kCategory, "cannot create mods dir %s (error %lu); no mods loaded", modsDir.c_str(),
+                 static_cast<unsigned long>(GetLastError()));
 
             return 0;
         }
@@ -133,6 +125,14 @@ namespace modloader
         modconfig::init(dllDir);
         modstorage::init(dllDir);
         modlocale::init(dllDir);
+
+        // Before scan(): a mod can write game memory from its init, and those writes need attribution
+        // too. remove() tears this down unconditionally.
+        writeguard::install();
+
+        // Before scan() as well: a mod registering a menu in its init would otherwise arm the D3D9
+        // hook that safe mode exists to keep out.
+        overlay::setEnabled(overlayEnabled);
 
         scan(modsDir);
 
@@ -160,9 +160,6 @@ namespace modloader
         // Arm the loader's game hooks (all pass through until a mod acts) now that a mod is present.
         installModHooks(overlayEnabled);
 
-        // Attribute and detect contended game memory writes across mods for the whole session.
-        writeguard::install();
-
         // Deliver STARTUP on this (mod) thread and drain it BEFORE arming the render dispatch, so a
         // FRAME cannot reenter a mod on the render thread while its STARTUP handler still runs.
         gameevents::emitLifecycle(CUBE_EVENT_STARTUP);
@@ -180,7 +177,8 @@ namespace modloader
             callbacks.onDeviceReset = &gameevents::onDeviceReset;
             callbacks.onWndProc = &gameevents::onWndProc;
             g_renderToken = hooks::render::subscribe(callbacks);
-            LOGC(Debug, kCategory, "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
+            LOGC(Debug, kCategory,
+                 "subscribed to render dispatch; forwarding FRAME/DEVICE_RESET/WNDPROC to mods");
 
             // The overlay lives in the game's D3D9 swapchain; in EXCLUSIVE fullscreen that window is
             // topmost + non minimizable and loses the device on every alt tab (freeze risk). The D3D9
@@ -190,14 +188,18 @@ namespace modloader
             // offset is valid). Harmless if the game ignores it, the Reset rewrite still catches every
             // real reset. Only fires when a valid build resolved the setting global.
             CubeDisplay disp = {};
-            if (game::signature::compatibleBuild() && game::readDisplay(disp) && disp.fullscreen)
+            if (game::readDisplay(disp) && disp.fullscreen)
             {
                 if (game::setDisplayField(CUBE_DISPLAY_FULLSCREEN, 0))
-                    LOGC(Info, kCategory, "nudged game to windowed so the D3D9 hook can force borderless (fixes fullscreen alt-tab/minimize/freeze)");
+                    LOGC(Info, kCategory,
+                         "nudged game to windowed so the D3D9 hook can force borderless (fixes fullscreen "
+                         "alt-tab/minimize/freeze)");
             }
         }
         else
-            LOGC(Warn, kCategory, "safe mode: overlay disabled by config; D3D9 + input hooks not installed (mods still loaded, render-driven events off)");
+            LOGC(Warn, kCategory,
+                 "safe mode: overlay disabled by config; D3D9 + input hooks not installed (mods still "
+                 "loaded, render-driven events off)");
         LOGC(Info, kCategory, "%zu mod(s) loaded and started", g_mods.size());
         reportVersions();
 
@@ -218,10 +220,19 @@ namespace modloader
         if (!g_mods.empty())
             gameevents::emitLifecycle(CUBE_EVENT_SHUTDOWN);
 
-        // Reverse order (mirrors load order) so a later mod tears down before an earlier one it may
-        // depend on. teardownMod does not erase; g_mods is cleared in bulk below.
-        for (size_t i = g_mods.size(); i > 0; --i)
-            teardownMod(g_mods[i - 1].get());
+        // Descending dispatch (topological) order so a dependent tears down before the provider whose
+        // service pointer it may still hold; scan order alone does not guarantee that. teardownMod
+        // does not erase; g_mods is cleared in bulk below.
+        std::vector<LoadedMod*> order;
+        order.reserve(g_mods.size());
+        for (const std::unique_ptr<LoadedMod>& mod : g_mods)
+            order.push_back(mod.get());
+
+        std::stable_sort(order.begin(), order.end(), [](const LoadedMod* a, const LoadedMod* b)
+                         { return a->context.dispatchOrder > b->context.dispatchOrder; });
+
+        for (LoadedMod* mod : order)
+            teardownMod(mod);
 
         // Remove the loader's own non game hooks (input/DI IAT) and the asset detour. no ops if
         // installModHooks never ran (no mods). The demand driven detours come down just below, in

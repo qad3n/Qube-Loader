@@ -12,15 +12,16 @@ namespace modloader::api
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "overlay.registerMenu"))
                 return 0;
             const uint32_t handle = overlay::registerMenu(api, fn, user, toggleKey, startOpen != 0);
-            LOGC(Debug, kApiCategory, "'%s' overlay.registerMenu(key=%u, open=%d) -> %u",
-                 modName(api), toggleKey, startOpen, handle);
+            LOGC(Debug, kApiCategory, "'%s' overlay.registerMenu(key=%u, open=%d) -> %u", modName(api),
+                 toggleKey, startOpen, handle);
             return handle;
         }
 
         int32_t CUBE_CALL apiOverlayUnregisterMenu(const CubeApi* api, uint32_t handle)
         {
             const bool ok = overlay::unregisterMenu(api, handle);
-            LOGC(Debug, kApiCategory, "'%s' overlay.unregisterMenu(%u) -> %s", modName(api), handle, ok ? "ok" : "none");
+            LOGC(Debug, kApiCategory, "'%s' overlay.unregisterMenu(%u) -> %s", modName(api), handle,
+                 ok ? "ok" : "none");
             return okInt(ok);
         }
 
@@ -28,7 +29,10 @@ namespace modloader::api
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "overlay.setVisible"))
                 return 0;
-            return okInt(overlay::setVisible(handle, visible != 0));
+            const bool ok = overlay::setVisible(api, handle, visible != 0);
+            LOGC(Debug, kApiCategory, "'%s' overlay.setVisible(%u, %d) -> %s", modName(api), handle, visible,
+                 ok ? "ok" : "none");
+            return okInt(ok);
         }
 
         int32_t CUBE_CALL apiOverlayIsVisible(const CubeApi*, uint32_t handle)
@@ -40,14 +44,20 @@ namespace modloader::api
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "overlay.setToggleKey"))
                 return 0;
-            return okInt(overlay::setToggleKey(handle, vkey));
+            const bool ok = overlay::setToggleKey(api, handle, vkey);
+            LOGC(Debug, kApiCategory, "'%s' overlay.setToggleKey(%u, %u) -> %s", modName(api), handle, vkey,
+                 ok ? "ok" : "none");
+            return okInt(ok);
         }
 
         int32_t CUBE_CALL apiOverlaySetPassthrough(const CubeApi* api, uint32_t handle, int32_t passthrough)
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "overlay.setPassthrough"))
                 return 0;
-            return okInt(overlay::setPassthrough(handle, passthrough != 0));
+            const bool ok = overlay::setPassthrough(api, handle, passthrough != 0);
+            LOGC(Debug, kApiCategory, "'%s' overlay.setPassthrough(%u, %d) -> %s", modName(api), handle,
+                 passthrough, ok ? "ok" : "none");
+            return okInt(ok);
         }
 
         int32_t CUBE_CALL apiOverlayPassthrough(const CubeApi*, uint32_t handle)
@@ -60,6 +70,8 @@ namespace modloader::api
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "overlay.setUiScale"))
                 return 0;
             overlay::setUiScale(scale);
+            LOGC(Debug, kApiCategory, "'%s' overlay.setUiScale(%.2f) -> %.2f (shared)", modName(api), scale,
+                 overlay::uiScale());
             return 1;
         }
 
