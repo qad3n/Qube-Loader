@@ -89,7 +89,6 @@ namespace modloader::modregistry
         }
     }
 
-
     int32_t recordFault(const std::string& stem)
     {
         const std::string key = ini::lower(stem);

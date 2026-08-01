@@ -12,7 +12,8 @@ namespace modloader::api
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "camera.get"))
                 return 0;
-            return bridgeGet<CubeCamera>(api, out, &game::readCamera, "camera.get", "unavailable", &CubeCamera::address);
+            return bridgeGet<CubeCamera>(api, out, &game::readCamera, "camera.get", "unavailable",
+                                         &CubeCamera::address);
         }
 
         int32_t CUBE_CALL apiCameraSet(const CubeApi* api, int32_t field, double value)
@@ -24,7 +25,8 @@ namespace modloader::api
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "display.get"))
                 return 0;
-            return bridgeGet<CubeDisplay>(api, out, &game::readDisplay, "display.get", "unavailable", &CubeDisplay::address);
+            return bridgeGet<CubeDisplay>(api, out, &game::readDisplay, "display.get", "unavailable",
+                                          &CubeDisplay::address);
         }
 
         int32_t CUBE_CALL apiDisplaySet(const CubeApi* api, int32_t field, int32_t value)
@@ -36,7 +38,8 @@ namespace modloader::api
         {
             if (!capabilityGate(api, CUBE_CAP_OVERLAY, "audio.get"))
                 return 0;
-            return bridgeGet<CubeAudio>(api, out, &game::readAudio, "audio.get", "unavailable", &CubeAudio::address);
+            return bridgeGet<CubeAudio>(api, out, &game::readAudio, "audio.get", "unavailable",
+                                        &CubeAudio::address);
         }
 
         int32_t CUBE_CALL apiAudioPlaySound(const CubeApi* api, int32_t soundId)
@@ -45,17 +48,20 @@ namespace modloader::api
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::playSound(soundId);
-            LOGC(Debug, kApiCategory, "'%s' audio.playSound(%d) -> %s", modName(api), soundId, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' audio.playSound(%d) -> %s", modName(api), soundId,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
-        int32_t CUBE_CALL apiAudioPlaySoundAt(const CubeApi* api, int32_t soundId, float x, float y, float z, float volume, float pitch)
+        int32_t CUBE_CALL apiAudioPlaySoundAt(const CubeApi* api, int32_t soundId, float x, float y, float z,
+                                              float volume, float pitch)
         {
             if (!capabilityGate(api, CUBE_CAP_WRITES, "audio.playSoundAt"))
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::playSoundAt(soundId, x, y, z, volume, pitch);
-            LOGC(Debug, kApiCategory, "'%s' audio.playSoundAt(%d) -> %s", modName(api), soundId, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' audio.playSoundAt(%d) -> %s", modName(api), soundId,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -75,7 +81,8 @@ namespace modloader::api
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setMusicVolume(volume);
-            LOGC(Debug, kApiCategory, "'%s' audio.setMusicVolume(%.2f) -> %s", modName(api), volume, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' audio.setMusicVolume(%.2f) -> %s", modName(api), volume,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 

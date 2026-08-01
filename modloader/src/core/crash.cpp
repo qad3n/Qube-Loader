@@ -32,7 +32,10 @@ namespace crash
         constexpr int kLabelBufLen = 32;
         constexpr char kUnknownModule[] = "<unknown>";
 
-        using PfnMiniDumpWriteDump = BOOL(WINAPI*)(HANDLE, DWORD, HANDLE, MINIDUMP_TYPE, PMINIDUMP_EXCEPTION_INFORMATION, PMINIDUMP_USER_STREAM_INFORMATION, PMINIDUMP_CALLBACK_INFORMATION);
+        using PfnMiniDumpWriteDump = BOOL(WINAPI*)(HANDLE, DWORD, HANDLE, MINIDUMP_TYPE,
+                                                   PMINIDUMP_EXCEPTION_INFORMATION,
+                                                   PMINIDUMP_USER_STREAM_INFORMATION,
+                                                   PMINIDUMP_CALLBACK_INFORMATION);
 
         using PfnSetUef = LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI*)(LPTOP_LEVEL_EXCEPTION_FILTER);
 
@@ -89,16 +92,19 @@ namespace crash
             }
             const uintptr_t rva = addr - m.base;
             if (m.base == mem::base())
-                LOGC(Error, kCategory, "%s 0x%08X  %s+0x%X  static=0x%08X (attribution.tsv)",
-                     label, fmt::u32(addr), m.name.c_str(), fmt::u32(rva), fmt::u32(off::kImageBase + rva));
+                LOGC(Error, kCategory, "%s 0x%08X  %s+0x%X  static=0x%08X (attribution.tsv)", label,
+                     fmt::u32(addr), m.name.c_str(), fmt::u32(rva), fmt::u32(off::kImageBase + rva));
             else
-                LOGC(Error, kCategory, "%s 0x%08X  %s+0x%X", label, fmt::u32(addr), m.name.c_str(), fmt::u32(rva));
+                LOGC(Error, kCategory, "%s 0x%08X  %s+0x%X", label, fmt::u32(addr), m.name.c_str(),
+                     fmt::u32(rva));
         }
 
         void logRegisters(const CONTEXT* c)
         {
-            LOGC(Error, kCategory, "EAX=%08X EBX=%08X ECX=%08X EDX=%08X", fmt::u32(c->Eax), fmt::u32(c->Ebx), fmt::u32(c->Ecx), fmt::u32(c->Edx));
-            LOGC(Error, kCategory, "ESI=%08X EDI=%08X EBP=%08X ESP=%08X", fmt::u32(c->Esi), fmt::u32(c->Edi), fmt::u32(c->Ebp), fmt::u32(c->Esp));
+            LOGC(Error, kCategory, "EAX=%08X EBX=%08X ECX=%08X EDX=%08X", fmt::u32(c->Eax), fmt::u32(c->Ebx),
+                 fmt::u32(c->Ecx), fmt::u32(c->Edx));
+            LOGC(Error, kCategory, "ESI=%08X EDI=%08X EBP=%08X ESP=%08X", fmt::u32(c->Esi), fmt::u32(c->Edi),
+                 fmt::u32(c->Ebp), fmt::u32(c->Esp));
             LOGC(Error, kCategory, "EIP=%08X EFLAGS=%08X", fmt::u32(c->Eip), fmt::u32(c->EFlags));
         }
 
@@ -137,7 +143,8 @@ namespace crash
                 return;
             }
 
-            PfnMiniDumpWriteDump miniDumpWriteDump = reinterpret_cast<PfnMiniDumpWriteDump>(reinterpret_cast<void*>(GetProcAddress(dbg, kMiniDumpProc)));
+            PfnMiniDumpWriteDump miniDumpWriteDump = reinterpret_cast<PfnMiniDumpWriteDump>(
+                reinterpret_cast<void*>(GetProcAddress(dbg, kMiniDumpProc)));
             if (!miniDumpWriteDump)
             {
                 FreeLibrary(dbg);
@@ -145,7 +152,8 @@ namespace crash
             }
 
             const std::string path = paths::join(g_dumpDir, kMinidumpFileName);
-            HANDLE file = CreateFileA(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+            HANDLE file = CreateFileA(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                      FILE_ATTRIBUTE_NORMAL, nullptr);
             if (file == INVALID_HANDLE_VALUE)
             {
                 FreeLibrary(dbg);
@@ -157,7 +165,9 @@ namespace crash
             info.ExceptionPointers = ep;
             info.ClientPointers = FALSE;
 
-            const BOOL ok = miniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file, MiniDumpWithIndirectlyReferencedMemory, &info, nullptr, nullptr);
+            const BOOL ok =
+                miniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file,
+                                  MiniDumpWithIndirectlyReferencedMemory, &info, nullptr, nullptr);
 
             CloseHandle(file);
             FreeLibrary(dbg);
@@ -177,10 +187,13 @@ namespace crash
             const CONTEXT* c = ep->ContextRecord;
 
             LOGC(Error, kCategory, "================ GAME CRASH ================");
-            LOGC(Error, kCategory, "code 0x%08X (%s)", fmt::u32(er->ExceptionCode), core::exceptionName(er->ExceptionCode));
+            LOGC(Error, kCategory, "code 0x%08X (%s)", fmt::u32(er->ExceptionCode),
+                 core::exceptionName(er->ExceptionCode));
 
             if (er->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && er->NumberParameters >= 2)
-                LOGC(Error, kCategory, "%s address 0x%08X", er->ExceptionInformation[0] ? "write to" : "read from", fmt::u32(er->ExceptionInformation[1]));
+                LOGC(Error, kCategory, "%s address 0x%08X",
+                     er->ExceptionInformation[0] ? "write to" : "read from",
+                     fmt::u32(er->ExceptionInformation[1]));
 
             describe("fault ip @", reinterpret_cast<uintptr_t>(er->ExceptionAddress));
             logRegisters(c);
@@ -203,7 +216,9 @@ namespace crash
         {
             LPTOP_LEVEL_EXCEPTION_FILTER priorChain = g_prev;
             g_prev = next;
-            LOGC(Debug, kCategory, "intercepted SetUnhandledExceptionFilter(0x%08X); kept our top-level filter", fmt::ptr(reinterpret_cast<void*>(next)));
+            LOGC(Debug, kCategory,
+                 "intercepted SetUnhandledExceptionFilter(0x%08X); kept our top-level filter",
+                 fmt::ptr(reinterpret_cast<void*>(next)));
             return priorChain;
         }
 
@@ -213,12 +228,16 @@ namespace crash
             if (!real)
                 return; // not importable here; our filter still wins as the last installer
 
-            g_uefOrig = reinterpret_cast<PfnSetUef>(iat::patchIatSlot(kKernel32, kSetUefProc, real,
-                                                                      reinterpret_cast<void*>(&hkSetUnhandledExceptionFilter), &g_uefSlot, false));
+            g_uefOrig = reinterpret_cast<PfnSetUef>(iat::patchIatSlot(
+                kKernel32, kSetUefProc, real, reinterpret_cast<void*>(&hkSetUnhandledExceptionFilter),
+                &g_uefSlot, false));
             if (g_uefSlot)
-                LOGC(Debug, kCategory, "SetUnhandledExceptionFilter IAT-guarded (the game cannot displace our crash filter)");
+                LOGC(Debug, kCategory,
+                     "SetUnhandledExceptionFilter IAT-guarded (the game cannot displace our crash filter)");
             else
-                LOGC(Debug, kCategory, "game does not import SetUnhandledExceptionFilter; re-install guard skipped (our crash filter is still installed and active)");
+                LOGC(Debug, kCategory,
+                     "game does not import SetUnhandledExceptionFilter; re-install guard skipped (our crash "
+                     "filter is still installed and active)");
         }
 
     }
@@ -230,7 +249,8 @@ namespace crash
         installUefGuard();
 
         LOGC(Debug, kCategory, "handler armed | dumps -> %s", dumpDir.c_str());
-        LOGC(Debug, kCategory, "filter 0x%08X installed, previous 0x%08X", fmt::ptr(reinterpret_cast<void*>(&filter)), fmt::ptr(reinterpret_cast<void*>(g_prev)));
+        LOGC(Debug, kCategory, "filter 0x%08X installed, previous 0x%08X",
+             fmt::ptr(reinterpret_cast<void*>(&filter)), fmt::ptr(reinterpret_cast<void*>(g_prev)));
     }
 
     void remove()

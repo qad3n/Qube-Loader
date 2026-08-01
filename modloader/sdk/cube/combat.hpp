@@ -11,10 +11,16 @@ namespace cube
     class Combat
     {
     public:
-        explicit Combat(const CubeApi* api) : m_api(api), m_valid(api && api->combat.get(api, &m_data) != 0) {}
+        explicit Combat(const CubeApi* api) : m_api(api), m_valid(api && api->combat.get(api, &m_data) != 0)
+        {
+        }
 
         bool valid() const { return m_valid; }
-        bool refresh() { m_valid = m_api && m_api->combat.get(m_api, &m_data) != 0; return m_valid; }
+        bool refresh()
+        {
+            m_valid = m_api && m_api->combat.get(m_api, &m_data) != 0;
+            return m_valid;
+        }
         float getBaseDamage() const { return m_data.baseDamage; }
         float getPower() const { return m_data.power; }
         float getArmor() const { return m_data.armor; }

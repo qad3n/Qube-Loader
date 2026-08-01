@@ -9,12 +9,14 @@ namespace modloader::api
     {
         int32_t CUBE_CALL apiWorldGet(const CubeApi* api, CubeWorld* out)
         {
-            return bridgeGet<CubeWorld>(api, out, &game::readWorld, "world.get", "unavailable", &CubeWorld::address);
+            return bridgeGet<CubeWorld>(api, out, &game::readWorld, "world.get", "unavailable",
+                                        &CubeWorld::address);
         }
 
         int32_t CUBE_CALL apiWorldStructures(const CubeApi* api, CubeStructure* out, int32_t maxCount)
         {
-            return bridgeList(api, "world.structures", out, maxCount, game::listStructures(out, maxCount), &CubeStructure::address);
+            return bridgeList(api, "world.structures", out, maxCount, game::listStructures(out, maxCount),
+                              &CubeStructure::address);
         }
 
         int32_t CUBE_CALL apiWorldSetTime(const CubeApi* api, int32_t ms)
@@ -38,7 +40,8 @@ namespace modloader::api
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setWorldSeed(seed);
-            LOGC(Debug, kApiCategory, "'%s' world.setSeed(0x%08X) -> %s", modName(api), seed, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' world.setSeed(0x%08X) -> %s", modName(api), seed,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -47,9 +50,11 @@ namespace modloader::api
             return bridgeSetVec3(api, "world.setSpawn", &game::setWorldSpawn, x, y, z);
         }
 
-        int32_t CUBE_CALL apiWorldSetStructure(const CubeApi* api, uint32_t address, int32_t field, double value)
+        int32_t CUBE_CALL apiWorldSetStructure(const CubeApi* api, uint32_t address, int32_t field,
+                                               double value)
         {
-            return bridgeSetAddrField(api, "world.setStructure", &game::setStructureField, address, field, value);
+            return bridgeSetAddrField(api, "world.setStructure", &game::setStructureField, address, field,
+                                      value);
         }
     }
 

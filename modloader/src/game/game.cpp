@@ -29,8 +29,8 @@ namespace game
                 }
                 float asFloat = 0.0f;
                 std::memcpy(&asFloat, &value, sizeof(asFloat));
-                LOGC(Debug, kCategory, "  +0x%02X  0x%08X  int=%d  float=%.3f",
-                     i * kBytesPerDword, value, static_cast<int>(value), asFloat);
+                LOGC(Debug, kCategory, "  +0x%02X  0x%08X  int=%d  float=%.3f", i * kBytesPerDword, value,
+                     static_cast<int>(value), asFloat);
             }
         }
     }
@@ -41,7 +41,8 @@ namespace game
         LOGC(Debug, kCategory, "module base = 0x%08X", fmt::u32(liveBase));
         LOGC(Debug, kCategory, "static image base = 0x%08X", fmt::u32(off::kImageBase));
         LOGC(Debug, kCategory, "ASLR slide = 0x%08X", fmt::u32(liveBase - off::kImageBase));
-        LOGC(Debug, kCategory, "GameController::vfunc0 -> live 0x%08X", fmt::u32(mem::rebase(off::kGameControllerVfunc0)));
+        LOGC(Debug, kCategory, "GameController::vfunc0 -> live 0x%08X",
+             fmt::u32(mem::rebase(off::kGameControllerVfunc0)));
     }
 
     void logCandidateGlobals()
@@ -53,13 +54,13 @@ namespace game
             uint32_t value = 0;
             if (!mem::read(live, value))
             {
-                LOGC(Warn, kCategory, "global 0x%08X (live 0x%08X): <unreadable>",
-                     fmt::u32(staticAddr), fmt::u32(live));
+                LOGC(Warn, kCategory, "global 0x%08X (live 0x%08X): <unreadable>", fmt::u32(staticAddr),
+                     fmt::u32(live));
                 continue;
             }
             const bool looksPtr = mem::readable(reinterpret_cast<void*>(value), sizeof(uint32_t));
-            LOGC(Debug, kCategory, "global 0x%08X = 0x%08X  %s",
-                 fmt::u32(staticAddr), value, looksPtr ? "(valid pointer)" : "(scalar / null)");
+            LOGC(Debug, kCategory, "global 0x%08X = 0x%08X  %s", fmt::u32(staticAddr), value,
+                 looksPtr ? "(valid pointer)" : "(scalar / null)");
             if (looksPtr)
                 hexDump("  -> points at", value, kPreviewDwords);
         }

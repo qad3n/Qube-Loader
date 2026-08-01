@@ -43,5 +43,6 @@ namespace game
     // Diffs the player's + nearby creatures' health vs last frame: updates the counters and
     // fills up to maxEdges into edgesOut (edgeCount = number written). Resets when the player
     // is unavailable, which also suppresses a spawn flood the first frame back in world.
-    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, CreatureEdge* edgesOut, int32_t maxEdges, int32_t& edgeCount);
+    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, CreatureEdge* edgesOut,
+                           int32_t maxEdges, int32_t& edgeCount);
 }

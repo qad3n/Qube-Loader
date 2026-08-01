@@ -21,11 +21,12 @@ CUBE_MOD("Example Library", "1.0.0", "cube_mod")
     mod.setPriority(exlib::kPriority);
 
     mod.services().registerService(exlib::kServiceName, exlib::kServiceVersion, &g_ping);
-    mod.services().onMessage([](cube::Message& msg)
-    {
-        if (msg.id() == exlib::kPingMessage && msg.size() >= sizeof(int))
-            msg.reply(*static_cast<const int*>(msg.payload()) + 1);
-    });
+    mod.services().onMessage(
+        [](cube::Message& msg)
+        {
+            if (msg.id() == exlib::kPingMessage && msg.size() >= sizeof(int))
+                msg.reply(*static_cast<const int*>(msg.payload()) + 1);
+        });
 
     mod.log.info("example_lib: service '%s' v%u ready", exlib::kServiceName, exlib::kServiceVersion);
 }

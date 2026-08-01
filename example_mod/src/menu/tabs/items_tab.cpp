@@ -21,13 +21,20 @@ namespace exmod::menu
         {
             switch (static_cast<cube::ItemType>(type))
             {
-                case cube::ItemType::Consumable: return CUBE_CATALOG_CONSUMABLE_SUBTYPE;
-                case cube::ItemType::Weapon: return CUBE_CATALOG_WEAPON_SUBTYPE;
-                case cube::ItemType::Special: return CUBE_CATALOG_SPECIAL_SUBTYPE;
-                case cube::ItemType::Food: return CUBE_CATALOG_FOOD_SUBTYPE;
-                case cube::ItemType::Accessory: return CUBE_CATALOG_ACCESSORY_SUBTYPE;
-                case cube::ItemType::Vehicle: return CUBE_CATALOG_VEHICLE_SUBTYPE;
-                default: return kNoSubtypeCatalog;
+                case cube::ItemType::Consumable:
+                    return CUBE_CATALOG_CONSUMABLE_SUBTYPE;
+                case cube::ItemType::Weapon:
+                    return CUBE_CATALOG_WEAPON_SUBTYPE;
+                case cube::ItemType::Special:
+                    return CUBE_CATALOG_SPECIAL_SUBTYPE;
+                case cube::ItemType::Food:
+                    return CUBE_CATALOG_FOOD_SUBTYPE;
+                case cube::ItemType::Accessory:
+                    return CUBE_CATALOG_ACCESSORY_SUBTYPE;
+                case cube::ItemType::Vehicle:
+                    return CUBE_CATALOG_VEHICLE_SUBTYPE;
+                default:
+                    return kNoSubtypeCatalog;
             }
         }
 
@@ -50,7 +57,8 @@ namespace exmod::menu
         if (beginTable("item_detail"))
         {
             row("Name", "%s", item.getName());
-            row("Type", "%s", cube::catalog::nameOr(g_api, CUBE_CATALOG_ITEM_TYPE, item.getType(), item.getTypeName()));
+            row("Type", "%s",
+                cube::catalog::nameOr(g_api, CUBE_CATALOG_ITEM_TYPE, item.getType(), item.getTypeName()));
             row("Value", "%d coins (sell %d)", item.getValue(), item.getSellValue());
             if (item.isConsumable() || item.isFood())
                 row("Amount", "%d", item.getAmount());
@@ -145,7 +153,9 @@ namespace exmod::menu
             int rank = skills[i];
             ImGui::PushID(static_cast<int>(i));
             ImGui::SetNextItemWidth(sc(kInputWidth));
-            if (ImGui::DragInt(label, &rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags) && player.valid())
+            if (ImGui::DragInt(label, &rank, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d",
+                               kClampFlags) &&
+                player.valid())
                 player.setSkillRank(static_cast<int>(i), rank);
             ImGui::PopID();
         }

@@ -24,7 +24,8 @@ namespace game
             int64_t rawX = 0;
             int64_t rawY = 0;
 
-            if (!mem::read(creature + off::kPlayerPosXOff, rawX) || !mem::read(creature + off::kPlayerPosYOff, rawY))
+            if (!mem::read(creature + off::kPlayerPosXOff, rawX) ||
+                !mem::read(creature + off::kPlayerPosYOff, rawY))
                 return false;
 
             tileX = static_cast<int32_t>(rawX >> off::kPosToTileShift);
@@ -41,18 +42,23 @@ namespace game
             const int32_t regionX = zoneX >> off::kZoneToRegionShift;
             const int32_t regionY = zoneY >> off::kZoneToRegionShift;
 
-            if (regionX < 0 || regionX >= off::kRegionGridDim || regionY < 0 || regionY >= off::kRegionGridDim)
+            if (regionX < 0 || regionX >= off::kRegionGridDim || regionY < 0 ||
+                regionY >= off::kRegionGridDim)
                 return 0;
 
             const int32_t regionIdx = regionX * off::kRegionGridDim + regionY;
             uint32_t region = 0;
-            if (!mem::read(world + off::kRegionGridOff + static_cast<uintptr_t>(regionIdx) * sizeof(uint32_t), region) || !region)
+            if (!mem::read(world + off::kRegionGridOff + static_cast<uintptr_t>(regionIdx) * sizeof(uint32_t),
+                           region) ||
+                !region)
                 return 0;
 
             const int32_t zoneMask = off::kZoneGridDim - 1;
             const int32_t zoneIdx = (zoneX & zoneMask) * off::kZoneGridDim + (zoneY & zoneMask);
             uint32_t zone = 0;
-            if (!mem::read(region + off::kZoneGridOff + static_cast<uintptr_t>(zoneIdx) * sizeof(uint32_t), zone) || !zone)
+            if (!mem::read(region + off::kZoneGridOff + static_cast<uintptr_t>(zoneIdx) * sizeof(uint32_t),
+                           zone) ||
+                !zone)
                 return 0;
 
             return zone;
@@ -179,7 +185,8 @@ namespace game
 
         uint32_t begin = 0;
         int32_t total = 0;
-        if (!field::vectorSpan(zone + off::kZoneStructVecOff, off::kZoneStructStride, off::kZoneStructMaxWalk, begin, total))
+        if (!field::vectorSpan(zone + off::kZoneStructVecOff, off::kZoneStructStride, off::kZoneStructMaxWalk,
+                               begin, total))
             return 0;
 
         int32_t count = 0;
@@ -245,7 +252,8 @@ namespace game
                 return mem::write<float>(tile + off::kTileHumidityOff, static_cast<float>(value));
             case CUBE_TILE_ELEVATION:
                 return mem::write<int32_t>(tile + off::kTileElevationOff, static_cast<int32_t>(value));
-            default: return false;
+            default:
+                return false;
         }
     }
 
@@ -292,10 +300,13 @@ namespace game
             case CUBE_STRUCT_POS_X:
                 return field::setFixed64(record, off::kStructPosXOff, off::kPlayerPosScale, f);
             case CUBE_STRUCT_POS_Y:
-                return field::setFixed64(record, off::kStructPosXOff + sizeof(int64_t), off::kPlayerPosScale, f);
+                return field::setFixed64(record, off::kStructPosXOff + sizeof(int64_t), off::kPlayerPosScale,
+                                         f);
             case CUBE_STRUCT_POS_Z:
-                return field::setFixed64(record, off::kStructPosXOff + sizeof(int64_t) * 2, off::kPlayerPosScale, f);
-            default: return false;
+                return field::setFixed64(record, off::kStructPosXOff + sizeof(int64_t) * 2,
+                                         off::kPlayerPosScale, f);
+            default:
+                return false;
         }
     }
 }

@@ -10,11 +10,17 @@ namespace cube
     class Player
     {
     public:
-        explicit Player(const CubeApi* api) : m_api(api), m_valid(api && api->player.get(api, &m_data) != 0) {}
+        explicit Player(const CubeApi* api) : m_api(api), m_valid(api && api->player.get(api, &m_data) != 0)
+        {
+        }
 
         bool valid() const { return m_valid; }
         // Re pull the snapshot from live memory; call after a setter, else a get reads the pre set value.
-        bool refresh() { m_valid = m_api && m_api->player.get(m_api, &m_data) != 0; return m_valid; }
+        bool refresh()
+        {
+            m_valid = m_api && m_api->player.get(m_api, &m_data) != 0;
+            return m_valid;
+        }
         bool isAlive() const { return m_data.alive != 0; }
         float getHealth() const { return m_data.health; }
         int getLevel() const { return m_data.level; }
@@ -41,7 +47,10 @@ namespace cube
         const char* getMovementText() const { return movementName(getMovement()); }
         const char* getActionText() const { return actionName(getAction()); }
         // Thin wrappers over the consolidated state (no recompute).
-        bool isOnGround() const { return getMovement() == Movement::Grounded || getMovement() == Movement::Sneaking; }
+        bool isOnGround() const
+        {
+            return getMovement() == Movement::Grounded || getMovement() == Movement::Sneaking;
+        }
         bool isClimbing() const { return getMovement() == Movement::Climbing; }
         bool isSwimming() const { return getMovement() == Movement::Swimming; }
         bool isAttacking() const { return getAction() == Action::Attacking; }
@@ -61,18 +70,28 @@ namespace cube
         bool hasState() const { return m_data.hasState != 0; }
         const CubePlayer& raw() const { return m_data; }
 
-        // Mutators write live memory (guarded), not this frozen snapshot; call refresh() to see the change here.
+        // Mutators write live memory (guarded), not this frozen snapshot; call refresh() to see the change
+        // here.
         bool setHealth(float health) const { return set(PlayerStat::Health, health); }
         bool setMana(float mana) const { return set(PlayerStat::Mana, mana); }
         bool setStamina(float stamina) const { return set(PlayerStat::Stamina, stamina); }
         bool setCoins(int coins) const { return set(PlayerStat::Coins, coins); }
         bool setLevel(int level) const { return set(PlayerStat::Level, level); }
         bool giveXp(int amount) const { return m_api && m_api->player.addXp(m_api, amount) != 0; }
-        bool teleport(float x, float y, float z) const { return m_api && m_api->player.teleport(m_api, x, y, z) != 0; }
+        bool teleport(float x, float y, float z) const
+        {
+            return m_api && m_api->player.teleport(m_api, x, y, z) != 0;
+        }
         bool teleport(const Vec3& to) const { return teleport(to.x, to.y, to.z); }
         // Generic scalar setter plus typed conveniences for every editable stat.
-        bool set(PlayerStat stat, double value) const { return m_api && m_api->player.setStat(m_api, static_cast<int32_t>(stat), value) != 0; }
-        bool setClass(Class value) const { return set(PlayerStat::Class, static_cast<double>(static_cast<int>(value))); }
+        bool set(PlayerStat stat, double value) const
+        {
+            return m_api && m_api->player.setStat(m_api, static_cast<int32_t>(stat), value) != 0;
+        }
+        bool setClass(Class value) const
+        {
+            return set(PlayerStat::Class, static_cast<double>(static_cast<int>(value)));
+        }
         bool setSpec(int spec) const { return set(PlayerStat::Spec, spec); }
         bool setType(int type) const { return set(PlayerStat::Type, type); }
         bool setFacing(float radians) const { return set(PlayerStat::Facing, radians); }
@@ -82,7 +101,10 @@ namespace cube
         bool setCombo(int combo) const { return set(PlayerStat::Combo, combo); }
         bool setAttackCooldown(float cooldown) const { return set(PlayerStat::AttackCooldown, cooldown); }
         bool setHitStun(int hitStun) const { return set(PlayerStat::HitStun, hitStun); }
-        bool setVelocity(float x, float y, float z) const { return set(PlayerStat::VelX, x) && set(PlayerStat::VelY, y) && set(PlayerStat::VelZ, z); }
+        bool setVelocity(float x, float y, float z) const
+        {
+            return set(PlayerStat::VelX, x) && set(PlayerStat::VelY, y) && set(PlayerStat::VelZ, z);
+        }
         bool setVelocity(const Vec3& v) const { return setVelocity(v.x, v.y, v.z); }
         bool setActionId(int actionId) const { return set(PlayerStat::ActionId, actionId); }
         bool setSneaking(bool sneaking) const { return set(PlayerStat::Sneaking, sneaking ? 1 : 0); }
@@ -93,7 +115,10 @@ namespace cube
         bool setAttackSpeed(float attackSpeed) const { return set(PlayerStat::AttackSpeed, attackSpeed); }
         bool setBaseDamage(float damage) const { return set(PlayerStat::BaseDamage, damage); }
         bool setName(const char* name) const { return m_api && m_api->player.setName(m_api, name) != 0; }
-        bool setSkillRank(int index, int value) const { return m_api && m_api->skills.setRank(m_api, index, value) != 0; }
+        bool setSkillRank(int index, int value) const
+        {
+            return m_api && m_api->skills.setRank(m_api, index, value) != 0;
+        }
 
     private:
         const CubeApi* m_api;

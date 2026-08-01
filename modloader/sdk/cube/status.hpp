@@ -10,7 +10,10 @@ namespace cube
     {
     public:
         Stun() = default;
-        Stun(const CubeApi* api, unsigned address) : m_api(api), m_valid(api && api->status.stun(api, address, &m_data) != 0) {}
+        Stun(const CubeApi* api, unsigned address)
+            : m_api(api), m_valid(api && api->status.stun(api, address, &m_data) != 0)
+        {
+        }
 
         bool valid() const { return m_valid; }
         bool isStunned() const { return m_data.stunned != 0; } // cannot act while true

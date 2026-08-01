@@ -40,7 +40,7 @@ namespace guard
 
         Fn* fnPtr = &fn;
 
-        return faultguard::runGuarded(what, owner,[](void* ctx) { (*static_cast<Fn*>(ctx))(); }, fnPtr);
+        return faultguard::runGuarded(what, owner, [](void* ctx) { (*static_cast<Fn*>(ctx))(); }, fnPtr);
     }
 
     // Loader game thread guard: isolates a CPU fault in the loader's OWN game thread detour bodies

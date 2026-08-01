@@ -139,8 +139,9 @@ namespace modloader
                     if (dep.hard)
                         continue;
                     if (byId.find(dep.id) == byId.end())
-                        conflict::warn("mod '%s' optionally uses '%s' which is not loaded; continuing without it",
-                                       mod->context.id.c_str(), dep.id.c_str());
+                        conflict::warn(
+                            "mod '%s' optionally uses '%s' which is not loaded; continuing without it",
+                            mod->context.id.c_str(), dep.id.c_str());
                 }
             }
         }
@@ -195,8 +196,9 @@ namespace modloader
 
             if (ranked.size() != count)
             {
-                conflict::warn("dependency cycle among %zu mod(s); dispatch order falls back to load order for them",
-                               count - ranked.size());
+                conflict::warn(
+                    "dependency cycle among %zu mod(s); dispatch order falls back to load order for them",
+                    count - ranked.size());
                 for (const std::unique_ptr<LoadedMod>& mod : mods)
                 {
                     if (!ranked[mod.get()])
@@ -220,7 +222,8 @@ namespace modloader
         assignDispatchOrder(byId);
 
         if (before != after)
-            LOGC(Info, kCategory, "dependency resolution: %zu mod(s) unloaded, %zu remain", before - after, after);
+            LOGC(Info, kCategory, "dependency resolution: %zu mod(s) unloaded, %zu remain", before - after,
+                 after);
         else
             LOGC(Debug, kCategory, "dependency resolution: all %zu mod(s) satisfied", after);
     }

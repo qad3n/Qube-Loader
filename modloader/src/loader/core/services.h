@@ -24,7 +24,8 @@ namespace modloader::services
     bool removeMessageHandler(const CubeApi* owner, uint32_t token);
     // Deliver msgId + payload to the mod whose manifest id == targetModId; returns the receiving
     // handler's CubeMessageArgs.result, or -1 if the target id is unknown or has no message handler.
-    int32_t sendMessage(const CubeApi* sender, const char* targetModId, uint32_t msgId, void* payload, uint32_t payloadSize);
+    int32_t sendMessage(const CubeApi* sender, const char* targetModId, uint32_t msgId, void* payload,
+                        uint32_t payloadSize);
 
     // Drop all of a mod's services + message handlers (on unload). clear() empties both registries.
     void unregisterOwner(const CubeApi* owner);

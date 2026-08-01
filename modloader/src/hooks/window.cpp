@@ -55,7 +55,8 @@ namespace hooks::window
 
         g_onWndProc = onWndProc;
         g_window = hwnd;
-        g_origWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrA(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wndProc)));
+        g_origWndProc = reinterpret_cast<WNDPROC>(
+            SetWindowLongPtrA(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wndProc)));
         g_active.store(true);
 
         LOGC(Debug, kCategory, "WndProc subclassed on hwnd 0x%X", fmt::ptr(hwnd));

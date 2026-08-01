@@ -9,7 +9,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiStatusEffects(const CubeApi* api, CubeBuff* out, int32_t maxCount)
         {
-            return bridgeList(api, "status.effects", out, maxCount, game::listBuffs(out, maxCount), &CubeBuff::address);
+            return bridgeList(api, "status.effects", out, maxCount, game::listBuffs(out, maxCount),
+                              &CubeBuff::address);
         }
 
         int32_t CUBE_CALL apiStatusSetField(const CubeApi* api, uint32_t address, int32_t field, double value)
@@ -24,7 +25,8 @@ namespace modloader::api
             CubeStun value = {};
             value.structSize = sizeof(CubeStun);
             const bool ok = game::readStun(address, value);
-            LOGC(Trace, kApiCategory, "'%s' status.stun(0x%08X) -> %s", modName(api), address, ok ? "ok" : "unavailable");
+            LOGC(Trace, kApiCategory, "'%s' status.stun(0x%08X) -> %s", modName(api), address,
+                 ok ? "ok" : "unavailable");
             if (!ok)
                 return 0;
             *out = value;
@@ -37,7 +39,8 @@ namespace modloader::api
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::clearStun(address);
-            LOGC(Debug, kApiCategory, "'%s' status.clearStun(0x%08X) -> %s", modName(api), address, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' status.clearStun(0x%08X) -> %s", modName(api), address,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 

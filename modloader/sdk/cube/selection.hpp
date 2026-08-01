@@ -8,10 +8,17 @@ namespace cube
     class Selection
     {
     public:
-        explicit Selection(const CubeApi* api) : m_api(api), m_valid(api && api->selection.getLast(api, &m_data) != 0) {}
+        explicit Selection(const CubeApi* api)
+            : m_api(api), m_valid(api && api->selection.getLast(api, &m_data) != 0)
+        {
+        }
 
         bool valid() const { return m_valid; } // false until the first selection happens
-        bool refresh() { m_valid = m_api && m_api->selection.getLast(m_api, &m_data) != 0; return m_valid; }
+        bool refresh()
+        {
+            m_valid = m_api && m_api->selection.getLast(m_api, &m_data) != 0;
+            return m_valid;
+        }
         unsigned getAddress() const { return m_data.address; } // selected creature/object (0 = world)
         int getTypeByte() const { return m_data.typeByte; }
         SelectionKind getKind() const { return static_cast<SelectionKind>(m_data.kind); }

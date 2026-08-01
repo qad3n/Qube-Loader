@@ -11,7 +11,8 @@ namespace
     constexpr char kKernel32[] = "kernel32.dll";
     constexpr char kLoadLibraryProc[] = "LoadLibraryA";
     constexpr int kExpectedArgs = 3;
-    constexpr DWORD kInjectAccess = PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ;
+    constexpr DWORD kInjectAccess = PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
+                                    PROCESS_VM_WRITE | PROCESS_VM_READ;
 
     DWORD findPid(const char* imageName)
     {

@@ -9,10 +9,17 @@ namespace cube
     class Pickup
     {
     public:
-        explicit Pickup(const CubeApi* api) : m_api(api), m_valid(api && api->pickup.getLast(api, &m_data) != 0) {}
+        explicit Pickup(const CubeApi* api)
+            : m_api(api), m_valid(api && api->pickup.getLast(api, &m_data) != 0)
+        {
+        }
 
         bool valid() const { return m_valid; } // false until the first pickup happens (arms on first call)
-        bool refresh() { m_valid = m_api && m_api->pickup.getLast(m_api, &m_data) != 0; return m_valid; }
+        bool refresh()
+        {
+            m_valid = m_api && m_api->pickup.getLast(m_api, &m_data) != 0;
+            return m_valid;
+        }
         // The picked item (a transient staging copy: raw().address is 0, so no live edit).
         Item item() const { return Item(m_data, m_api); }
         int getStack() const { return m_data.stack; } // how many were picked up

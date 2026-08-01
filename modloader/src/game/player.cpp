@@ -74,7 +74,8 @@ namespace game
                 uint16_t stateFlags = 0;
                 mem::read(base + off::kPlayerStateFlagsOff, stateFlags);
                 out.movement = resolveMovement(contact, stateFlags, out.sneaking != 0);
-                out.onGround = (out.movement == CUBE_MOVE_GROUNDED || out.movement == CUBE_MOVE_SNEAKING) ? 1 : 0;
+                out.onGround =
+                    (out.movement == CUBE_MOVE_GROUNDED || out.movement == CUBE_MOVE_SNEAKING) ? 1 : 0;
                 any = true;
             }
 
@@ -114,7 +115,8 @@ namespace game
         const char* className = catalogName(CUBE_CATALOG_CLASS, out.classForm);
         std::snprintf(out.className, sizeof(out.className), "%s", className ? className : kUnknownClass);
         field::byteI32(obj, off::kPlayerSpecOff, out.spec);
-        out.hasName = field::cstr(obj, off::kPlayerNameOff, off::kPlayerNameIsWide, kMaxNameChars, out.name) ? 1 : 0;
+        out.hasName =
+            field::cstr(obj, off::kPlayerNameOff, off::kPlayerNameIsWide, kMaxNameChars, out.name) ? 1 : 0;
 
         if (off::kPlayerPosXOff)
         {

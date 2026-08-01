@@ -10,8 +10,8 @@ namespace paths
 
         bool isSafeChar(char c)
         {
-            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
-                   c == '.' || c == '_' || c == '-';
+            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' ||
+                   c == '_' || c == '-';
         }
     }
 

@@ -31,5 +31,5 @@
 // keeps imgui.h out of mods that draw nothing, while a menu mod just includes cube_mod.hpp and calls
 // mod.menu(). A mod can also include "cube/menu.hpp" explicitly.
 #if defined(__has_include) && __has_include("imgui.h")
-#include "cube/menu.hpp"
+    #include "cube/menu.hpp"
 #endif

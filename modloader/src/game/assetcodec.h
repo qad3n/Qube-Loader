@@ -16,7 +16,8 @@ namespace game::assetcodec
     // so a swap sequence and its reverse are exact inverses.
     inline std::size_t shuffleIndex(std::size_t i, const int32_t* key, int32_t keyCount, std::size_t n)
     {
-        const uint32_t k = static_cast<uint32_t>(key[i % static_cast<std::size_t>(keyCount)] + static_cast<int32_t>(i));
+        const uint32_t k =
+            static_cast<uint32_t>(key[i % static_cast<std::size_t>(keyCount)] + static_cast<int32_t>(i));
         return static_cast<std::size_t>(k % static_cast<uint32_t>(n));
     }
 

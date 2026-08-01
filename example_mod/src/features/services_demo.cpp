@@ -23,16 +23,19 @@ namespace exmod
         mod.services().registerService(kSelfService, 1, &g_selfMarker);
 
         // Resolve peers only at READY (every mod has loaded + passed dependency resolution by then).
-        mod.eventListener.onReady([this]
-        {
-            exlib::PingService* svc = m_mod->services().query<exlib::PingService>(exlib::kServiceName, exlib::kServiceVersion);
-            m_libResolved = svc != nullptr;
-            if (svc && svc->ping)
+        mod.eventListener.onReady(
+            [this]
             {
-                m_lastPing = svc->ping(kPingProbe);
-                cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: resolved example_lib; ping(%d) -> %d", kPingProbe, m_lastPing);
-            }
-        });
+                exlib::PingService* svc =
+                    m_mod->services().query<exlib::PingService>(exlib::kServiceName, exlib::kServiceVersion);
+                m_libResolved = svc != nullptr;
+                if (svc && svc->ping)
+                {
+                    m_lastPing = svc->ping(kPingProbe);
+                    cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: resolved example_lib; ping(%d) -> %d",
+                             kPingProbe, m_lastPing);
+                }
+            });
     }
 
     int ServicesDemo::sendLibPing(int value)

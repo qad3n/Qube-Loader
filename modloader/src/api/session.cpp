@@ -9,7 +9,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiSessionGet(const CubeApi* api, CubeSession* out)
         {
-            return bridgeGet<CubeSession>(api, out, &game::readSession, "session.get", "unavailable", &CubeSession::address);
+            return bridgeGet<CubeSession>(api, out, &game::readSession, "session.get", "unavailable",
+                                          &CubeSession::address);
         }
 
         int32_t CUBE_CALL apiSessionSetField(const CubeApi* api, int32_t field, int32_t value)

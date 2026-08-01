@@ -45,11 +45,13 @@ namespace hooks::render
             {
                 if (!entry.callbacks.onRender)
                     continue;
-                const bool ok = guard::tryRunLoader("render dispatch", [&]() { entry.callbacks.onRender(device); });
+                const bool ok =
+                    guard::tryRunLoader("render dispatch", [&]() { entry.callbacks.onRender(device); });
                 if (!ok && ++g_renderFaults >= kMaxRenderFaults)
                 {
                     g_renderDisarmed = true;
-                    LOGC(Warn, kCategory, "render fault #%d -> overlay render disarmed for this session", g_renderFaults);
+                    LOGC(Warn, kCategory, "render fault #%d -> overlay render disarmed for this session",
+                         g_renderFaults);
                     return;
                 }
             }
@@ -61,7 +63,8 @@ namespace hooks::render
             for (const Entry& entry : entries)
             {
                 if (entry.callbacks.onDeviceReset)
-                    guard::tryRunLoader("device reset dispatch", [&]() { entry.callbacks.onDeviceReset(preReset); });
+                    guard::tryRunLoader("device reset dispatch",
+                                        [&]() { entry.callbacks.onDeviceReset(preReset); });
             }
         }
 
@@ -75,9 +78,7 @@ namespace hooks::render
                     continue;
                 bool entrySwallow = false;
                 guard::tryRunLoader("wndproc dispatch", [&]()
-                {
-                    entrySwallow = entry.callbacks.onWndProc(hwnd, msg, wParam, lParam);
-                });
+                                    { entrySwallow = entry.callbacks.onWndProc(hwnd, msg, wParam, lParam); });
                 if (entrySwallow)
                     swallow = true;
             }

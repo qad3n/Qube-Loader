@@ -17,13 +17,14 @@ typedef struct CubeEventArgs
     uint32_t wParam; // WNDPROC wParam
     int32_t lParam; // WNDPROC lParam
     int32_t swallow; // WNDPROC out: set to 1 to consume the message
-    uint32_t subject; // event subject: creature/item address for entity/target events (the item TYPE id for ITEM_PICKUP), else 0
+    uint32_t subject; // event subject: creature/item address for entity/target events (the item TYPE id for
+                      // ITEM_PICKUP), else 0
     int32_t param; // primary int payload; meaning documented per event (movement/coins/type id/slot)
     int32_t param2; // secondary int payload; documented per event (previous value / second coord / delta)
     float amount; // float payload; documented per event (damage / velocity / health), 0 when unused
 } CubeEventArgs;
 
-typedef void (CUBE_CALL* CubeEventFn)(CubeEventArgs* args);
+typedef void(CUBE_CALL* CubeEventFn)(CubeEventArgs* args);
 
 // One directed inter mod message (CubeServicesApi.sendMessage to the target mod's onMessage handler).
 // The payload is an opaque mod defined blob; sender and receiver agree its meaning by msgId. Unlike the
@@ -38,15 +39,17 @@ typedef struct CubeMessageArgs
     int32_t result; // out: a handler sets this; sendMessage returns the last handler's value
 } CubeMessageArgs;
 
-typedef void (CUBE_CALL* CubeMessageFn)(const struct CubeApi* api, CubeMessageArgs* args, void* user);
+typedef void(CUBE_CALL* CubeMessageFn)(const struct CubeApi* api, CubeMessageArgs* args, void* user);
 
 // Game function hooks intercept a real game call (cancel / mutate args / override return via CubeHookCall).
 // WARNING: the handler runs synchronously on the game thread, keep it small and do NOT touch the overlay.
 typedef enum CubeHook
 {
-    CUBE_HOOK_IMPACT = 0, // melee hit lands: self=victim, target=attacker, argf[0]=damage amount (FLOAT), argi[1]=hit context ptr; cancel negates, mutate argf[0] to rescale
+    CUBE_HOOK_IMPACT = 0, // melee hit lands: self=victim, target=attacker, argf[0]=damage amount (FLOAT),
+                          // argi[1]=hit context ptr; cancel negates, mutate argf[0] to rescale
     CUBE_HOOK_CRIT_ROLL, // attacker rolls a crit: self=attacker; returnI 1=force, 0=deny
-    CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed: self=attacker; returnF rescales the hit (0 harmless, large one shot)
+    CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed: self=attacker; returnF rescales the hit (0
+                             // harmless, large one shot)
     CUBE_HOOK_COUNT,
     CUBE_HOOK_RAW = 1000 // sentinel CubeHookCall.hook value for a raw (user address) hook
 } CubeHook;
@@ -80,5 +83,4 @@ typedef struct CubeHookCall
     float returnF; // in/out: the original float return, and the override value
 } CubeHookCall;
 
-typedef void (CUBE_CALL* CubeHookFn)(CubeHookCall* call);
-
+typedef void(CUBE_CALL* CubeHookFn)(CubeHookCall* call);

@@ -43,7 +43,8 @@ namespace iat
         return real;
     }
 
-    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement, void*** outSlot, bool warnOnMiss)
+    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement,
+                       void*** outSlot, bool warnOnMiss)
     {
         HMODULE mod = GetModuleHandleA(nullptr);
         BYTE* base = reinterpret_cast<BYTE*>(mod);
@@ -79,16 +80,16 @@ namespace iat
 
                 if (!writeSlot(slot, replacement))
                 {
-                    LOGC(Warn, kCategory, "%s!%s: HOOK FAILED, IAT slot 0x%08X not writable",
-                         dllName, funcName, fmt::ptr(slot));
+                    LOGC(Warn, kCategory, "%s!%s: HOOK FAILED, IAT slot 0x%08X not writable", dllName,
+                         funcName, fmt::ptr(slot));
                     return nullptr;
                 }
 
                 if (outSlot)
                     *outSlot = slot;
 
-                LOGC(Debug, kCategory, "%s!%s: HOOKED, IAT slot 0x%08X orig 0x%08X -> hook 0x%08X",
-                     dllName, funcName, fmt::ptr(slot), fmt::ptr(orig), fmt::ptr(replacement));
+                LOGC(Debug, kCategory, "%s!%s: HOOKED, IAT slot 0x%08X orig 0x%08X -> hook 0x%08X", dllName,
+                     funcName, fmt::ptr(slot), fmt::ptr(orig), fmt::ptr(replacement));
 
                 return orig;
             }
@@ -96,9 +97,11 @@ namespace iat
 
         const char* reason = dllFound ? "no IAT slot holds the target" : "dll not in exe import table";
         if (warnOnMiss)
-            LOGC(Warn, kCategory, "%s!%s: HOOK FAILED, %s (target 0x%08X)", dllName, funcName, reason, fmt::ptr(target));
+            LOGC(Warn, kCategory, "%s!%s: HOOK FAILED, %s (target 0x%08X)", dllName, funcName, reason,
+                 fmt::ptr(target));
         else
-            LOGC(Debug, kCategory, "%s!%s: not imported by the exe, optional hook skipped (%s)", dllName, funcName, reason);
+            LOGC(Debug, kCategory, "%s!%s: not imported by the exe, optional hook skipped (%s)", dllName,
+                 funcName, reason);
         return nullptr;
     }
 }

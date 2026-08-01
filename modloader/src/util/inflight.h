@@ -16,10 +16,7 @@ namespace barrier
             m_counter.fetch_add(1, std::memory_order_acq_rel);
         }
 
-        ~InFlight()
-        {
-            m_counter.fetch_sub(1, std::memory_order_acq_rel);
-        }
+        ~InFlight() { m_counter.fetch_sub(1, std::memory_order_acq_rel); }
 
         InFlight(const InFlight&) = delete;
         InFlight& operator=(const InFlight&) = delete;

@@ -63,7 +63,8 @@ namespace game
             // Real Creature has its vftable at offset 0; rejects the uninitialized
             // title screen slot (would read garbage otherwise).
             uint32_t vtable = 0;
-            if (!mem::read(creature, vtable) || vtable != static_cast<uint32_t>(mem::rebase(off::kCreatureVtable)))
+            if (!mem::read(creature, vtable) ||
+                vtable != static_cast<uint32_t>(mem::rebase(off::kCreatureVtable)))
             {
                 reason = "vtable mismatch (uninitialized slot)";
                 return false;
@@ -76,18 +77,21 @@ namespace game
 
         void logPlayerTransition(const framecache::PlayerResolve& r, const char* reason)
         {
-            if (g_lastPlayer.valid && g_lastPlayer.ok == r.ok && g_lastPlayer.gc == r.gc && g_lastPlayer.creature == r.creature)
+            if (g_lastPlayer.valid && g_lastPlayer.ok == r.ok && g_lastPlayer.gc == r.gc &&
+                g_lastPlayer.creature == r.creature)
                 return;
 
             g_lastPlayer = {true, r.ok, r.gc, r.creature};
             if (r.ok)
-                LOGC(Debug, kCategory, "local player resolved: [0x%08X] -> GC 0x%08X -> +0x%X -> creature 0x%08X (vtable 0x%08X)",
+                LOGC(Debug, kCategory,
+                     "local player resolved: [0x%08X] -> GC 0x%08X -> +0x%X -> creature 0x%08X (vtable "
+                     "0x%08X)",
                      fmt::u32(mem::rebase(off::kLocalPlayerPtr)), fmt::u32(r.gc),
                      static_cast<unsigned>(off::kLocalPlayerChain), fmt::u32(r.creature),
                      fmt::u32(mem::rebase(off::kCreatureVtable)));
             else
-                LOGC(Debug, kCategory, "local player unavailable: %s (global [0x%08X])",
-                     reason, fmt::u32(mem::rebase(off::kLocalPlayerPtr)));
+                LOGC(Debug, kCategory, "local player unavailable: %s (global [0x%08X])", reason,
+                     fmt::u32(mem::rebase(off::kLocalPlayerPtr)));
         }
 
         bool resolveGameControllerLive(uintptr_t& gcOut, const char*& reason)
@@ -123,11 +127,13 @@ namespace game
 
             g_lastGc = {true, ok, gc, 0};
             if (ok)
-                LOGC(Debug, kCategory, "GameController resolved: [0x%08X] -> GC 0x%08X (world embedded @ +0x%X)",
-                     fmt::u32(mem::rebase(off::kWorldPtr)), fmt::u32(gc), static_cast<unsigned>(off::kWorldEmbedOff));
+                LOGC(Debug, kCategory,
+                     "GameController resolved: [0x%08X] -> GC 0x%08X (world embedded @ +0x%X)",
+                     fmt::u32(mem::rebase(off::kWorldPtr)), fmt::u32(gc),
+                     static_cast<unsigned>(off::kWorldEmbedOff));
             else
-                LOGC(Debug, kCategory, "GameController unavailable: %s (global [0x%08X])",
-                     reason, fmt::u32(mem::rebase(off::kWorldPtr)));
+                LOGC(Debug, kCategory, "GameController unavailable: %s (global [0x%08X])", reason,
+                     fmt::u32(mem::rebase(off::kWorldPtr)));
         }
 
     }

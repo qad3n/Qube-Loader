@@ -53,7 +53,9 @@ namespace cube
         // Fills a caller buffer, newest last. Returns the count written (<= maxCount, <= kMaxMessages).
         int messages(CubeChatMessage* out, int maxCount) const
         {
-            return (m_api && out && maxCount > 0) ? static_cast<int>(m_api->chat.messages(m_api, out, maxCount)) : 0;
+            return (m_api && out && maxCount > 0)
+                       ? static_cast<int>(m_api->chat.messages(m_api, out, maxCount))
+                       : 0;
         }
 
         // Convenience: the newest line (empty if the log is empty or the widget is unavailable).

@@ -9,7 +9,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiCombatGet(const CubeApi* api, CubeCombat* out)
         {
-            return bridgeGet<CubeCombat>(api, out, &game::readCombat, "combat.get", "unavailable", &CubeCombat::address);
+            return bridgeGet<CubeCombat>(api, out, &game::readCombat, "combat.get", "unavailable",
+                                         &CubeCombat::address);
         }
 
     }

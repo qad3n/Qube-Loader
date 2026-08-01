@@ -39,7 +39,8 @@ typedef struct CubeApi
     // --- appended in ABI 24 (asset overrides) ---
     CubeAssetsApi assets; // client only: override a game asset blob by filename key (detour backed)
     // --- appended in ABI 26 (loader owned ImGui overlay) ---
-    CubeOverlayApi overlay; // client only: register a draw callback; the loader owns the ImGui context + lifecycle
+    CubeOverlayApi
+        overlay; // client only: register a draw callback; the loader owns the ImGui context + lifecycle
     // --- appended in ABI 28 (chat log) ---
     CubeChatApi chat; // client only: read the local chat log; CUBE_EVENT_CHAT_MESSAGE signals new lines
     // --- appended in ABI 29 (character appearance) ---
@@ -50,9 +51,9 @@ typedef struct CubeApi
 // resolves these by id after all mods load and before CUBE_EVENT_READY.
 typedef struct CubeModDep
 {
-    const char* id;         // required mod's id (array terminator = entry whose id is NULL)
+    const char* id; // required mod's id (array terminator = entry whose id is NULL)
     const char* minVersion; // minimum acceptable version string, NULL/"" = any
-    int32_t hard;           // 1 = hard (refuse to load this mod if unmet), 0 = soft (load anyway)
+    int32_t hard; // 1 = hard (refuse to load this mod if unmet), 0 = soft (load anyway)
 } CubeModDep;
 
 typedef struct CubeModInfo
@@ -65,18 +66,18 @@ typedef struct CubeModInfo
     // returns); ties keep load order. Set via Mod::setPriority in the mod body; 0 = default.
     int32_t priority;
     // --- appended in ABI 20; each read only under a structSize gate so older mods still load ---
-    const char* id;         // stable machine id (unique); loader falls back to the DLL stem if NULL
-    uint32_t requiredAbi;   // ABI the mod was built against (CUBE_MOD sets it automatically); 0 = unspecified
-    uint32_t capabilities;  // CubeModCapability bitset; 0 = unrestricted
+    const char* id; // stable machine id (unique); loader falls back to the DLL stem if NULL
+    uint32_t requiredAbi; // ABI the mod was built against (CUBE_MOD sets it automatically); 0 = unspecified
+    uint32_t capabilities; // CubeModCapability bitset; 0 = unrestricted
     const CubeModDep* deps; // null terminated dependency array; NULL = none
     // --- appended in ABI 24; structSize gated like the ABI 20 fields above ---
-    const char* updateUrl;  // optional home/version URL, reported in the load banner; NULL = none
+    const char* updateUrl; // optional home/version URL, reported in the load banner; NULL = none
 } CubeModInfo;
 
 // Required export: called once when the mod is loaded. Return a static CubeModInfo.
-typedef CubeModInfo* (CUBE_CALL* CubeModInitFn)(const CubeApi* api);
+typedef CubeModInfo*(CUBE_CALL* CubeModInitFn)(const CubeApi* api);
 // Optional export: called once just before the mod is unloaded.
-typedef void (CUBE_CALL* CubeModShutdownFn)(void);
+typedef void(CUBE_CALL* CubeModShutdownFn)(void);
 
 static inline void cubeLogf(const CubeApi* api, CubeLogLevel level, const char* fmt, ...)
 {

@@ -30,7 +30,8 @@ namespace modloader::api
             if (!api || !key)
                 return 0;
             const bool ok = modstorage::put(ownerStem(api), key, data, size);
-            LOGC(Debug, kApiCategory, "'%s' storage.put(%s, %d) -> %s", modName(api), key, size, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' storage.put(%s, %d) -> %s", modName(api), key, size,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -39,7 +40,8 @@ namespace modloader::api
             if (!api || !key)
                 return 0;
             const bool ok = modstorage::remove(ownerStem(api), key);
-            LOGC(Debug, kApiCategory, "'%s' storage.remove(%s) -> %s", modName(api), key, ok ? "ok" : "absent");
+            LOGC(Debug, kApiCategory, "'%s' storage.remove(%s) -> %s", modName(api), key,
+                 ok ? "ok" : "absent");
             return okInt(ok);
         }
 

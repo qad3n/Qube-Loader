@@ -10,7 +10,8 @@ namespace game
     namespace
     {
         constexpr int32_t kMaxSegmentWalk = 128; // per message segment cap (a corrupt list cannot spin)
-        constexpr int32_t kListWalkGuard = 64; // cycle guard on the message list (bounded anyway by kChatMaxMessages)
+        constexpr int32_t kListWalkGuard =
+            64; // cycle guard on the message list (bounded anyway by kChatMaxMessages)
         constexpr uint32_t kU16SpanMax = 256; // char16 read per appendU16String call (span buffer size)
         constexpr uint16_t kAsciiPrintableLo = 0x20; // space
         constexpr uint16_t kAsciiPrintableHi = 0x7f; // one past '~'; >= this downconverts to '?'
@@ -56,7 +57,8 @@ namespace game
 
             uint32_t cap = 0;
             uint32_t size = 0;
-            if (!mem::read(strBase + off::kStringCapOff, cap) || !mem::read(strBase + off::kStringSizeOff, size) || size == 0)
+            if (!mem::read(strBase + off::kStringCapOff, cap) ||
+                !mem::read(strBase + off::kStringSizeOff, size) || size == 0)
                 return written;
 
             uintptr_t dataAddr = strBase; // inline (small string optimization)
@@ -80,7 +82,8 @@ namespace game
                 const uint16_t ch = span[i];
                 if (ch == 0)
                     break;
-                out[written++] = (ch >= kAsciiPrintableLo && ch < kAsciiPrintableHi) ? static_cast<char>(ch) : '?';
+                out[written++] =
+                    (ch >= kAsciiPrintableLo && ch < kAsciiPrintableHi) ? static_cast<char>(ch) : '?';
             }
             out[written] = '\0';
             return written;
@@ -101,7 +104,8 @@ namespace game
             bool gotColor = false;
             for (int32_t guard = 0; seg && seg != segHead && guard < kMaxSegmentWalk; ++guard)
             {
-                written = appendU16String(static_cast<uintptr_t>(seg) + off::kChatSegTextOff, m.text, sizeof(m.text), written);
+                written = appendU16String(static_cast<uintptr_t>(seg) + off::kChatSegTextOff, m.text,
+                                          sizeof(m.text), written);
 
                 if (!gotColor)
                 {
@@ -143,7 +147,8 @@ namespace game
         uint32_t node = 0;
         if (!mem::read(static_cast<uintptr_t>(listHead), node)) // head->next = first (oldest)
             return 0;
-        for (int32_t guard = 0; node && node != listHead && n < off::kChatMaxMessages && guard < kListWalkGuard; ++guard)
+        for (int32_t guard = 0;
+             node && node != listHead && n < off::kChatMaxMessages && guard < kListWalkGuard; ++guard)
         {
             nodes[n++] = node;
             uint32_t next = 0;

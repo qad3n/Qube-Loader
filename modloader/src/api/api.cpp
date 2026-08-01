@@ -28,8 +28,7 @@ namespace modloader::api
         // Returns the count of unwired entry points, logging each gap.
         int validate(const CubeApi& api)
         {
-            const SubApiSpan spans[] =
-            {
+            const SubApiSpan spans[] = {
                 spanOf("log", api.log),
                 spanOf("mem", api.mem),
                 spanOf("events", api.events),
@@ -72,8 +71,9 @@ namespace modloader::api
                     if (!span.entries[i])
                     {
                         ++missing;
-                        LOGC(Error, kApiCategory, "init: %s entry point #%zu is NULL (a mod calling it would crash)",
-                             span.name, i);
+                        LOGC(Error, kApiCategory,
+                             "init: %s entry point #%zu is NULL (a mod calling it would crash)", span.name,
+                             i);
                     }
                 }
             }

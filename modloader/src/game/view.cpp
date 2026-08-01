@@ -30,7 +30,8 @@ namespace game
         const uintptr_t projAddr = gc + off::kProjMatrixOff;
         const size_t matrixBytes = sizeof(float) * off::kMatrixFloats;
 
-        if (mem::readable(reinterpret_cast<const void*>(viewAddr), matrixBytes) && mem::readable(reinterpret_cast<const void*>(projAddr), matrixBytes))
+        if (mem::readable(reinterpret_cast<const void*>(viewAddr), matrixBytes) &&
+            mem::readable(reinterpret_cast<const void*>(projAddr), matrixBytes))
         {
             std::memcpy(out.view, reinterpret_cast<const void*>(viewAddr), matrixBytes);
             std::memcpy(out.proj, reinterpret_cast<const void*>(projAddr), matrixBytes);
@@ -123,7 +124,8 @@ namespace game
                 return field::setF32(gc, off::kCamPitchOff, f);
             case CUBE_CAM_YAW:
                 return field::setF32(gc, off::kCamYawOff, f);
-            default: return false;
+            default:
+                return false;
         }
     }
 
@@ -145,7 +147,8 @@ namespace game
                 return mem::write<int32_t>(mem::rebase(off::kSettingMusicVolume), value);
             case CUBE_DISPLAY_MIN_TIMESTEP:
                 return mem::write<int32_t>(mem::rebase(off::kSettingMinTimeStep), value);
-            default: return false;
+            default:
+                return false;
         }
     }
 }

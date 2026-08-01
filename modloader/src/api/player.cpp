@@ -9,7 +9,8 @@ namespace modloader::api
     {
         int32_t CUBE_CALL apiPlayerGet(const CubeApi* api, CubePlayer* out)
         {
-            return bridgeGet<CubePlayer>(api, out, &game::readPlayer, "player.get", "unavailable", &CubePlayer::address);
+            return bridgeGet<CubePlayer>(api, out, &game::readPlayer, "player.get", "unavailable",
+                                         &CubePlayer::address);
         }
 
         int32_t CUBE_CALL apiPlayerAddXp(const CubeApi* api, int32_t amount)
@@ -18,7 +19,8 @@ namespace modloader::api
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::addPlayerXp(amount);
-            LOGC(Debug, kApiCategory, "'%s' player.addXp(%d) -> %s", modName(api), amount, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' player.addXp(%d) -> %s", modName(api), amount,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -33,7 +35,8 @@ namespace modloader::api
                 return 0;
             writeguard::Scope scope(api);
             const bool ok = game::setPlayerStat(stat, value);
-            LOGC(Debug, kApiCategory, "'%s' player.setStat(%d, %.3f) -> %s", modName(api), stat, value, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' player.setStat(%d, %.3f) -> %s", modName(api), stat, value,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 

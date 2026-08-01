@@ -16,7 +16,11 @@ namespace cube
         explicit World(const CubeApi* api) : m_api(api), m_valid(api && api->world.get(api, &m_data) != 0) {}
 
         bool valid() const { return m_valid; }
-        bool refresh() { m_valid = m_api && m_api->world.get(m_api, &m_data) != 0; return m_valid; }
+        bool refresh()
+        {
+            m_valid = m_api && m_api->world.get(m_api, &m_data) != 0;
+            return m_valid;
+        }
         int getZoneX() const { return m_data.zoneX; }
         int getZoneY() const { return m_data.zoneY; }
         int getRegionX() const { return m_data.regionX; }
@@ -38,14 +42,23 @@ namespace cube
         const CubeWorld& raw() const { return m_data; }
         // Live edits: time of day and the player's current ZoneTile (climate/terrain).
         bool setTime(int ms) const { return m_api && m_api->world.setTime(m_api, ms) != 0; }
-        bool setTimeOfDay(int hour, int minute) const { return setTime((hour * kMinutesPerHour + minute) * kSecondsPerMinute * kMillisPerSecond); }
-        bool setTile(TileField field, double value) const { return m_api && m_api->world.setTile(m_api, static_cast<int32_t>(field), value) != 0; }
+        bool setTimeOfDay(int hour, int minute) const
+        {
+            return setTime((hour * kMinutesPerHour + minute) * kSecondsPerMinute * kMillisPerSecond);
+        }
+        bool setTile(TileField field, double value) const
+        {
+            return m_api && m_api->world.setTile(m_api, static_cast<int32_t>(field), value) != 0;
+        }
         bool setTemperature(float value) const { return setTile(TileField::Temperature, value); }
         bool setHumidity(float value) const { return setTile(TileField::Humidity, value); }
         bool setElevation(float value) const { return setTile(TileField::Elevation, value); }
         bool setTerrain(int terrain) const { return setTile(TileField::Terrain, terrain); }
         bool setSeed(unsigned seed) const { return m_api && m_api->world.setSeed(m_api, seed) != 0; }
-        bool setSpawn(float x, float y, float z) const { return m_api && m_api->world.setSpawn(m_api, x, y, z) != 0; }
+        bool setSpawn(float x, float y, float z) const
+        {
+            return m_api && m_api->world.setSpawn(m_api, x, y, z) != 0;
+        }
         bool setSpawn(const Vec3& point) const { return setSpawn(point.x, point.y, point.z); }
 
     private:
@@ -59,16 +72,25 @@ namespace cube
     {
     public:
         Structure() = default;
-        explicit Structure(const CubeStructure& data, const CubeApi* api = nullptr) : m_data(data), m_api(api) {}
+        explicit Structure(const CubeStructure& data, const CubeApi* api = nullptr) : m_data(data), m_api(api)
+        {
+        }
 
         int getType() const { return m_data.type; }
         const char* getName() const { return m_data.name; } // resolved structure name
         Vec3 getPosition() const { return Vec3{m_data.x, m_data.y, m_data.z}; }
         const CubeStructure& raw() const { return m_data; }
         // Live edits to this structure record.
-        bool set(StructField field, double value) const { return m_api && m_data.address && m_api->world.setStructure(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
+        bool set(StructField field, double value) const
+        {
+            return m_api && m_data.address &&
+                   m_api->world.setStructure(m_api, m_data.address, static_cast<int32_t>(field), value) != 0;
+        }
         bool setType(int type) const { return set(StructField::Type, type); }
-        bool setPosition(float x, float y, float z) const { return set(StructField::PosX, x) && set(StructField::PosY, y) && set(StructField::PosZ, z); }
+        bool setPosition(float x, float y, float z) const
+        {
+            return set(StructField::PosX, x) && set(StructField::PosY, y) && set(StructField::PosZ, z);
+        }
         bool setPosition(const Vec3& to) const { return setPosition(to.x, to.y, to.z); }
 
     private:
@@ -78,7 +100,8 @@ namespace cube
 
     inline std::vector<Structure> structuresOf(const CubeApi* api)
     {
-        return detail::fillList<CubeStructure, Structure, CUBE_STRUCTURES_MAX>(api, api ? api->world.structures : nullptr);
+        return detail::fillList<CubeStructure, Structure, CUBE_STRUCTURES_MAX>(
+            api, api ? api->world.structures : nullptr);
     }
 
 }

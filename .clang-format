@@ -9,6 +9,10 @@ ColumnLimit: 110
 BreakBeforeBraces: Allman
 NamespaceIndentation: All
 AccessModifierOffset: -4
+# Trailing comments are NOT column aligned: the project style bans alignment padding, and letting
+# clang-format add it turned every offsets.h / apis.h comment into a padded column.
+AlignTrailingComments:
+  Kind: Never
 PointerAlignment: Left
 ReferenceAlignment: Left
 AllowShortFunctionsOnASingleLine: Inline

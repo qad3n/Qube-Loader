@@ -54,13 +54,15 @@ namespace field
 
     // Reads a 32 bit MSVC std::vector header (begin@+0, end@+4): yields the begin pointer + count
     // capped at maxElems. Shared by every std::vector walk (inventory/structures/corruption scan).
-    inline bool vectorSpan(uintptr_t vecAddr, uintptr_t stride, int32_t maxElems, uint32_t& begin, int32_t& count)
+    inline bool vectorSpan(uintptr_t vecAddr, uintptr_t stride, int32_t maxElems, uint32_t& begin,
+                           int32_t& count)
     {
         uint32_t end = 0;
         begin = 0;
         count = 0;
 
-        if (stride == 0 || !mem::read(vecAddr, begin) || !mem::read(vecAddr + sizeof(uint32_t), end) || !begin || end <= begin)
+        if (stride == 0 || !mem::read(vecAddr, begin) || !mem::read(vecAddr + sizeof(uint32_t), end) ||
+            !begin || end <= begin)
             return false;
 
         const uint32_t span = (end - begin) / static_cast<uint32_t>(stride);

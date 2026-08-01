@@ -11,12 +11,21 @@ namespace cube
     class Appearance
     {
     public:
-        explicit Appearance(const CubeApi* api) : m_api(api), m_valid(api && api->appearance.get(api, &m_data) != 0) {}
+        explicit Appearance(const CubeApi* api)
+            : m_api(api), m_valid(api && api->appearance.get(api, &m_data) != 0)
+        {
+        }
         Appearance(const CubeApi* api, unsigned creatureAddress)
-            : m_api(api), m_valid(api && api->appearance.of(api, creatureAddress, &m_data) != 0) {}
+            : m_api(api), m_valid(api && api->appearance.of(api, creatureAddress, &m_data) != 0)
+        {
+        }
 
         bool valid() const { return m_valid; }
-        bool refresh() { m_valid = m_api && m_api->appearance.get(m_api, &m_data) != 0; return m_valid; }
+        bool refresh()
+        {
+            m_valid = m_api && m_api->appearance.get(m_api, &m_data) != 0;
+            return m_valid;
+        }
         unsigned getAddress() const { return m_data.address; } // the resolved Creature (0 if unavailable)
         int getSpecies() const { return m_data.species; } // race/species selector (drives the model)
         bool isFemale() const { return m_data.gender != 0; }

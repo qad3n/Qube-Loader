@@ -29,16 +29,10 @@ namespace cube
         }
 
         // Remove this mod's override for key. Returns true if one existed.
-        bool remove(const char* key) const
-        {
-            return m_api && m_api->assets.unregisterAsset(m_api, key) != 0;
-        }
+        bool remove(const char* key) const { return m_api && m_api->assets.unregisterAsset(m_api, key) != 0; }
 
         // Whether this mod currently overrides key.
-        bool has(const char* key) const
-        {
-            return m_api && m_api->assets.hasAsset(m_api, key) != 0;
-        }
+        bool has(const char* key) const { return m_api && m_api->assets.hasAsset(m_api, key) != 0; }
 
     private:
         const CubeApi* m_api;

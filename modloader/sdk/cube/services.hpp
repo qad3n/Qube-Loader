@@ -64,7 +64,8 @@ namespace cube
 
         // Send msgId + optional payload to the mod whose id == targetModId; returns the handler's reply
         // value, or -1 if the target id is unknown or has no message handler.
-        int sendMessage(const char* targetModId, unsigned msgId, void* payload = nullptr, unsigned payloadSize = 0) const
+        int sendMessage(const char* targetModId, unsigned msgId, void* payload = nullptr,
+                        unsigned payloadSize = 0) const
         {
             return m_api ? m_api->services.sendMessage(m_api, targetModId, msgId, payload, payloadSize) : -1;
         }

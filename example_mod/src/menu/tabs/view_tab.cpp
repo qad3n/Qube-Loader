@@ -92,9 +92,11 @@ namespace exmod::menu
         int resolutionX = disp.getResolutionX();
         int resolutionY = disp.getResolutionY();
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        const bool resXChanged = ImGui::DragInt("resolution x", &resolutionX, kIntDragSpeed, kResolutionMin, kResolutionMax, "%d", kClampFlags);
+        const bool resXChanged = ImGui::DragInt("resolution x", &resolutionX, kIntDragSpeed, kResolutionMin,
+                                                kResolutionMax, "%d", kClampFlags);
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        const bool resYChanged = ImGui::DragInt("resolution y", &resolutionY, kIntDragSpeed, kResolutionMin, kResolutionMax, "%d", kClampFlags);
+        const bool resYChanged = ImGui::DragInt("resolution y", &resolutionY, kIntDragSpeed, kResolutionMin,
+                                                kResolutionMax, "%d", kClampFlags);
         if (resXChanged || resYChanged)
             disp.setResolution(resolutionX, resolutionY);
         int renderDistance = disp.getRenderDistance();
@@ -148,7 +150,8 @@ namespace exmod::menu
         if (ImGui::Button("Stop music"))
             audio.stopMusic();
         ImGui::TextDisabled("saved volume: edit in Display; live music volume via setMusicVolumeLive.");
-        ImGui::TextDisabled("play sound / stop music / set live volume are game calls; each needs the Writes capability.");
+        ImGui::TextDisabled(
+            "play sound / stop music / set live volume are game calls; each needs the Writes capability.");
     }
 
     void ViewTab::draw(const CubeEventArgs&)

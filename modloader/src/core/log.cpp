@@ -21,15 +21,15 @@ namespace logger
         constexpr int kHoursPerHalfDay = 12;
         constexpr int kYearModulo = 100;
 
-        #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
-        #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
-        #endif
-        #ifndef ENABLE_EXTENDED_FLAGS
-        #define ENABLE_EXTENDED_FLAGS 0x0080
-        #endif
-        #ifndef ENABLE_QUICK_EDIT_MODE
-        #define ENABLE_QUICK_EDIT_MODE 0x0040
-        #endif
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+#ifndef ENABLE_EXTENDED_FLAGS
+    #define ENABLE_EXTENDED_FLAGS 0x0080
+#endif
+#ifndef ENABLE_QUICK_EDIT_MODE
+    #define ENABLE_QUICK_EDIT_MODE 0x0040
+#endif
 
         // Two coloring methods because neither works everywhere. wine: an AllocConsole wineconsole
         // honors SetConsoleTextAttribute but prints ANSI literally; a Unix pty is the reverse.
@@ -50,7 +50,8 @@ namespace logger
         constexpr Color kColorBlue = {"\x1b[94m", FOREGROUND_BLUE | FOREGROUND_INTENSITY};
         constexpr Color kColorYellow = {"\x1b[93m", FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY};
         constexpr Color kColorRed = {"\x1b[91m", FOREGROUND_RED | FOREGROUND_INTENSITY};
-        constexpr Color kColorWhite = {"\x1b[97m", FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY};
+        constexpr Color kColorWhite = {"\x1b[97m", FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE |
+                                                       FOREGROUND_INTENSITY};
         constexpr Color kColorTimestamp = kColorGrey;
         constexpr char kAnsiReset[] = "\x1b[0m";
         constexpr WORD kAttrDefault = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
@@ -63,14 +64,10 @@ namespace logger
             Color color;
         };
 
-        constexpr LevelInfo kLevels[] =
-        {
-            {Level::Trace, "TRACE", "trace", kColorGrey},
-            {Level::Debug, "DEBUG", "debug", kColorGrey},
-            {Level::Info, "INFO", "info", kColorBlue},
-            {Level::Warn, "WARN", "warn", kColorYellow},
-            {Level::Error, "ERROR", "error", kColorRed},
-            {Level::Off, "OFF", "off", kColorGrey},
+        constexpr LevelInfo kLevels[] = {
+            {Level::Trace, "TRACE", "trace", kColorGrey}, {Level::Debug, "DEBUG", "debug", kColorGrey},
+            {Level::Info, "INFO", "info", kColorBlue},    {Level::Warn, "WARN", "warn", kColorYellow},
+            {Level::Error, "ERROR", "error", kColorRed},  {Level::Off, "OFF", "off", kColorGrey},
         };
 
         // recursive: the crash filter may log from a thread already holding this lock.
@@ -139,7 +136,8 @@ namespace logger
                 hour12 = kHoursPerHalfDay;
 
             const char* ampm = t.wHour < kHoursPerHalfDay ? "am" : "pm";
-            snprintf(buf, n, "%d/%d/%02d %d:%02d%s", t.wMonth, t.wDay, t.wYear % kYearModulo, hour12, t.wMinute, ampm);
+            snprintf(buf, n, "%d/%d/%02d %d:%02d%s", t.wMonth, t.wDay, t.wYear % kYearModulo, hour12,
+                     t.wMinute, ampm);
         }
 
         // Win32 mode must write via WriteConsoleA on the SAME handle it set the attribute on (the CRT
@@ -321,8 +319,7 @@ namespace logger
                 if (g_colorMode == ColorMode::Win32)
                 {
                     CONSOLE_SCREEN_BUFFER_INFO info{};
-                    if (g_conHandle != INVALID_HANDLE_VALUE &&
-                        GetConsoleScreenBufferInfo(g_conHandle, &info))
+                    if (g_conHandle != INVALID_HANDLE_VALUE && GetConsoleScreenBufferInfo(g_conHandle, &info))
                         g_baseAttr = info.wAttributes;
                 }
 

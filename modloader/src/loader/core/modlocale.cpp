@@ -71,7 +71,8 @@ namespace modloader::modlocale
         const char* env = std::getenv(kLocaleEnvVar);
         g_defaultLocale = (env && env[0]) ? env : kDefaultLocale;
         if (!paths::ensureDir(g_dir))
-            LOGC(Warn, kCategory, "could not create lang dir %s; mod translations will fall back to keys", g_dir.c_str());
+            LOGC(Warn, kCategory, "could not create lang dir %s; mod translations will fall back to keys",
+                 g_dir.c_str());
     }
 
     std::string translate(const std::string& modStem, const std::string& key, const std::string& fallback)

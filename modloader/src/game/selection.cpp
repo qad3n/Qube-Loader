@@ -19,8 +19,8 @@ namespace game::selection
 
         // GameController::updateSelectedEntity is __thiscall (ECX=GC, no stack args).
         CaptureDetour<Record> g_capture(kCategory, off::kUpdateSelectedEntityFn, "select capture",
-            "select detour installed (R/use-key selection tracking active)",
-            "select detour failed to install; selection events disabled");
+                                        "select detour installed (R/use-key selection tracking active)",
+                                        "select detour failed to install; selection events disabled");
 
         CubeSelectionKind classify(uint32_t address, int32_t typeByte)
         {

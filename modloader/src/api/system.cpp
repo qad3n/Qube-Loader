@@ -23,11 +23,11 @@ namespace modloader::api
                 return 0;
             const bool ok = mem::readBytes(static_cast<uintptr_t>(address), out, size);
             if (ok && size >= sizeof(uint32_t))
-                LOGC(Trace, kApiCategory, "'%s' mem.read(0x%08X, %u) -> ok [0x%08X ...]",
-                     modName(api), address, size, *static_cast<const uint32_t*>(out));
+                LOGC(Trace, kApiCategory, "'%s' mem.read(0x%08X, %u) -> ok [0x%08X ...]", modName(api),
+                     address, size, *static_cast<const uint32_t*>(out));
             else
-                LOGC(Trace, kApiCategory, "'%s' mem.read(0x%08X, %u) -> %s",
-                     modName(api), address, size, ok ? "ok" : "unreadable");
+                LOGC(Trace, kApiCategory, "'%s' mem.read(0x%08X, %u) -> %s", modName(api), address, size,
+                     ok ? "ok" : "unreadable");
             return okInt(ok);
         }
 
@@ -57,11 +57,11 @@ namespace modloader::api
             writeguard::Scope scope(api);
             const bool ok = mem::writeRaw(static_cast<uintptr_t>(address), src, size);
             if (size >= sizeof(uint32_t))
-                LOGC(Debug, kApiCategory, "'%s' mem.write(0x%08X, %u) = [0x%08X ...] -> %s",
-                     modName(api), address, size, *static_cast<const uint32_t*>(src), ok ? "ok" : "blocked");
+                LOGC(Debug, kApiCategory, "'%s' mem.write(0x%08X, %u) = [0x%08X ...] -> %s", modName(api),
+                     address, size, *static_cast<const uint32_t*>(src), ok ? "ok" : "blocked");
             else
-                LOGC(Debug, kApiCategory, "'%s' mem.write(0x%08X, %u) -> %s",
-                     modName(api), address, size, ok ? "ok" : "blocked");
+                LOGC(Debug, kApiCategory, "'%s' mem.write(0x%08X, %u) -> %s", modName(api), address, size,
+                     ok ? "ok" : "blocked");
             return okInt(ok);
         }
 

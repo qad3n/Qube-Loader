@@ -9,15 +9,18 @@ namespace modloader::api
     {
         int32_t CUBE_CALL apiItemsEquipment(const CubeApi* api, CubeItem* out, int32_t maxCount)
         {
-            return bridgeList(api, "items.equipment", out, maxCount, game::listEquipment(out, maxCount), &CubeItem::address);
+            return bridgeList(api, "items.equipment", out, maxCount, game::listEquipment(out, maxCount),
+                              &CubeItem::address);
         }
 
         int32_t CUBE_CALL apiItemsInventory(const CubeApi* api, CubeItem* out, int32_t maxCount)
         {
-            return bridgeList(api, "items.inventory", out, maxCount, game::listInventory(out, maxCount), &CubeItem::address);
+            return bridgeList(api, "items.inventory", out, maxCount, game::listInventory(out, maxCount),
+                              &CubeItem::address);
         }
 
-        int32_t CUBE_CALL apiItemsSetField(const CubeApi* api, uint32_t itemAddress, int32_t field, double value)
+        int32_t CUBE_CALL apiItemsSetField(const CubeApi* api, uint32_t itemAddress, int32_t field,
+                                           double value)
         {
             return bridgeSetAddrField(api, "items.setField", &game::setItemField, itemAddress, field, value);
         }
@@ -25,13 +28,16 @@ namespace modloader::api
         const char* CUBE_CALL apiItemsName(const CubeApi* api, int32_t type, int32_t subtype)
         {
             const char* name = game::itemDisplayName(type, subtype);
-            LOGC(Trace, kApiCategory, "'%s' items.name(%d, %d) -> %s", modName(api), type, subtype, name ? name : "(null)");
+            LOGC(Trace, kApiCategory, "'%s' items.name(%d, %d) -> %s", modName(api), type, subtype,
+                 name ? name : "(null)");
             return name;
         }
 
-        int32_t CUBE_CALL apiItemsInventoryOf(const CubeApi* api, uint32_t creatureAddress, CubeItem* out, int32_t maxCount)
+        int32_t CUBE_CALL apiItemsInventoryOf(const CubeApi* api, uint32_t creatureAddress, CubeItem* out,
+                                              int32_t maxCount)
         {
-            return bridgeList(api, "items.inventoryOf", out, maxCount, game::listInventoryOf(creatureAddress, out, maxCount), &CubeItem::address);
+            return bridgeList(api, "items.inventoryOf", out, maxCount,
+                              game::listInventoryOf(creatureAddress, out, maxCount), &CubeItem::address);
         }
 
         int32_t CUBE_CALL apiItemsValue(const CubeApi* api, uint32_t itemAddress)
@@ -58,7 +64,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiSkillsSetCooldown(const CubeApi* api, int32_t abilityId, int32_t remainingMs)
         {
-            return bridgeSetPair(api, "skills.setCooldown", &game::setAbilityCooldown, abilityId, remainingMs);
+            return bridgeSetPair(api, "skills.setCooldown", &game::setAbilityCooldown, abilityId,
+                                 remainingMs);
         }
 
         int32_t CUBE_CALL apiSkillsClearCooldowns(const CubeApi* api)

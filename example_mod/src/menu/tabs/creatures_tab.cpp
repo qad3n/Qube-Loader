@@ -70,7 +70,8 @@ namespace exmod::menu
     }
 
     template <typename CreatureT>
-    void CreaturesTab::drawTransformEditors(const CreatureT& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel)
+    void CreaturesTab::drawTransformEditors(const CreatureT& creature, char* nameBuf, size_t nameSize,
+                                            cube::Player& player, const char* teleportLabel)
     {
         float facing = creature.getFacing();
         ImGui::SetNextItemWidth(sc(kInputWidth));
@@ -107,7 +108,8 @@ namespace exmod::menu
             row("State", "%s (from health)", cube::creatureStateName(creature.getState()));
             row("Distance", "%.1f m", creature.getDistance());
             row("Species", "%s (#%d)",
-                cube::catalog::nameOr(g_api, CUBE_CATALOG_SPECIES, creature.getType(), "unknown"), creature.getType());
+                cube::catalog::nameOr(g_api, CUBE_CATALOG_SPECIES, creature.getType(), "unknown"),
+                creature.getType());
             row("Class", "%s",
                 cube::catalog::nameOr(g_api, CUBE_CATALOG_CLASS, creature.getCombatClass(), "none"));
             row("Boss / rank", "%s / %d stars", yesNo(creature.isBoss()), creature.getRank());
@@ -142,12 +144,14 @@ namespace exmod::menu
             for (size_t i = 0; i < effects.size(); ++i)
             {
                 const cube::Buff& effect = effects[i];
-                const char* effectName = cube::catalog::nameOr(g_api, CUBE_CATALOG_BUFF_TYPE, effect.getType(), "effect");
+                const char* effectName =
+                    cube::catalog::nameOr(g_api, CUBE_CATALOG_BUFF_TYPE, effect.getType(), "effect");
                 ImGui::BulletText("%s (#%d)  x%.2f  %d ms", effectName, effect.getType(),
                                   effect.getMagnitude(), effect.getRemainingMs());
             }
         }
-        if ((creature.getHitStun() > 0 || creature.isKnockedDown()) && ImGui::SmallButton("Break free##entstun"))
+        if ((creature.getHitStun() > 0 || creature.isKnockedDown()) &&
+            ImGui::SmallButton("Break free##entstun"))
             creature.clearStun();
         int value = 0;
         if (idEditor("species", CUBE_CATALOG_SPECIES, creature.getType(), value))
@@ -183,10 +187,11 @@ namespace exmod::menu
             // every frame, so an index keyed node's open state + actions would hit the wrong creature.
             ImGui::PushID(static_cast<int>(creature.raw().address));
             ImGui::PushStyleColor(ImGuiCol_Text, creatureColor(creature));
-            const bool open = ImGui::TreeNode("row", "%s  L%d  %.0fm  %s (kind %d)%s",
-                                              creature.getName()[0] ? creature.getName() : "(unnamed)", creature.getLevel(),
-                                              creature.getDistance(), creatureLabel(creature), creature.getCategory(),
-                                              creature.isBoss() ? " BOSS" : "");
+            const bool open =
+                ImGui::TreeNode("row", "%s  L%d  %.0fm  %s (kind %d)%s",
+                                creature.getName()[0] ? creature.getName() : "(unnamed)", creature.getLevel(),
+                                creature.getDistance(), creatureLabel(creature), creature.getCategory(),
+                                creature.isBoss() ? " BOSS" : "");
             ImGui::PopStyleColor();
             if (open)
             {

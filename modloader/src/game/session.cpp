@@ -24,7 +24,8 @@ namespace game
             int32_t index = 0;
             uint32_t array = 0;
 
-            if (!mem::read(state + off::kWidgetIndexOff, index) || index < 0 || index >= off::kWidgetMaxIndex || !mem::read(state + off::kWidgetArrayOff, array) || !array)
+            if (!mem::read(state + off::kWidgetIndexOff, index) || index < 0 ||
+                index >= off::kWidgetMaxIndex || !mem::read(state + off::kWidgetArrayOff, array) || !array)
                 return false;
 
             cellAddr = array + static_cast<uintptr_t>(index) * sizeof(uint32_t);
@@ -112,7 +113,8 @@ namespace game
                 return mem::write<uint8_t>(gc + off::kNetModeOff, static_cast<uint8_t>(value));
             case CUBE_SESSION_CONNECTED:
                 return mem::write<uint8_t>(gc + off::kConnectedOff, static_cast<uint8_t>(value));
-            default: return false;
+            default:
+                return false;
         }
     }
 
@@ -133,7 +135,8 @@ namespace game
                 return setWidgetOpen(gc, off::kWidgetMapOff, on);
             case CUBE_UI_OBJECTIVE:
                 return mem::write<uint8_t>(gc + off::kObjectiveOpenByteOff, on);
-            default: return false;
+            default:
+                return false;
         }
     }
 }

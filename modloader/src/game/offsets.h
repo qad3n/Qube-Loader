@@ -31,9 +31,9 @@ namespace off
     // RENAMES). Detoured to override a blob by key; the loader reencodes non-.cub data so the game's
     // own decode reconstructs the mod's plaintext.
     constexpr uintptr_t kDbLoadBlobByKey = 0x00449810; // read choke point (detour target)
-    constexpr uintptr_t kOperatorNew = 0x0068d652;     // operator new wrapper: void* __cdecl(size_t)
-    constexpr uintptr_t kBlobShuffleKey = 0x006ffa68;  // .rdata: 44 int32 key table for the shuffle
-    constexpr int32_t kBlobShuffleKeyCount = 44;       // 0x2c entries, indexed by i % count
+    constexpr uintptr_t kOperatorNew = 0x0068d652; // operator new wrapper: void* __cdecl(size_t)
+    constexpr uintptr_t kBlobShuffleKey = 0x006ffa68; // .rdata: 44 int32 key table for the shuffle
+    constexpr int32_t kBlobShuffleKeyCount = 44; // 0x2c entries, indexed by i % count
     // MSVC 2012 std::string (the key arg) layout: inline buffer OR heap pointer at +0, size @+0x10,
     // capacity @+0x14; SSO while capacity < 16 (buffer holds the chars), else +0 is the heap pointer.
     constexpr uintptr_t kStdStringSizeOff = 0x10;
@@ -335,15 +335,38 @@ namespace off
     constexpr int32_t kSpeciesSapphireFish = 0x91;
     constexpr int32_t kSpeciesLemonFish = 0x92;
     constexpr int32_t kSpeciesSeahorse = 0x93;
-    constexpr int32_t kPassiveSpecies[] =
-    {
-        kSpeciesCollie, kSpeciesShepherdDog, kSpeciesAlpaca, kSpeciesBrownAlpaca, kSpeciesTurtle,
-        kSpeciesTerrier, kSpeciesScottishTerrier, kSpeciesCat, kSpeciesBrownCat, kSpeciesWhiteCat,
-        kSpeciesPig, kSpeciesSheep, kSpeciesBunny, kSpeciesHornet, kSpeciesCrow, kSpeciesChicken,
-        kSpeciesSeagull, kSpeciesParrot, kSpeciesPeacock, kSpeciesFrog, kSpeciesDuckbill,
-        kSpeciesMole, kSpeciesOwl, kSpeciesPenguin, kSpeciesHorse, kSpeciesCow, kSpeciesCrab,
-        kSpeciesSeaCrab, kSpeciesKoala, kSpeciesSapphireFish, kSpeciesLemonFish, kSpeciesSeahorse
-    };
+    constexpr int32_t kPassiveSpecies[] = {kSpeciesCollie,
+                                           kSpeciesShepherdDog,
+                                           kSpeciesAlpaca,
+                                           kSpeciesBrownAlpaca,
+                                           kSpeciesTurtle,
+                                           kSpeciesTerrier,
+                                           kSpeciesScottishTerrier,
+                                           kSpeciesCat,
+                                           kSpeciesBrownCat,
+                                           kSpeciesWhiteCat,
+                                           kSpeciesPig,
+                                           kSpeciesSheep,
+                                           kSpeciesBunny,
+                                           kSpeciesHornet,
+                                           kSpeciesCrow,
+                                           kSpeciesChicken,
+                                           kSpeciesSeagull,
+                                           kSpeciesParrot,
+                                           kSpeciesPeacock,
+                                           kSpeciesFrog,
+                                           kSpeciesDuckbill,
+                                           kSpeciesMole,
+                                           kSpeciesOwl,
+                                           kSpeciesPenguin,
+                                           kSpeciesHorse,
+                                           kSpeciesCow,
+                                           kSpeciesCrab,
+                                           kSpeciesSeaCrab,
+                                           kSpeciesKoala,
+                                           kSpeciesSapphireFish,
+                                           kSpeciesLemonFish,
+                                           kSpeciesSeahorse};
     // Star/power rank +0x1a8 (byte): stat scaling magnitude ("stars"). There is no rarity/elite
     // field; +0x140 is the class byte for every creature.
     constexpr uintptr_t kEntityRankOff = 0x1a8;
@@ -361,9 +384,9 @@ namespace off
     constexpr int32_t kBossSpeciesH = 0x75;
     constexpr int32_t kBossSpeciesI = 0x76;
     constexpr int32_t kBossSpeciesJ = 0x77;
-    constexpr int32_t kBossSpecies[] = {
-        kBossSpeciesA, kBossSpeciesB, kBossSpeciesC, kBossSpeciesD, kBossSpeciesE,
-        kBossSpeciesF, kBossSpeciesG, kBossSpeciesH, kBossSpeciesI, kBossSpeciesJ};
+    constexpr int32_t kBossSpecies[] = {kBossSpeciesA, kBossSpeciesB, kBossSpeciesC, kBossSpeciesD,
+                                        kBossSpeciesE, kBossSpeciesF, kBossSpeciesG, kBossSpeciesH,
+                                        kBossSpeciesI, kBossSpeciesJ};
     constexpr uintptr_t kSelectedEntityOff = 0x8008d8; // GC: selected/use target Creature*
 
     // Active pet's creature id (0 = none); resolve against the creature map.

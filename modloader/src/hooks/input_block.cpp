@@ -134,7 +134,9 @@ namespace hooks::input_block
         if (!hookImport(kSetCursorPos, reinterpret_cast<void*>(&hkSetCursorPos), &g_setCursorPosSlot,
                         reinterpret_cast<void**>(&g_origSetCursorPos)))
         {
-            LOGC(Warn, kCategory, "could not hook SetCursorPos; the camera recenter cannot be suppressed while the menu is open");
+            LOGC(Warn, kCategory,
+                 "could not hook SetCursorPos; the camera recenter cannot be suppressed while the menu is "
+                 "open");
             return false;
         }
 
@@ -143,7 +145,9 @@ namespace hooks::input_block
         // rather than fail, since the freeze is still a large improvement over nothing.
         if (!hookImport(kGetCursorPos, reinterpret_cast<void*>(&hkGetCursorPos), &g_getCursorPosSlot,
                         reinterpret_cast<void**>(&g_origGetCursorPos)))
-            LOGC(Warn, kCategory, "could not hook GetCursorPos; the camera may drift while the menu is open and jump when it closes");
+            LOGC(Warn, kCategory,
+                 "could not hook GetCursorPos; the camera may drift while the menu is open and jump when it "
+                 "closes");
 
         g_installed = true;
         LOGC(Debug, kCategory, "mouse look hooks armed (SetCursorPos%s)",

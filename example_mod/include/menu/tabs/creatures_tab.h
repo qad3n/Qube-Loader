@@ -22,7 +22,8 @@ namespace exmod::menu
         // Facing/name/position/velocity editors shared by the creature detail and pet views (both are
         // Creatures with the same setters). teleportLabel names the "warp me to it" button.
         template <typename CreatureT>
-        void drawTransformEditors(const CreatureT& creature, char* nameBuf, size_t nameSize, cube::Player& player, const char* teleportLabel);
+        void drawTransformEditors(const CreatureT& creature, char* nameBuf, size_t nameSize,
+                                  cube::Player& player, const char* teleportLabel);
 
         // Separate name edit buffers so creature / pet do not stomp each other.
         char m_entityName[CUBE_PLAYER_NAME_MAX] = "";

@@ -54,8 +54,8 @@ namespace exmod::menu
             EventsTab m_events;
             HooksTab m_hooks;
             ModTab m_mod;
-            Tab* const m_tabs[kMainTabCount] = {&m_player, &m_combat, &m_items, &m_world, &m_entities,
-                                                &m_view, &m_session, &m_events, &m_hooks, &m_mod};
+            Tab* const m_tabs[kMainTabCount] = {&m_player, &m_combat,  &m_items,  &m_world, &m_entities,
+                                                &m_view,   &m_session, &m_events, &m_hooks, &m_mod};
             int m_active = 0;
             ImVec2 m_lastDisplay = {0.0f, 0.0f}; // refit the window when the resolution changes
         };
@@ -82,7 +82,8 @@ namespace exmod::menu
             const float maxH = haveDisp ? disp.y : kUnboundedSize;
             const float minW = minf(Tab::sc(kMinWindowWidth), maxW * kMaxWindowFraction);
             const float minH = minf(Tab::sc(kMinWindowHeight), maxH * kMaxWindowFraction);
-            ImGui::SetNextWindowSize(ImVec2(Tab::sc(kWindowWidth), Tab::sc(kWindowHeight)), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(Tab::sc(kWindowWidth), Tab::sc(kWindowHeight)),
+                                     ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSizeConstraints(ImVec2(minW, minH), ImVec2(maxW, maxH));
 
             // On a resolution change (device reset) recenter into the new bounds so a downscale can

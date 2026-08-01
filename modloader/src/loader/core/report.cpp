@@ -17,7 +17,8 @@ namespace modloader
     namespace
     {
         // Append owner to index[key], de duplicated, for the shared hook/event inverse index.
-        void addOwner(std::map<std::string, std::vector<std::string>>& index, const std::string& key, const std::string& owner)
+        void addOwner(std::map<std::string, std::vector<std::string>>& index, const std::string& key,
+                      const std::string& owner)
         {
             std::vector<std::string>& owners = index[key];
             for (const std::string& existing : owners)
@@ -54,7 +55,8 @@ namespace modloader
         {
             const std::string version = mod->version.empty() ? "?" : mod->version;
             if (mod->updateUrl.empty())
-                LOGC(Info, kCategory, "  mod: %s v%s (%s)", mod->name.c_str(), version.c_str(), mod->context.id.c_str());
+                LOGC(Info, kCategory, "  mod: %s v%s (%s)", mod->name.c_str(), version.c_str(),
+                     mod->context.id.c_str());
             else
                 LOGC(Info, kCategory, "  mod: %s v%s (%s) <%s>", mod->name.c_str(), version.c_str(),
                      mod->context.id.c_str(), mod->updateUrl.c_str());
@@ -69,27 +71,25 @@ namespace modloader
         {
             const std::string events = modloader::events::describeOwner(&mod->context.api);
             const std::string hooks = game::gamehooks::describeOwner(&mod->context.api);
-            LOGC(Debug, kCategory, "  %s (priority %d): events=[%s] hooks=[%s]", mod->context.category.c_str(),
-                 mod->context.priority, events.empty() ? "-" : events.c_str(), hooks.empty() ? "-" : hooks.c_str());
+            LOGC(Debug, kCategory, "  %s (priority %d): events=[%s] hooks=[%s]",
+                 mod->context.category.c_str(), mod->context.priority, events.empty() ? "-" : events.c_str(),
+                 hooks.empty() ? "-" : hooks.c_str());
         }
 
         std::map<std::string, std::vector<std::string>> hookOwners;
         game::gamehooks::forEachSubscription([&](const CubeApi* owner, const char* label)
-        {
-            addOwner(hookOwners, label, ownerName(owner));
-        });
+                                             { addOwner(hookOwners, label, ownerName(owner)); });
         for (const std::pair<const std::string, std::vector<std::string>>& entry : hookOwners)
         {
             if (entry.second.size() > 1)
-                conflict::warn("hook %s is intercepted by %s; they run last-writer-wins on the return and may conflict",
-                               entry.first.c_str(), joinNames(entry.second).c_str());
+                conflict::warn(
+                    "hook %s is intercepted by %s; they run last-writer-wins on the return and may conflict",
+                    entry.first.c_str(), joinNames(entry.second).c_str());
         }
 
         std::map<std::string, std::vector<std::string>> eventOwners;
         modloader::events::forEachSubscription([&](const CubeApi* owner, const char* label)
-        {
-            addOwner(eventOwners, label, ownerName(owner));
-        });
+                                               { addOwner(eventOwners, label, ownerName(owner)); });
         for (const std::pair<const std::string, std::vector<std::string>>& entry : eventOwners)
         {
             if (entry.second.size() > 1)

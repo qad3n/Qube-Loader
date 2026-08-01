@@ -44,8 +44,16 @@ namespace cube
 
         int returnInt() const { return m_call->returnI; } // the original's return, unless overridden
         float returnFloat() const { return m_call->returnF; }
-        void setReturnInt(int value) { m_call->returnI = value; m_call->overrideReturn = 1; }
-        void setReturnFloat(float value) { m_call->returnF = value; m_call->overrideReturn = 1; }
+        void setReturnInt(int value)
+        {
+            m_call->returnI = value;
+            m_call->overrideReturn = 1;
+        }
+        void setReturnFloat(float value)
+        {
+            m_call->returnF = value;
+            m_call->overrideReturn = 1;
+        }
 
         // Guarded reads: a bad/stale address returns 0 instead of crashing. self*/target* read at
         // self()/target()+offset; readInt/readFloat at any absolute address.
@@ -66,9 +74,15 @@ namespace cube
         }
 
         int selfInt(unsigned offset) const { return m_call->self ? readInt(m_call->self + offset) : 0; }
-        float selfFloat(unsigned offset) const { return m_call->self ? readFloat(m_call->self + offset) : 0.0f; }
+        float selfFloat(unsigned offset) const
+        {
+            return m_call->self ? readFloat(m_call->self + offset) : 0.0f;
+        }
         int targetInt(unsigned offset) const { return m_call->target ? readInt(m_call->target + offset) : 0; }
-        float targetFloat(unsigned offset) const { return m_call->target ? readFloat(m_call->target + offset) : 0.0f; }
+        float targetFloat(unsigned offset) const
+        {
+            return m_call->target ? readFloat(m_call->target + offset) : 0.0f;
+        }
 
         CubeHookCall& raw() { return *m_call; } // escape hatch to the C struct
 

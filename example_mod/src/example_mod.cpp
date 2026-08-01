@@ -32,9 +32,8 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
     mod.setId("cube_mod.example");
     mod.dependsOn(exlib::kModId, "1.0.0");
     mod.setPriority(exmod::kDispatchPriority);
-    mod.setCapabilities(cube::Capability::RawMem | cube::Capability::Writes |
-                        cube::Capability::RawHooks | cube::Capability::Overlay |
-                        cube::Capability::Assets);
+    mod.setCapabilities(cube::Capability::RawMem | cube::Capability::Writes | cube::Capability::RawHooks |
+                        cube::Capability::Overlay | cube::Capability::Assets);
     mod.setUpdateUrl("https://github.com/cube-world-mods/example_mod");
 
     mod.log.info("example_mod: init; menu on INSERT, listening for game events");
@@ -55,11 +54,12 @@ CUBE_MOD("Example Menu Mod", "1.0.0", "cube_mod")
 
     // Plain per frame work (runs on the loader's FRAME event, independent of whether the menu is open).
     cube::EventListener& eventListener = mod.eventListener;
-    eventListener.onFrame([]
-    {
-        exmod::cheats().apply();
-        exmod::healthHistory().sample();
-    });
+    eventListener.onFrame(
+        []
+        {
+            exmod::cheats().apply();
+            exmod::healthHistory().sample();
+        });
 
     // The event LISTENER observes, the event HOOK intercepts; each owns its wiring in its feature class.
     exmod::gameEvents().install(eventListener);

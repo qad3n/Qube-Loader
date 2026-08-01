@@ -14,7 +14,8 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiAppearanceGet(const CubeApi* api, CubeAppearance* out)
         {
-            return bridgeGet<CubeAppearance>(api, out, &readLocalAppearance, "appearance.get", "unavailable", &CubeAppearance::address);
+            return bridgeGet<CubeAppearance>(api, out, &readLocalAppearance, "appearance.get", "unavailable",
+                                             &CubeAppearance::address);
         }
 
         int32_t CUBE_CALL apiAppearanceOf(const CubeApi* api, uint32_t creatureAddress, CubeAppearance* out)
@@ -24,8 +25,8 @@ namespace modloader::api
             CubeAppearance value = {};
             value.structSize = sizeof(CubeAppearance);
             const bool ok = game::readAppearance(creatureAddress, value);
-            LOGC(Trace, kApiCategory, "'%s' appearance.of(0x%08X) -> %s (0x%08X)",
-                 modName(api), creatureAddress, ok ? "ok" : "unavailable", value.address);
+            LOGC(Trace, kApiCategory, "'%s' appearance.of(0x%08X) -> %s (0x%08X)", modName(api),
+                 creatureAddress, ok ? "ok" : "unavailable", value.address);
             if (!ok)
                 return 0;
             *out = value;

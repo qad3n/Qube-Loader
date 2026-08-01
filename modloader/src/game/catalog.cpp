@@ -11,8 +11,7 @@ namespace game
     namespace
     {
         // "id=name" pairs, comma separated, one string per CubeCatalog. Empty = raw id.
-        const char* const kCatalogData[CUBE_CATALOG_COUNT] =
-        {
+        const char* const kCatalogData[CUBE_CATALOG_COUNT] = {
             // CUBE_CATALOG_ITEM_TYPE (item POD byte +0x0)
             "1=Consumable,2=Formula,3=Weapon,4=Chest Armor,5=Gloves,6=Boots,7=Shoulder Armor,"
             "8=Amulet,9=Ring,11=Special,12=Coin,13=Platinum Coin,18=Candle,19=Pet,20=Food,"
@@ -135,8 +134,7 @@ namespace game
             "77=troll-groan,78=mole-groan,79=slime-groan,80=zombie-groan,81=Explosion,82=punch2c,"
             "83=menu-open2,84=menu-close2,85=menu-select,86=menu-tab,87=menu-grab-item,"
             "88=menu-drop-item,89=craft,90=craft-proc,91=absorb,92=manashield,93=bulwark,94=bird1,"
-            "95=bird2,96=bird3,97=cricket1,98=cricket2,99=owl1,100=owl2"
-        };
+            "95=bird2,96=bird3,97=cricket1,98=cricket2,99=owl1,100=owl2"};
 
         typedef std::vector<std::pair<int32_t, std::string>> NameList;
 

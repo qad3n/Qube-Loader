@@ -16,5 +16,6 @@ namespace iat
     // `replacement`. Returns the original pointer (== target) + slot via outSlot, null on failure.
     // warnOnMiss=false downgrades the "not in IAT" miss to DEBUG, for optional hooks where the game
     // simply not importing the function is expected and benign (e.g. the crash filter reinstall guard).
-    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement, void*** outSlot, bool warnOnMiss = true);
+    void* patchIatSlot(const char* dllName, const char* funcName, void* target, void* replacement,
+                       void*** outSlot, bool warnOnMiss = true);
 }

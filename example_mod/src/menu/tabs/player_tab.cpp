@@ -43,7 +43,8 @@ namespace exmod::menu
         ImGui::Checkbox("god mode", &cheat.godMode);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::DragFloat("hp##god", &cheat.godModeHealth, kHealthDragSpeed, kHealthMin, kHealthMax, "%.0f", kClampFlags);
+        ImGui::DragFloat("hp##god", &cheat.godModeHealth, kHealthDragSpeed, kHealthMin, kHealthMax, "%.0f",
+                         kClampFlags);
         ImGui::Checkbox("infinite mana", &cheat.infiniteMana);
         ImGui::Checkbox("infinite stamina", &cheat.infiniteStamina);
     }
@@ -65,7 +66,8 @@ namespace exmod::menu
             player.setLevel(m_inputs.level);
 
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::DragInt("xp amount##set", &m_inputs.xpAmount, kIntDragSpeed, kCountMin, kCountMax, "%d", kClampFlags);
+        ImGui::DragInt("xp amount##set", &m_inputs.xpAmount, kIntDragSpeed, kCountMin, kCountMax, "%d",
+                       kClampFlags);
         ImGui::SameLine();
         if (ImGui::Button("Give##xp"))
             player.giveXp(m_inputs.xpAmount);
@@ -165,12 +167,14 @@ namespace exmod::menu
             row("Species", "%d", appearance.getSpecies());
             row("Gender", "%s", appearance.isFemale() ? "female" : "male");
             row("Style", "0x%08X", appearance.getStyle());
-            row("Colors", "%d / %d / %d", appearance.getColor0(), appearance.getColor1(), appearance.getColor2());
+            row("Colors", "%d / %d / %d", appearance.getColor0(), appearance.getColor1(),
+                appearance.getColor2());
             ImGui::EndTable();
         }
         CubeAppearance rawAppearance = {};
         if (g_api->appearance.of(g_api, player.raw().address, &rawAppearance))
-            ImGui::TextDisabled("raw appearance.of(0x%08X) -> species %d", player.raw().address, rawAppearance.species);
+            ImGui::TextDisabled("raw appearance.of(0x%08X) -> species %d", player.raw().address,
+                                rawAppearance.species);
         ImGui::TextDisabled("appearance is read only; edits persist to the character save");
         ImGui::TextDisabled("selected target is 0 until you press the use key (R) on a creature;");
         ImGui::TextDisabled("for the crosshair/aim target see the Entities > Aim tab.");

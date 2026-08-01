@@ -49,7 +49,8 @@ namespace exmod
         if (m_settings.cancelImpact)
             call.cancel();
         else if (m_settings.scaleDamage)
-            call.setArgInt(kImpactDamageArg, static_cast<int>(call.argInt(kImpactDamageArg) * m_settings.damageScale));
+            call.setArgInt(kImpactDamageArg,
+                           static_cast<int>(call.argInt(kImpactDamageArg) * m_settings.damageScale));
     }
 
     void GameHooks::critHandler(cube::HookCall& call)
@@ -177,8 +178,8 @@ namespace exmod
         if (isCrit && !borrowCrit(CritOwner::RawPool))
             return false;
 
-        const bool ok = cube::mod().eventHook.raw(address, conv, argCount,
-                                                  [this](cube::HookCall&) { ++m_rawCalls; });
+        const bool ok =
+            cube::mod().eventHook.raw(address, conv, argCount, [this](cube::HookCall&) { ++m_rawCalls; });
         if (!ok && isCrit)
             returnCrit();
         m_rawInstalled = ok;

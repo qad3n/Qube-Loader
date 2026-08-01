@@ -14,8 +14,8 @@ namespace game::pickup
 
         // GameController::onItemPickup is __thiscall (ECX=GC, no stack args).
         CaptureDetour<CubeItem> g_capture(kCategory, off::kOnItemPickupFn, "pickup capture",
-            "pickup detour installed (E-key item pickup tracking active)",
-            "pickup detour failed to install; item-pickup events disabled");
+                                          "pickup detour installed (E-key item pickup tracking active)",
+                                          "pickup detour failed to install; item-pickup events disabled");
 
         // Reads the staged pickup POD (set by the game before onItemPickup). False on an empty/
         // unreadable staged cell (type 0). All reads are VirtualQuery guarded via game::readItem.

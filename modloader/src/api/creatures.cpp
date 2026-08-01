@@ -11,25 +11,31 @@ namespace modloader::api
 
         int32_t CUBE_CALL apiCreaturesList(const CubeApi* api, CubeCreature* out, int32_t maxCount)
         {
-            return bridgeList(api, "creatures.list", out, maxCount, game::listCreatures(out, maxCount), &CubeCreature::address);
+            return bridgeList(api, "creatures.list", out, maxCount, game::listCreatures(out, maxCount),
+                              &CubeCreature::address);
         }
 
         int32_t CUBE_CALL apiCreaturesTarget(const CubeApi* api, CubeCreature* out)
         {
-            return bridgeGet<CubeCreature>(api, out, &game::targetEntity, "creatures.target", "none", &CubeCreature::address);
+            return bridgeGet<CubeCreature>(api, out, &game::targetEntity, "creatures.target", "none",
+                                           &CubeCreature::address);
         }
 
         int32_t CUBE_CALL apiCreaturesAimTarget(const CubeApi* api, CubeCreature* out)
         {
-            return bridgeGet<CubeCreature>(api, out, &game::aimTargetEntity, "creatures.aimTarget", "none", &CubeCreature::address);
+            return bridgeGet<CubeCreature>(api, out, &game::aimTargetEntity, "creatures.aimTarget", "none",
+                                           &CubeCreature::address);
         }
 
-        int32_t CUBE_CALL apiCreaturesEffects(const CubeApi* api, uint32_t address, CubeBuff* out, int32_t maxCount)
+        int32_t CUBE_CALL apiCreaturesEffects(const CubeApi* api, uint32_t address, CubeBuff* out,
+                                              int32_t maxCount)
         {
-            return bridgeList(api, "creatures.effects", out, maxCount, game::listBuffsOfAddress(address, out, maxCount), &CubeBuff::address);
+            return bridgeList(api, "creatures.effects", out, maxCount,
+                              game::listBuffsOfAddress(address, out, maxCount), &CubeBuff::address);
         }
 
-        int32_t CUBE_CALL apiCreaturesSetStat(const CubeApi* api, uint32_t address, int32_t stat, double value)
+        int32_t CUBE_CALL apiCreaturesSetStat(const CubeApi* api, uint32_t address, int32_t stat,
+                                              double value)
         {
             return bridgeSetAddrField(api, "creatures.setStat", &game::setEntityStat, address, stat, value);
         }
@@ -39,7 +45,8 @@ namespace modloader::api
             return bridgeSetAddrName(api, "creatures.setName", &game::setEntityName, address, name);
         }
 
-        int32_t CUBE_CALL apiCreaturesTeleport(const CubeApi* api, uint32_t address, float x, float y, float z)
+        int32_t CUBE_CALL apiCreaturesTeleport(const CubeApi* api, uint32_t address, float x, float y,
+                                               float z)
         {
             return bridgeSetAddrVec3(api, "creatures.teleport", &game::teleportEntity, address, x, y, z);
         }
@@ -47,7 +54,8 @@ namespace modloader::api
         int32_t CUBE_CALL apiCreaturesIsTameable(const CubeApi* api, uint32_t address)
         {
             const bool ok = game::isCreatureTameable(address);
-            LOGC(Trace, kApiCategory, "'%s' creatures.isTameable(0x%08X) -> %s", modName(api), address, ok ? "yes" : "no");
+            LOGC(Trace, kApiCategory, "'%s' creatures.isTameable(0x%08X) -> %s", modName(api), address,
+                 ok ? "yes" : "no");
             return okInt(ok);
         }
 

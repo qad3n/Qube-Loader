@@ -41,7 +41,7 @@ namespace exmod::menu
         float m_uiScale = 1.0f;
         char m_greeting[kConfigInputSize] = "";
         bool m_greetOnLoad = true;
-        char m_note[kNoteInputSize] = "";  // storage() blob demo (a persistent free text note)
+        char m_note[kNoteInputSize] = ""; // storage() blob demo (a persistent free text note)
         char m_scope[kScopeInputSize] = ""; // storage().setScope demo (namespace the note per save)
         int m_pingValue = 21; // services demo: payload sent to example_lib
         int m_pingResult = 0; // last ping reply from example_lib

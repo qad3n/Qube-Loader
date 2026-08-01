@@ -15,6 +15,6 @@ namespace exlib
     // The service vtable example_lib publishes; a consumer calls ping() through the resolved pointer.
     struct PingService
     {
-        int (CUBE_CALL* ping)(int value);
+        int(CUBE_CALL* ping)(int value);
     };
 }
