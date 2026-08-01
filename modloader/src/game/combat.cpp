@@ -67,7 +67,8 @@ namespace game
         g_critPending.fetch_add(1, std::memory_order_relaxed);
     }
 
-    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, CreatureEdge* edgesOut, int32_t maxEdges, int32_t& edgeCount)
+    CombatEdges pollCombat(const CubePlayer& player, bool playerValid, CreatureEdge* edgesOut,
+                           int32_t maxEdges, int32_t& edgeCount)
     {
         CombatEdges edges = {0.0f, false};
         edgeCount = 0;
@@ -107,32 +108,54 @@ namespace game
                 if (prev < 0)
                 {
                     if (edgesOut && edgeCount < maxEdges)
-                        edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Spawn, 0.0f, health, category, type};
+                        edgesOut[edgeCount++] =
+                            CreatureEdge{address, CreatureEdgeKind::Spawn, 0.0f, health, category, type};
                     continue; // brand new creature has no previous state to diff
                 }
 
                 const TrackedEntity& was = g_store.tracked[prev];
+
+                // Address reuse: a creature despawned and the allocator handed its block to a new one
+                // between frames. Identity changed, so this is a despawn plus a spawn, not a health
+                // diff, which would otherwise fire a bogus Damaged or Death edge.
+                if (was.type != type || was.category != category)
+                {
+                    if (edgesOut && edgeCount < maxEdges)
+                        edgesOut[edgeCount++] = CreatureEdge{
+                            address, CreatureEdgeKind::Despawn, 0.0f, was.health, was.category, was.type};
+                    if (edgesOut && edgeCount < maxEdges)
+                        edgesOut[edgeCount++] =
+                            CreatureEdge{address, CreatureEdgeKind::Spawn, 0.0f, health, category, type};
+                    continue;
+                }
+
                 if (health < was.health && edgesOut && edgeCount < maxEdges)
                 {
                     const float dealt = was.health - health;
-                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Damaged, dealt, health, category, type};
+                    edgesOut[edgeCount++] =
+                        CreatureEdge{address, CreatureEdgeKind::Damaged, dealt, health, category, type};
                 }
 
                 if (was.health > kDeadHealth && health <= kDeadHealth && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Death, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] =
+                        CreatureEdge{address, CreatureEdgeKind::Death, 0.0f, health, category, type};
                 if (!was.stunned && stunned && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Stunned, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] =
+                        CreatureEdge{address, CreatureEdgeKind::Stunned, 0.0f, health, category, type};
                 if (was.stunned && !stunned && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::Recovered, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] =
+                        CreatureEdge{address, CreatureEdgeKind::Recovered, 0.0f, health, category, type};
                 if (!was.knockedDown && knockedDown && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = CreatureEdge{address, CreatureEdgeKind::KnockedDown, 0.0f, health, category, type};
+                    edgesOut[edgeCount++] =
+                        CreatureEdge{address, CreatureEdgeKind::KnockedDown, 0.0f, health, category, type};
             }
             // Despawn: tracked last frame but gone from the map now. Uses the OLD tracked set.
             for (int32_t i = 0; i < g_store.trackedCount; ++i)
             {
                 const TrackedEntity& was = g_store.tracked[i];
                 if (!addressInList(was.address, creatures, count) && edgesOut && edgeCount < maxEdges)
-                    edgesOut[edgeCount++] = CreatureEdge{was.address, CreatureEdgeKind::Despawn, 0.0f, was.health, was.category, was.type};
+                    edgesOut[edgeCount++] = CreatureEdge{
+                        was.address, CreatureEdgeKind::Despawn, 0.0f, was.health, was.category, was.type};
             }
         }
 

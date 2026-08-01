@@ -29,7 +29,8 @@ namespace game
     const char* itemDisplayName(int32_t type, int32_t subtype);
     // Reads the 0x118 byte Item POD at itemBase; true if a non empty item (type != 0) present.
     bool readItem(uintptr_t itemBase, CubeItem& out);
-    // Reads a single equipment slot (0..11) off any Creature; true if a weapon is present.
+    // Reads one equipment slot (0..off::kEquipmentSlotCount-1) off any Creature; true if a non empty
+    // item is present.
     bool readEquipmentSlot(uintptr_t creature, int32_t slot, CubeItem& out);
 
     // Where a detected corrupt item lives.

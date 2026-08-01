@@ -28,7 +28,8 @@ namespace game
     // Resolves a target to a Creature: 0 = local player, else validate. False if unavailable.
     bool resolveCreatureOrLocal(uint32_t address, uintptr_t& objOut);
     // Two tier display name: inline name (players/NPCs) else species catalog name else "species #n".
-    int32_t resolveDisplayName(uintptr_t creature, int32_t typeId, char* out);
+    // Always fills out.
+    void resolveDisplayName(uintptr_t creature, int32_t typeId, char* out);
     // Is `action` an in progress combat action (attack/shot/cast/ability) for this creature? Uses the
     // game's own windup classifier (no attack id whitelist). Safe to call from a game thread hook.
     bool isCombatActionId(uintptr_t creature, uint8_t action);

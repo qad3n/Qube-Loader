@@ -12,7 +12,8 @@ namespace game
     {
         // GameController sfx methods are __thiscall; on mingw that is __fastcall with an unused EDX.
         typedef void(__fastcall* PlaySound2DFn)(void* gc, void* edx, int32_t soundId);
-        typedef void(__fastcall* PlaySoundPosFn)(void* gc, void* edx, int32_t soundId, int64_t* pos, float volume, float pitch);
+        typedef void(__fastcall* PlaySoundPosFn)(void* gc, void* edx, int32_t soundId, int64_t* pos,
+                                                 float volume, float pitch);
         // XAudio2Engine vtable methods, __thiscall this=engine.
         typedef void(__fastcall* AudioVoidFn)(void* engine, void* edx);
         typedef void(__fastcall* AudioVolumeFn)(void* engine, void* edx, float a, float b);
@@ -59,8 +60,7 @@ namespace game
             return false;
 
         const PlaySound2DFn fn = reinterpret_cast<PlaySound2DFn>(mem::rebase(off::kPlaySound2DFn));
-        guard::tryRun("playSound", [&]() { fn(reinterpret_cast<void*>(gc), nullptr, soundId); });
-        return true;
+        return guard::tryRunLoader("playSound", [&]() { fn(reinterpret_cast<void*>(gc), nullptr, soundId); });
     }
 
     bool playSoundAt(int32_t soundId, float x, float y, float z, float volume, float pitch)
@@ -78,8 +78,8 @@ namespace game
         pos[2] = static_cast<int64_t>(static_cast<double>(z) * off::kPlayerPosScale);
 
         const PlaySoundPosFn fn = reinterpret_cast<PlaySoundPosFn>(mem::rebase(off::kPlaySoundPosFn));
-        guard::tryRun("playSoundAt", [&]() { fn(reinterpret_cast<void*>(gc), nullptr, soundId, pos, volume, pitch); });
-        return true;
+        return guard::tryRunLoader(
+            "playSoundAt", [&]() { fn(reinterpret_cast<void*>(gc), nullptr, soundId, pos, volume, pitch); });
     }
 
     bool stopMusic()
@@ -90,8 +90,7 @@ namespace game
             return false;
 
         const AudioVoidFn call = reinterpret_cast<AudioVoidFn>(fn);
-        guard::tryRun("stopMusic", [&]() { call(engine, nullptr); });
-        return true;
+        return guard::tryRunLoader("stopMusic", [&]() { call(engine, nullptr); });
     }
 
     bool setMusicVolume(float volume)
@@ -102,8 +101,7 @@ namespace game
             return false;
 
         const AudioVolumeFn call = reinterpret_cast<AudioVolumeFn>(fn);
-        guard::tryRun("setMusicVolume", [&]() { call(engine, nullptr, volume, volume); });
-        return true;
+        return guard::tryRunLoader("setMusicVolume", [&]() { call(engine, nullptr, volume, volume); });
     }
 
 }

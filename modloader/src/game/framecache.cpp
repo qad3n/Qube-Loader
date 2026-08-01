@@ -66,7 +66,9 @@ namespace game::framecache
 
     int32_t getEntities(CubeCreature* out, int32_t maxCount)
     {
-        if (!g_active || !g_haveEntities || !out || maxCount <= 0 || g_entityCount <= 0)
+        // A cached empty list is a hit, not a miss: in a creature free area every caller this frame
+        // would otherwise redo the live map walk.
+        if (!g_active || !g_haveEntities || !out || maxCount <= 0)
             return -1;
         const int32_t n = g_entityCount < maxCount ? g_entityCount : maxCount;
         std::memcpy(out, g_entities, static_cast<size_t>(n) * sizeof(CubeCreature));

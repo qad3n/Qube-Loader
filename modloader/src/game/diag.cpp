@@ -77,11 +77,16 @@ namespace game::diag
                 return;
             }
 
-            LOGC(Debug, kCategory, "player: RESOLVED @0x%08X (vtable verified; all pinned fields readable)", p.address);
-            LOGC(Debug, kCategory, "  id: name='%s'%s class=%s(%d) spec=%d type=%d level=%d xp=%u", p.name, p.hasName ? "" : " (unresolved)", p.className, p.classForm, p.spec, p.type, p.level, p.xp);
-            LOGC(Debug, kCategory, "  vitals: hp=%.1f%s mana=%.0f%% stamina=%.0f%% coins=%d", p.health, p.alive ? "" : " (dead)", p.manaPercent, p.staminaPercent, p.coins);
-            LOGC(Debug, kCategory, "  state: movement=%s action=%s facing=%.2f speed=%.1f sneaking=%d", movementName(p.movement), actionName(p.action), p.facing, p.speed, p.sneaking);
-            LOGC(Debug, kCategory, "  pos: %.1f, %.1f, %.1f  vel: %.2f, %.2f, %.2f", p.x, p.y, p.z, p.velX, p.velY, p.velZ);
+            LOGC(Debug, kCategory, "player: RESOLVED @0x%08X (vtable verified; all pinned fields readable)",
+                 p.address);
+            LOGC(Debug, kCategory, "  id: name='%s'%s class=%s(%d) spec=%d type=%d level=%d xp=%u", p.name,
+                 p.hasName ? "" : " (unresolved)", p.className, p.classForm, p.spec, p.type, p.level, p.xp);
+            LOGC(Debug, kCategory, "  vitals: hp=%.1f%s mana=%.0f%% stamina=%.0f%% coins=%d", p.health,
+                 p.alive ? "" : " (dead)", p.manaPercent, p.staminaPercent, p.coins);
+            LOGC(Debug, kCategory, "  state: movement=%s action=%s facing=%.2f speed=%.1f sneaking=%d",
+                 movementName(p.movement), actionName(p.action), p.facing, p.speed, p.sneaking);
+            LOGC(Debug, kCategory, "  pos: %.1f, %.1f, %.1f  vel: %.2f, %.2f, %.2f", p.x, p.y, p.z, p.velX,
+                 p.velY, p.velZ);
 
             // Spawn field disambiguation: the candidate whose coord>>6 == region and coord ==
             // zone is the bound home field.
@@ -97,16 +102,24 @@ namespace game::diag
                 mem::read(p.address + off::kSpawnFlagOff, flag);
                 mem::read(p.address + off::kSpawnZoneXOff, bX);
                 mem::read(p.address + off::kSpawnZoneYOff, bY);
-                LOGC(Debug, kCategory, "  spawn-probe: A(+1b0)=%d,%d region>>6=%d,%d | flag(+1d8)=%d | B(+1dc)=%d,%d region>>6=%d,%d",
-                     aX, aY, aX >> off::kZoneToRegionShift, aY >> off::kZoneToRegionShift,
-                     flag, bX, bY, bX >> off::kZoneToRegionShift, bY >> off::kZoneToRegionShift);
+                LOGC(Debug, kCategory,
+                     "  spawn-probe: A(+%X)=%d,%d region>>6=%d,%d | flag(+%X)=%d | B(+%X)=%d,%d "
+                     "region>>6=%d,%d",
+                     static_cast<unsigned>(off::kSpawnZoneXAltOff), aX, aY, aX >> off::kZoneToRegionShift,
+                     aY >> off::kZoneToRegionShift, static_cast<unsigned>(off::kSpawnFlagOff), flag,
+                     static_cast<unsigned>(off::kSpawnZoneXOff), bX, bY, bX >> off::kZoneToRegionShift,
+                     bY >> off::kZoneToRegionShift);
             }
 
             CubeCombat c = {};
             c.structSize = sizeof(c);
 
             if (readCombat(c))
-                LOGC(Debug, kCategory, "  combat: power=%.1f armor=%.1f spirit=%.1f combo=%d atkSpeed=%.2f cooldown=%.2f crit~%.0f%% hitStun=%d", c.power, c.armor, c.spirit, c.combo, c.attackSpeed, c.attackCooldown, c.critChancePercent, c.hitStun);
+                LOGC(Debug, kCategory,
+                     "  combat: power=%.1f armor=%.1f spirit=%.1f combo=%d atkSpeed=%.2f cooldown=%.2f "
+                     "crit~%.0f%% hitStun=%d",
+                     c.power, c.armor, c.spirit, c.combo, c.attackSpeed, c.attackCooldown,
+                     c.critChancePercent, c.hitStun);
 
             CubeItem equipment[CUBE_EQUIP_SLOTS];
             CubeItem inventory[CUBE_INVENTORY_MAX];
@@ -118,7 +131,8 @@ namespace game::diag
             const int32_t skillCount = listSkillRanks(ranks, CUBE_SKILL_COUNT);
             const int32_t buffCount = listBuffs(buffs, CUBE_BUFFS_MAX);
 
-            LOGC(Debug, kCategory, "  items: equipped=%d bag=%d skills=%d buffs=%d", equipCount, bagCount, skillCount, buffCount);
+            LOGC(Debug, kCategory, "  items: equipped=%d bag=%d skills=%d buffs=%d", equipCount, bagCount,
+                 skillCount, buffCount);
 
             for (int32_t i = 0; i < equipCount && i < kMaxEquipRowsLogged; ++i)
             {
@@ -126,7 +140,9 @@ namespace game::diag
                 const char* typeName = catalogName(CUBE_CATALOG_ITEM_TYPE, it.type);
                 const char* subName = catalogName(CUBE_CATALOG_WEAPON_SUBTYPE, it.subtype);
                 const char* matName = catalogName(CUBE_CATALOG_MATERIAL, it.material);
-                LOGC(Debug, kCategory, "equip slot%d: %s %s (type=%d sub=%d mat=%d lvl=%d)", it.slot, matName ? matName : "?", subName ? subName : (typeName ? typeName : "?"), it.type, it.subtype, it.material, it.level);
+                LOGC(Debug, kCategory, "equip slot%d: %s %s (type=%d sub=%d mat=%d lvl=%d)", it.slot,
+                     matName ? matName : "?", subName ? subName : (typeName ? typeName : "?"), it.type,
+                     it.subtype, it.material, it.level);
             }
         }
 
@@ -140,10 +156,12 @@ namespace game::diag
                 return;
             }
 
-            LOGC(Debug, kCategory, "world: RESOLVED @0x%08X zone %d,%d region %d,%d", w.address, w.zoneX, w.zoneY, w.regionX, w.regionY);
+            LOGC(Debug, kCategory, "world: RESOLVED @0x%08X zone %d,%d region %d,%d", w.address, w.zoneX,
+                 w.zoneY, w.regionX, w.regionY);
 
             if (w.hasClimate)
-                LOGC(Debug, kCategory, "  climate: temp=%.2f humidity=%.2f elevation=%.1f terrain=%d", w.temperature, w.humidity, w.elevation, w.terrainType);
+                LOGC(Debug, kCategory, "  climate: temp=%.2f humidity=%.2f elevation=%.1f terrain=%d",
+                     w.temperature, w.humidity, w.elevation, w.terrainType);
             else
                 LOGC(Debug, kCategory, "  climate: unavailable (player tile not resident)");
             if (w.hasTime)
@@ -169,20 +187,23 @@ namespace game::diag
             LOGC(Debug, kCategory, "creatures: %d nearby", count);
 
             for (int32_t i = 0; i < count && i < kMaxEntityRowsLogged; ++i)
-                LOGC(Debug, kCategory, "  [%d] '%s' type=%d lvl=%d hp=%.0f relation=%d",
-                     i, creatures[i].name, creatures[i].type, creatures[i].level, creatures[i].health, creatures[i].relation);
+                LOGC(Debug, kCategory, "  [%d] '%s' type=%d lvl=%d hp=%.0f relation=%d", i, creatures[i].name,
+                     creatures[i].type, creatures[i].level, creatures[i].health, creatures[i].relation);
 
             CubeCreature target = {};
             target.structSize = sizeof(target);
 
             if (targetEntity(target))
-                LOGC(Debug, kCategory, "  target: '%s' lvl %d hp %.0f relation=%d", target.hasName ? target.name : "?", target.level, target.health, target.relation);
+                LOGC(Debug, kCategory, "  target: '%s' lvl %d hp %.0f relation=%d",
+                     target.hasName ? target.name : "?", target.level, target.health, target.relation);
 
             CubeCompanion companion = {};
             companion.structSize = sizeof(companion);
 
             if (readCompanion(companion))
-                LOGC(Debug, kCategory, "  companion: '%s' type %d level %d hp %.0f", companion.hasName ? companion.name : "?", companion.type, companion.level, companion.health);
+                LOGC(Debug, kCategory, "  companion: '%s' type %d level %d hp %.0f",
+                     companion.hasName ? companion.name : "?", companion.type, companion.level,
+                     companion.health);
         }
 
         void logView()
@@ -190,8 +211,10 @@ namespace game::diag
             CubeCamera cam = {};
             cam.structSize = sizeof(cam);
             if (readCamera(cam))
-                LOGC(Debug, kCategory, "camera: dist=%.1f pitch=%.1f yaw=%.1f fov=%.2f firstPerson=%d matrices=%s",
-                     cam.distance, cam.pitch, cam.yaw, cam.fov, cam.firstPerson, cam.hasMatrices ? "yes" : "no");
+                LOGC(Debug, kCategory,
+                     "camera: dist=%.1f pitch=%.1f yaw=%.1f fov=%.2f firstPerson=%d matrices=%s",
+                     cam.distance, cam.pitch, cam.yaw, cam.fov, cam.firstPerson,
+                     cam.hasMatrices ? "yes" : "no");
             else
                 LOGC(Debug, kCategory, "camera: UNAVAILABLE");
 
@@ -204,7 +227,10 @@ namespace game::diag
                      disp.fullscreen ? "fullscreen" : "windowed");
 
                 if (disp.hasSettings)
-                    LOGC(Debug, kCategory, "  settings: renderDist=%d res=%dx%d sound=%d music=%d fpsCap(minStep)=%d", disp.renderDistance, disp.resolutionX, disp.resolutionY, disp.soundVolume, disp.musicVolume, disp.minTimeStep);
+                    LOGC(Debug, kCategory,
+                         "  settings: renderDist=%d res=%dx%d sound=%d music=%d fpsCap(minStep)=%d",
+                         disp.renderDistance, disp.resolutionX, disp.resolutionY, disp.soundVolume,
+                         disp.musicVolume, disp.minTimeStep);
             }
             else
                 LOGC(Debug, kCategory, "display: UNAVAILABLE");
@@ -216,7 +242,11 @@ namespace game::diag
             s.structSize = sizeof(s);
 
             if (readSession(s))
-                LOGC(Debug, kCategory, "session: %s network=%s connected=%d players=%d", s.gameState == CUBE_STATE_IN_WORLD ? "in-world" : "title", s.hasNetwork ? (s.networkMode == CUBE_NET_MULTIPLAYER ? "multiplayer" : "singleplayer") : "?", s.connected, s.playerCount);
+                LOGC(Debug, kCategory, "session: %s network=%s connected=%d players=%d",
+                     s.gameState == CUBE_STATE_IN_WORLD ? "in-world" : "title",
+                     s.hasNetwork ? (s.networkMode == CUBE_NET_MULTIPLAYER ? "multiplayer" : "singleplayer")
+                                  : "?",
+                     s.connected, s.playerCount);
             else
                 LOGC(Debug, kCategory, "session: UNAVAILABLE");
 
@@ -224,7 +254,9 @@ namespace game::diag
             ui.structSize = sizeof(ui);
 
             if (readUi(ui))
-                LOGC(Debug, kCategory, "ui: menu=%s (inventory=%d character=%d map=%d objective=%d)", ui.anyOpen ? "OPEN" : "closed", ui.inventoryOpen, ui.characterOpen, ui.mapOpen, ui.objectiveOpen);
+                LOGC(Debug, kCategory, "ui: menu=%s (inventory=%d character=%d map=%d objective=%d)",
+                     ui.anyOpen ? "OPEN" : "closed", ui.inventoryOpen, ui.characterOpen, ui.mapOpen,
+                     ui.objectiveOpen);
         }
 
     }
@@ -236,7 +268,8 @@ namespace game::diag
 
         if (!resolveGameController(gc))
         {
-            LOGC(Debug, kCategory, "GameController: UNAVAILABLE (game not fully initialized; report will retry live)");
+            LOGC(Debug, kCategory,
+                 "GameController: UNAVAILABLE (game not fully initialized; report will retry live)");
             LOGC(Debug, kCategory, "=== end report ===");
             return;
         }
@@ -255,9 +288,11 @@ namespace game::diag
     void logKnownGaps()
     {
         LOGC(Debug, kCategory, "known deferred fields (intentionally unavailable, NOT resolution failures):");
-        LOGC(Debug, kCategory, "  creature maxHealth = computed, producer NOT located (0x00444db0 is attack damage);");
+        LOGC(Debug, kCategory,
+             "  creature maxHealth = computed, producer NOT located (0x00444db0 is attack damage);");
         LOGC(Debug, kCategory, "  weather/season = absent in build;");
-        LOGC(Debug, kCategory, "  pet mood = absent; race/gender + quests = offset +0x1d28 contested (gated);");
+        LOGC(Debug, kCategory,
+             "  pet mood = absent; race/gender + quests = offset +0x1d28 contested (gated);");
         LOGC(Debug, kCategory, "  region name = needs game-call; crafting = recipe-walk pending.");
     }
 

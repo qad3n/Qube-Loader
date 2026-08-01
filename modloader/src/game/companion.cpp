@@ -33,7 +33,8 @@ namespace game
         field::u32(pet, off::kPlayerXpOff, out.xp);
         field::f32(pet, off::kPlayerHealthOff, out.health);
 
-        out.hasName = resolveDisplayName(pet, out.type, out.name);
+        resolveDisplayName(pet, out.type, out.name);
+        out.hasName = 1;
         readCreaturePosition(pet, out.x, out.y, out.z);
 
         out.hasPosition = 1;

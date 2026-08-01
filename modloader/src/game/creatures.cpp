@@ -80,7 +80,8 @@ namespace game
                 {
                     uint64_t key = 0;
                     mem::read(node + off::kRbKey, key);
-                    fn(creature, key);
+                    if (!fn(creature, key)) // each node costs several guarded reads; let callers stop early
+                        return;
                 }
                 node = successor(node, head);
             }
@@ -101,7 +102,8 @@ namespace game
         bool isPassiveCritter(uintptr_t creature, int32_t species)
         {
             uint16_t stateWord = 0;
-            if (mem::read(creature + off::kStateWordOff, stateWord) && (stateWord & off::kPassiveFactionStateMask))
+            if (mem::read(creature + off::kStateWordOff, stateWord) &&
+                (stateWord & off::kPassiveFactionStateMask))
                 return false;
 
             for (int32_t id : off::kPassiveSpecies)
@@ -131,7 +133,7 @@ namespace game
             }
         }
 
-        void fillCreature(uintptr_t creature, uint64_t, const mathutil::Vec3& playerPos, uint64_t, CubeCreature& out)
+        void fillCreature(uintptr_t creature, const mathutil::Vec3& playerPos, CubeCreature& out)
         {
             out = CubeCreature{}; // caller buffer may be uninitialized; skipped reads must read 0
             out.structSize = sizeof(CubeCreature);
@@ -142,7 +144,8 @@ namespace game
             field::i32(creature, off::kPlayerLevelOff, out.level);
             field::f32(creature, off::kPlayerHealthOff, out.health);
 
-            out.hasName = resolveDisplayName(creature, out.type, out.name);
+            resolveDisplayName(creature, out.type, out.name);
+            out.hasName = 1;
 
             const mathutil::Vec3 pos = readPosition(creature);
             out.x = pos.x;
@@ -153,7 +156,8 @@ namespace game
             // hostile flag = HOSTILE relation only (aggressive monster); passive animals are NEUTRAL.
             out.relation = resolveRelation(creature, out.category, out.type);
             out.hostile = (out.relation == CUBE_REL_HOSTILE) ? 1 : 0;
-            out.creatureState = (out.health > kDeadHealth) ? CUBE_CREATURESTATE_ALIVE : CUBE_CREATURESTATE_DEAD;
+            out.creatureState =
+                (out.health > kDeadHealth) ? CUBE_CREATURESTATE_ALIVE : CUBE_CREATURESTATE_DEAD;
             out.boss = isBossSpecies(out.type) ? 1 : 0;
             readCreatureFacing(creature, out.facing);
             readCreatureVelocity(creature, out.velX, out.velY, out.velZ);
@@ -165,22 +169,16 @@ namespace game
             field::byteI32(creature, off::kEntityRankOff, out.rank);
 
             out.elite = (out.boss || out.rank >= off::kEliteStarRank) ? 1 : 0;
-            out.effectivePower = out.level / off::kEffectivePowerLevelDiv + out.rank + off::kEffectivePowerBase;
+            out.effectivePower =
+                out.level / off::kEffectivePowerLevelDiv + out.rank + off::kEffectivePowerBase;
 
             field::i32(creature, off::kPlayerHitStunOff, out.hitStun);
             uint8_t action = 0;
 
             if (mem::read(creature + off::kPlayerActionOff, action))
                 out.knockedDown = (action == off::kActionKnockdown) ? 1 : 0;
-            // ownerAddress left 0: no confirmed pet to owner back pointer. Own pet is
-            // identified by matching the player's pet id against the map key.
-        }
-
-        uint64_t readCompanionId(uintptr_t player)
-        {
-            uint64_t companionId = 0;
-            mem::read(player + off::kCompanionIdOff, companionId);
-            return companionId;
+            // ownerAddress left 0: no confirmed companion to owner back pointer. The companion
+            // relation comes from the creature's kind byte (resolveRelation).
         }
 
         bool closerToPlayer(const CubeCreature& a, const CubeCreature& b)
@@ -206,15 +204,14 @@ namespace game
             return 0;
 
         const mathutil::Vec3 playerPos = readPosition(player);
-        const uint64_t companionId = readCompanionId(player);
         int32_t count = 0;
-        forEachEntity(gc, [&](uint32_t creature, uint64_t key)
-        {
-            if (count >= maxCount || creature == static_cast<uint32_t>(player))
-                return;
-            fillCreature(creature, key, playerPos, companionId, out[count]);
-            ++count;
-        });
+        forEachEntity(gc,
+                      [&](uint32_t creature, uint64_t key) -> bool
+                      {
+                          if (creature != static_cast<uint32_t>(player))
+                              fillCreature(creature, playerPos, out[count++]);
+                          return count < maxCount;
+                      });
 
         // Nearest first (index 0 = closest). The map is walked in id order, so a world with
         // >maxCount creatures keeps the first maxCount by id then sorts (not a true nearest N cap).
@@ -256,8 +253,7 @@ namespace game
             return false;
 
         const mathutil::Vec3 playerPos = readPosition(player);
-        const uint64_t companionId = readCompanionId(player);
-        fillCreature(selected, 0, playerPos, companionId, out);
+        fillCreature(selected, playerPos, out);
         return true;
     }
 
@@ -276,32 +272,36 @@ namespace game
             return false;
 
         const mathutil::Vec3 playerPos = readPosition(player);
-        const uint64_t companionId = readCompanionId(player);
-        fillCreature(creature, aimId, playerPos, companionId, out);
+        fillCreature(creature, playerPos, out);
         return true;
     }
 
     int32_t countPlayers(uintptr_t gc)
     {
         int32_t count = 0;
-        forEachEntity(gc, [&](uint32_t creature, uint64_t)
-        {
-            int32_t kind = 0;
-            field::byteI32(creature, off::kEntityKindOff, kind);
-            if (kind == off::kKindPlayer)
-                ++count;
-        });
+        forEachEntity(gc,
+                      [&](uint32_t creature, uint64_t) -> bool
+                      {
+                          int32_t kind = 0;
+                          field::byteI32(creature, off::kEntityKindOff, kind);
+                          if (kind == off::kKindPlayer)
+                              ++count;
+                          return true;
+                      });
         return count;
     }
 
     bool findCreatureById(uintptr_t gc, uint64_t id, uintptr_t& creatureOut)
     {
         uint32_t found = 0;
-        forEachEntity(gc, [&](uint32_t creature, uint64_t key)
-        {
-            if (key == id)
-                found = creature;
-        });
+        forEachEntity(gc,
+                      [&](uint32_t creature, uint64_t key) -> bool
+                      {
+                          if (key != id)
+                              return true;
+                          found = creature;
+                          return false;
+                      });
         if (!found)
             return false;
         creatureOut = found;

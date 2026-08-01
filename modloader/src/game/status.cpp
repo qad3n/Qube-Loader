@@ -80,7 +80,8 @@ namespace game
     bool setBuffField(uint32_t address, int32_t fieldId, double value)
     {
         const uintptr_t node = static_cast<uintptr_t>(address);
-        if (!node || !mem::readable(reinterpret_cast<const void*>(node), off::kBuffNodeDurationOff + sizeof(int32_t)))
+        if (!node ||
+            !mem::readable(reinterpret_cast<const void*>(node), off::kBuffNodeDurationOff + sizeof(int32_t)))
             return false;
 
         switch (fieldId)
@@ -91,7 +92,8 @@ namespace game
                 return mem::write<float>(node + off::kBuffNodeMagnitudeOff, static_cast<float>(value));
             case CUBE_BUFF_DURATION:
                 return mem::write<int32_t>(node + off::kBuffNodeDurationOff, static_cast<int32_t>(value));
-            default: return false;
+            default:
+                return false;
         }
     }
 
@@ -115,10 +117,16 @@ namespace game
         out.stunned = (timer > 0) ? 1 : 0;
 
         // A dodge roll shares the +0x128 lock but is not a hit stun: for the classified local player,
-        // report not stunned while rolling (the raw timer stays readable via hitStun).
+        // report not stunned while rolling (the raw timer stays readable via hitStun). Sample first,
+        // or a mod reading stun in its FRAME handler (which runs before the poller) sees the previous
+        // frame's verdict. sample() is idempotent within a frame.
+        if (isLocalPlayerCreature(obj))
+            actionlock::sample(obj);
         if (actionlock::rolling() && obj == actionlock::subject())
             out.stunned = 0;
-        out.hitStunPercent = (timer > 0) ? static_cast<float>(timer) / static_cast<float>(off::kHitStunMax) * off::kPercentScale : 0.0f;
+        out.hitStunPercent = (timer > 0) ? static_cast<float>(timer) / static_cast<float>(off::kHitStunMax) *
+                                               off::kPercentScale
+                                         : 0.0f;
 
         field::f32(obj, off::kKnockbackVelXOff, out.knockbackX);
         field::f32(obj, off::kKnockbackVelYOff, out.knockbackY);

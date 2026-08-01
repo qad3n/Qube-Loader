@@ -34,8 +34,8 @@ namespace game
         // catalog name (10, 14, 15, 16, 17) is not reported as corrupt.
         bool isValidItemType(int32_t type)
         {
-            return type >= off::kItemTypeValidMin && type <= off::kItemTypeValidMax
-                && type != off::kItemTypeUnused;
+            return type >= off::kItemTypeValidMin && type <= off::kItemTypeValidMax &&
+                   type != off::kItemTypeUnused;
         }
 
         bool isValidWeaponSubtype(int32_t subtype)
@@ -86,7 +86,8 @@ namespace game
             return nullptr;
         }
 
-        ItemDefect makeDefect(uintptr_t itemBase, ItemDefectLocation location, int32_t slot, const char* reason)
+        ItemDefect makeDefect(uintptr_t itemBase, ItemDefectLocation location, int32_t slot,
+                              const char* reason)
         {
             uint8_t type = 0;
             uint8_t subtype = 0;
@@ -131,12 +132,18 @@ namespace game
         {
             switch (type)
             {
-                case off::kItemTypeConsumable: return CUBE_CATALOG_CONSUMABLE_SUBTYPE;
-                case off::kItemTypeWeapon: return CUBE_CATALOG_WEAPON_SUBTYPE;
-                case off::kItemTypeSpecial: return CUBE_CATALOG_SPECIAL_SUBTYPE;
-                case off::kItemTypeAccessory: return CUBE_CATALOG_ACCESSORY_SUBTYPE;
-                case off::kItemTypeVehicle: return CUBE_CATALOG_VEHICLE_SUBTYPE;
-                default: return -1;
+                case off::kItemTypeConsumable:
+                    return CUBE_CATALOG_CONSUMABLE_SUBTYPE;
+                case off::kItemTypeWeapon:
+                    return CUBE_CATALOG_WEAPON_SUBTYPE;
+                case off::kItemTypeSpecial:
+                    return CUBE_CATALOG_SPECIAL_SUBTYPE;
+                case off::kItemTypeAccessory:
+                    return CUBE_CATALOG_ACCESSORY_SUBTYPE;
+                case off::kItemTypeVehicle:
+                    return CUBE_CATALOG_VEHICLE_SUBTYPE;
+                default:
+                    return -1;
             }
         }
     }
@@ -202,7 +209,8 @@ namespace game
         if (slot < 0 || slot >= off::kEquipmentSlotCount)
             return false;
 
-        const uintptr_t itemBase = creature + off::kEquipmentBaseOff + static_cast<uintptr_t>(slot) * off::kEquipmentStride;
+        const uintptr_t itemBase =
+            creature + off::kEquipmentBaseOff + static_cast<uintptr_t>(slot) * off::kEquipmentStride;
         out.structSize = sizeof(CubeItem);
 
         if (!readItem(itemBase, out))
@@ -239,42 +247,87 @@ namespace game
     {
         // Walks a creature's inventory (vector<vector<cell>>; cell = [stack][Item 0x118]) into out[].
         // Shared by the local player's inventory and any creature's stock (a merchant's items).
-        int32_t walkInventory(uintptr_t creature, CubeItem* out, int32_t maxCount)
+        // fn(cell, stack, index) runs for every inventory cell in walk order; index counts cells
+        // whether or not they hold anything. Return false from fn to stop the walk.
+        template <typename Fn>
+        void forEachInventoryCell(uintptr_t creature, Fn fn)
         {
             uint32_t outerBegin = 0;
             int32_t outerCount = 0;
-            if (!field::vectorSpan(creature + off::kInventoryVecOff, off::kInventoryOuterStride, off::kInventoryMaxOuter, outerBegin, outerCount))
-                return 0;
+            if (!field::vectorSpan(creature + off::kInventoryVecOff, off::kInventoryOuterStride,
+                                   off::kInventoryMaxOuter, outerBegin, outerCount))
+                return;
 
-            int32_t count = 0;
-            for (int32_t o = 0; o < outerCount && count < maxCount; ++o)
+            int32_t index = 0;
+            for (int32_t o = 0; o < outerCount; ++o)
             {
-                const uintptr_t innerVec = outerBegin + static_cast<uintptr_t>(o) * off::kInventoryOuterStride;
+                const uintptr_t innerVec =
+                    outerBegin + static_cast<uintptr_t>(o) * off::kInventoryOuterStride;
                 uint32_t innerBegin = 0;
                 int32_t innerCount = 0;
-                if (!field::vectorSpan(innerVec, off::kInventoryCellStride, off::kInventoryMaxInner, innerBegin, innerCount))
+                if (!field::vectorSpan(innerVec, off::kInventoryCellStride, off::kInventoryMaxInner,
+                                       innerBegin, innerCount))
                     continue;
 
-                for (int32_t j = 0; j < innerCount && count < maxCount; ++j)
+                for (int32_t j = 0; j < innerCount; ++j, ++index)
                 {
                     const uintptr_t cell = innerBegin + static_cast<uintptr_t>(j) * off::kInventoryCellStride;
                     int32_t stack = 0;
-                    if (!mem::read(cell, stack) || stack <= 0)
-                        continue;
-
-                    CubeItem item = {};
-                    item.structSize = sizeof(CubeItem);
-                    if (!readItem(cell + off::kInventoryCellItemOff, item))
-                        continue;
-
-                    item.address = static_cast<uint32_t>(cell + off::kInventoryCellItemOff);
-                    item.present = 1;
-                    item.slot = -1;
-                    item.stack = stack;
-                    out[count++] = item;
+                    if (!mem::read(cell, stack))
+                        stack = 0;
+                    if (!fn(cell, stack, index))
+                        return;
                 }
             }
+        }
+
+        int32_t walkInventory(uintptr_t creature, CubeItem* out, int32_t maxCount)
+        {
+            int32_t count = 0;
+            forEachInventoryCell(creature,
+                                 [&](uintptr_t cell, int32_t stack, int32_t) -> bool
+                                 {
+                                     if (stack > 0)
+                                     {
+                                         CubeItem item = {};
+                                         item.structSize = sizeof(CubeItem);
+                                         if (readItem(cell + off::kInventoryCellItemOff, item))
+                                         {
+                                             item.address =
+                                                 static_cast<uint32_t>(cell + off::kInventoryCellItemOff);
+                                             item.present = 1;
+                                             item.slot = -1;
+                                             item.stack = stack;
+                                             out[count++] = item;
+                                         }
+                                     }
+                                     return count < maxCount;
+                                 });
             return count;
+        }
+
+        // The stack count sits 4 bytes before the item body, inside the inventory cell. For any other
+        // address (an equipment slot, say) that write lands in the previous item and corrupts it, so
+        // prove the address really is a cell body. The cursor-held item is the one other place where
+        // the preceding int is genuinely a count (kHeldItemOff - kInventoryCellItemOff ==
+        // kHeldItemCountOff).
+        bool stackWritable(uintptr_t itemAddress)
+        {
+            uintptr_t gc = 0;
+            uintptr_t player = 0;
+            if (!resolveLocalPlayer(gc, player))
+                return false;
+            if (itemAddress == player + off::kHeldItemOff)
+                return true;
+
+            bool isCell = false;
+            forEachInventoryCell(player,
+                                 [&](uintptr_t cell, int32_t, int32_t) -> bool
+                                 {
+                                     isCell = (cell + off::kInventoryCellItemOff == itemAddress);
+                                     return !isCell;
+                                 });
+            return isCell;
         }
     }
 
@@ -310,10 +363,10 @@ namespace game
             return 0;
 
         // Game call the price function (int __thiscall(Item*)); __fastcall shim on mingw.
-        typedef int32_t(__fastcall* ItemValueFn)(void* self, void* edx);
+        typedef int32_t(__fastcall * ItemValueFn)(void* self, void* edx);
         const ItemValueFn fn = reinterpret_cast<ItemValueFn>(mem::rebase(off::kItemValueFn));
         int32_t value = 0;
-        guard::tryRun("item value", [&]() { value = fn(reinterpret_cast<void*>(addr), nullptr); });
+        guard::tryRunLoader("item value", [&]() { value = fn(reinterpret_cast<void*>(addr), nullptr); });
         return value;
     }
 
@@ -332,7 +385,8 @@ namespace game
         for (; count < want; ++count)
         {
             int32_t rank = 0;
-            if (!mem::read(player + off::kSkillRanksOff + static_cast<uintptr_t>(count) * sizeof(int32_t), rank))
+            if (!mem::read(player + off::kSkillRanksOff + static_cast<uintptr_t>(count) * sizeof(int32_t),
+                           rank))
                 break;
 
             out[count] = rank;
@@ -366,7 +420,8 @@ namespace game
         // Equipment: an occupied slot (type != 0, i.e. not the empty sentinel) that cannot render.
         for (int32_t slot = 0; slot < off::kEquipmentSlotCount && count < maxCount; ++slot)
         {
-            const uintptr_t itemBase = player + off::kEquipmentBaseOff + static_cast<uintptr_t>(slot) * off::kEquipmentStride;
+            const uintptr_t itemBase =
+                player + off::kEquipmentBaseOff + static_cast<uintptr_t>(slot) * off::kEquipmentStride;
             uint8_t type = 0;
             if (!mem::read(itemBase + off::kItemTypeOff, type) || type == 0)
                 continue;
@@ -376,40 +431,26 @@ namespace game
                 out[count++] = makeDefect(itemBase, ItemDefectLocation::Equipment, slot, reason);
         }
 
-        // Inventory: an occupied cell (stack>0) with an invalid body. Same walk as listInventory.
-        uint32_t outerBegin = 0;
-        int32_t outerCount = 0;
-        if (field::vectorSpan(player + off::kInventoryVecOff, off::kInventoryOuterStride, off::kInventoryMaxOuter, outerBegin, outerCount))
-        {
-            int32_t cellIndex = 0;
-            for (int32_t o = 0; o < outerCount && count < maxCount; ++o)
-            {
-                const uintptr_t innerVec = outerBegin + static_cast<uintptr_t>(o) * off::kInventoryOuterStride;
-                uint32_t innerBegin = 0;
-                int32_t innerCount = 0;
-                if (!field::vectorSpan(innerVec, off::kInventoryCellStride, off::kInventoryMaxInner, innerBegin, innerCount))
-                    continue;
+        // Inventory: an occupied cell (stack>0) with an invalid body.
+        forEachInventoryCell(player,
+                             [&](uintptr_t cell, int32_t stack, int32_t cellIndex) -> bool
+                             {
+                                 if (stack <= 0)
+                                     return true;
 
-                for (int32_t j = 0; j < innerCount && count < maxCount; ++j, ++cellIndex)
-                {
-                    const uintptr_t cell = innerBegin + static_cast<uintptr_t>(j) * off::kInventoryCellStride;
-                    int32_t stack = 0;
+                                 const uintptr_t itemBase = cell + off::kInventoryCellItemOff;
+                                 // Skip empty cells (type 0), like the equipment scan and the normal lister
+                                 // do.
+                                 uint8_t cellType = 0;
+                                 if (!mem::read(itemBase + off::kItemTypeOff, cellType) || cellType == 0)
+                                     return true;
 
-                    if (!mem::read(cell, stack) || stack <= 0)
-                        continue;
-
-                    const uintptr_t itemBase = cell + off::kInventoryCellItemOff;
-                    // Skip empty cells (type 0), like the equipment scan and the normal lister do.
-                    uint8_t cellType = 0;
-                    if (!mem::read(itemBase + off::kItemTypeOff, cellType) || cellType == 0)
-                        continue;
-
-                    const char* reason = itemDefectReason(itemBase);
-                    if (reason)
-                        out[count++] = makeDefect(itemBase, ItemDefectLocation::Inventory, cellIndex, reason);
-                }
-            }
-        }
+                                 const char* reason = itemDefectReason(itemBase);
+                                 if (reason)
+                                     out[count++] = makeDefect(itemBase, ItemDefectLocation::Inventory,
+                                                               cellIndex, reason);
+                                 return count < maxCount;
+                             });
         return count;
     }
 
@@ -443,8 +484,10 @@ namespace game
                 // Keep type/subtype coherent: a mismatched subtype has no model. Keep a valid
                 // weapon subtype for weapons; otherwise reset to the universal subtype 0.
                 {
-                    const int32_t coherent = (value == off::kItemTypeWeapon && isValidWeaponSubtype(static_cast<int32_t>(curSubtype)))
-                                                 ? static_cast<int32_t>(curSubtype) : off::kItemDefaultSubtype;
+                    const int32_t coherent = (value == off::kItemTypeWeapon &&
+                                              isValidWeaponSubtype(static_cast<int32_t>(curSubtype)))
+                                                 ? static_cast<int32_t>(curSubtype)
+                                                 : off::kItemDefaultSubtype;
                     if (coherent != static_cast<int32_t>(curSubtype))
                         mem::write<uint8_t>(addr + off::kItemSubtypeOff, static_cast<uint8_t>(coherent));
                 }
@@ -460,21 +503,27 @@ namespace game
                     return false;
                 return mem::write<uint8_t>(addr + off::kItemMaterialOff, static_cast<uint8_t>(value));
             case CUBE_ITEM_FIELD_MODIFIER:
-                return mem::write<uint8_t>(addr + off::kItemModifierOff,
+                return mem::write<uint8_t>(
+                    addr + off::kItemModifierOff,
                     static_cast<uint8_t>(clampInt(value, off::kItemModifierMin, off::kItemModifierMax)));
             case CUBE_ITEM_FIELD_LEVEL:
-                return mem::write<int16_t>(addr + off::kItemLevelOff,
+                return mem::write<int16_t>(
+                    addr + off::kItemLevelOff,
                     static_cast<int16_t>(clampInt(value, off::kItemLevelMin, off::kItemLevelMax)));
             case CUBE_ITEM_FIELD_UPGRADE_COUNT:
-                return mem::write<int32_t>(addr + off::kItemUpgradeCountOff,
+                return mem::write<int32_t>(
+                    addr + off::kItemUpgradeCountOff,
                     clampInt(value, off::kItemUpgradeMin, maxUpgradesFor(curType, curSubtype)));
             // Seed only feeds stat roll variance (consumed modulo), so any value is safe.
-            case CUBE_ITEM_FIELD_SEED: return mem::write<uint32_t>(addr + off::kItemSeedOff, static_cast<uint32_t>(raw));
-            // Inventory stack count sits in the cell, immediately before the item body.
+            case CUBE_ITEM_FIELD_SEED:
+                return mem::write<uint32_t>(addr + off::kItemSeedOff, static_cast<uint32_t>(raw));
             case CUBE_ITEM_FIELD_STACK:
+                if (!stackWritable(addr))
+                    return false;
                 return mem::write<int32_t>(addr - off::kInventoryCellItemOff,
-                    clampInt(value, off::kItemStackMin, off::kItemStackMax));
-            default: return false;
+                                           clampInt(value, off::kItemStackMin, off::kItemStackMax));
+            default:
+                return false;
         }
     }
 
@@ -486,7 +535,8 @@ namespace game
         uintptr_t player = 0;
         if (!resolveLocalPlayer(gc, player))
             return false;
-        return mem::write<int32_t>(player + off::kSkillRanksOff + static_cast<uintptr_t>(index) * sizeof(int32_t), value);
+        return mem::write<int32_t>(
+            player + off::kSkillRanksOff + static_cast<uintptr_t>(index) * sizeof(int32_t), value);
     }
 
     namespace
@@ -550,19 +600,20 @@ namespace game
 
         int32_t count = 0;
 
-        forEachAbilityNode(player, [&](uint32_t node, int32_t key, int32_t value)
-        {
-            if (count >= maxCount)
-                return;
+        forEachAbilityNode(player,
+                           [&](uint32_t node, int32_t key, int32_t value)
+                           {
+                               if (count >= maxCount)
+                                   return;
 
-            CubeAbilityCooldown& cd = out[count];
+                               CubeAbilityCooldown& cd = out[count];
 
-            cd.structSize = sizeof(CubeAbilityCooldown);
-            cd.address = node;
-            cd.abilityId = key;
-            cd.remainingMs = value;
-            ++count;
-        });
+                               cd.structSize = sizeof(CubeAbilityCooldown);
+                               cd.address = node;
+                               cd.abilityId = key;
+                               cd.remainingMs = value;
+                               ++count;
+                           });
         return count;
     }
 
@@ -574,11 +625,12 @@ namespace game
             return false;
 
         uint32_t targetNode = 0;
-        forEachAbilityNode(player, [&](uint32_t node, int32_t key, int32_t)
-        {
-            if (key == abilityId)
-                targetNode = node;
-        });
+        forEachAbilityNode(player,
+                           [&](uint32_t node, int32_t key, int32_t)
+                           {
+                               if (key == abilityId)
+                                   targetNode = node;
+                           });
 
         if (!targetNode)
             return false;
@@ -594,11 +646,12 @@ namespace game
             return 0;
 
         int32_t cleared = 0;
-        forEachAbilityNode(player, [&](uint32_t node, int32_t, int32_t value)
-        {
-            if (value != 0 && mem::write<int32_t>(node + off::kAbilityCdValueOff, 0))
-                ++cleared;
-        });
+        forEachAbilityNode(player,
+                           [&](uint32_t node, int32_t, int32_t value)
+                           {
+                               if (value != 0 && mem::write<int32_t>(node + off::kAbilityCdValueOff, 0))
+                                   ++cleared;
+                           });
         return cleared;
     }
 }

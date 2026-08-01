@@ -53,9 +53,10 @@ namespace game::actionlock
         const bool grounded = (contact & kGroundOrFluidMask) != 0;
         const bool risingEdge = timer > 0 && g_state.prevTimer <= 0;
 
+        const bool tookDamage = g_state.hasPrev && health < g_state.prevHealth - kDamageEpsilon;
+
         if (risingEdge)
         {
-            const bool tookDamage = g_state.hasPrev && health < g_state.prevHealth - kDamageEpsilon;
             if (tookDamage)
                 g_state.cause = Cause::Stunned;
             else if (g_state.prevGrounded)
@@ -66,6 +67,12 @@ namespace game::actionlock
         else if (timer <= 0)
         {
             g_state.cause = Cause::None;
+        }
+        else if (g_state.cause == Cause::Rolling && tookDamage)
+        {
+            // Hit mid roll: the lock refreshes without the timer reaching 0, so there is no rising
+            // edge to reclassify on and the roll verdict would mask the stun for the whole lock.
+            g_state.cause = Cause::Stunned;
         }
 
         g_state.prevTimer = timer;

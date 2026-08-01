@@ -22,10 +22,12 @@ namespace game
         // with an unused EDX.
         bool actionHasWindup(uintptr_t creature)
         {
-            typedef int32_t(__fastcall* AttackWindupFn)(void* self, void* edx, int32_t action);
+            typedef int32_t(__fastcall * AttackWindupFn)(void* self, void* edx, int32_t action);
             const AttackWindupFn fn = reinterpret_cast<AttackWindupFn>(mem::rebase(off::kGetAttackWindupFn));
             int32_t windup = 0;
-            guard::tryRun("attack windup", [&]() { windup = fn(reinterpret_cast<void*>(creature), nullptr, off::kUseCurrentAction); });
+            guard::tryRunLoader(
+                "attack windup",
+                [&]() { windup = fn(reinterpret_cast<void*>(creature), nullptr, off::kUseCurrentAction); });
             return windup > 0;
         }
 
@@ -87,7 +89,8 @@ namespace game
         if (!name || !off::kPlayerNameOff)
             return false;
 
-        char buffer[off::kPlayerNameCapacity]; // clamp to the inline name field; overflow corrupts the buff list
+        char buffer[off::kPlayerNameCapacity]; // clamp to the inline name field; overflow corrupts the buff
+                                               // list
         std::snprintf(buffer, sizeof(buffer), "%s", name);
         return mem::writeRaw(obj + off::kPlayerNameOff, buffer, std::strlen(buffer) + 1);
     }
@@ -165,7 +168,8 @@ namespace game
                                 : static_cast<uint16_t>(word & ~off::kLanternBit);
                 return mem::write<uint16_t>(obj + off::kStateWordOff, word);
             }
-            default: return false;
+            default:
+                return false;
         }
     }
 
@@ -193,13 +197,12 @@ namespace game
         return validateCreature(address, objOut);
     }
 
-    int32_t resolveDisplayName(uintptr_t creature, int32_t typeId, char* out)
+    void resolveDisplayName(uintptr_t creature, int32_t typeId, char* out)
     {
         if (field::cstr(creature, off::kPlayerNameOff, off::kPlayerNameIsWide, kMaxNameChars, out))
-            return 1;
+            return;
 
         catalogNameOr(CUBE_CATALOG_SPECIES, typeId, out, CUBE_PLAYER_NAME_MAX, "species");
-        return 1;
     }
 
 }

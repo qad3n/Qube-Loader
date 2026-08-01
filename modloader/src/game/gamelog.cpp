@@ -1,14 +1,16 @@
 #include "game/gamelog.h"
 #include "game/offsets.h"
-#include "game/signature.h"
+#include "game/view.h"
 #include "core/iat.h"
 #include "core/log.h"
 #include "core/mem.h"
+#include "util/field.h"
 #include "util/fmt.h"
 
 #include <windows.h>
 #include <atomic>
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -26,6 +28,7 @@ namespace gamelog
         constexpr char kMsgBoxA[] = "MessageBoxA";
         constexpr DWORD kDrainPollMs = 1;
         constexpr uint32_t kMaxSqliteMsgChars = 511; // bound the guarded copy of an untrusted sqlite message
+        constexpr uint32_t kMaxGameMsgChars = 511;
 
         using PfnOdsA = void(WINAPI*)(LPCSTR);
         using PfnOdsW = void(WINAPI*)(LPCWSTR);
@@ -43,26 +46,36 @@ namespace gamelog
         thread_local bool g_inHook = false;
         std::atomic<int> g_activeCalls{0};
 
-        void emit(const char* text)
+        // Every string here comes from the game and is untrusted: copy it through the guarded reader
+        // so an unterminated or dangling pointer cannot run a "%s" print off a page (no SEH).
+        bool copyGameString(const void* text, bool wide, char* out, uint32_t maxChars)
+        {
+            return field::cstr(0, reinterpret_cast<uintptr_t>(text), wide, maxChars, out);
+        }
+
+        void emit(const void* text, bool wide)
         {
             if (g_inHook)
                 return;
 
             g_inHook = true;
-            std::string s(text ? text : "");
+            char buffer[kMaxGameMsgChars + 1];
+            if (copyGameString(text, wide, buffer, kMaxGameMsgChars))
+            {
+                uint32_t len = static_cast<uint32_t>(std::strlen(buffer));
+                while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r'))
+                    buffer[--len] = '\0';
 
-            while (!s.empty() && (s.back() == '\n' || s.back() == '\r'))
-                s.pop_back();
-
-            if (!s.empty())
-                LOGC(Debug, kGameCategory, "%s", s.c_str());
+                if (len > 0)
+                    LOGC(Debug, kGameCategory, "%s", buffer);
+            }
             g_inHook = false;
         }
 
         void WINAPI hookA(LPCSTR str)
         {
             g_activeCalls.fetch_add(1);
-            emit(str);
+            emit(str, false);
 
             if (g_origA)
                 g_origA(str);
@@ -73,16 +86,7 @@ namespace gamelog
         void WINAPI hookW(LPCWSTR wstr)
         {
             g_activeCalls.fetch_add(1);
-            if (wstr)
-            {
-                const int n = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
-                if (n > 0)
-                {
-                    std::vector<char> buf(n);
-                    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, buf.data(), n, nullptr, nullptr);
-                    emit(buf.data());
-                }
-            }
+            emit(wstr, true);
 
             if (g_origW)
                 g_origW(wstr);
@@ -91,16 +95,28 @@ namespace gamelog
 
         int WINAPI hookMsgBoxA(HWND wnd, LPCSTR text, LPCSTR caption, UINT type)
         {
-            static_cast<void>(wnd);
-            static_cast<void>(type);
             g_activeCalls.fetch_add(1);
-            LOGC(Error, kGameCategory, "MessageBox [%s] %s", caption ? caption : "", text ? text : "");
-            // Do NOT forward to the real MessageBoxA: a modal behind an exclusive fullscreen surface is
-            // invisible and blocks the game thread forever (hard hang). The game's MessageBoxA sites are
-            // fatal init / DB write errors, already terminal, so capturing the text above is the useful
-            // part. Return the default button so the game proceeds or exits cleanly instead of freezing
-            // behind an unseen dialog.
-            LOGC(Warn, kGameCategory, "MessageBox suppressed (returned IDOK; a modal would hang behind fullscreen)");
+
+            char textBuf[kMaxGameMsgChars + 1];
+            char captionBuf[kMaxGameMsgChars + 1];
+            copyGameString(text, false, textBuf, kMaxGameMsgChars);
+            copyGameString(caption, false, captionBuf, kMaxGameMsgChars);
+            LOGC(Error, kGameCategory, "MessageBox [%s] %s", captionBuf, textBuf);
+
+            // Only suppress where the dialog would actually hang the game: a modal behind an exclusive
+            // fullscreen surface is invisible and blocks the game thread forever. Windowed, the dialog
+            // is visible and swallowing it would hide fatal errors the game means to show.
+            CubeDisplay display = {};
+            const bool windowed = game::readDisplay(display) && !display.fullscreen;
+            if (windowed && g_origMsgBoxA)
+            {
+                const int result = g_origMsgBoxA(wnd, text, caption, type);
+                g_activeCalls.fetch_sub(1);
+                return result;
+            }
+
+            LOGC(Warn, kGameCategory,
+                 "MessageBox suppressed (returned IDOK; a modal would hang behind fullscreen)");
             g_activeCalls.fetch_sub(1);
             return IDOK;
         }
@@ -111,21 +127,7 @@ namespace gamelog
             // msg is untrusted: copy it one guarded byte at a time (null or cap) so a "%s"
             // print cannot run off a page into a fault (no SEH).
             char buffer[kMaxSqliteMsgChars + 1];
-            uint32_t i = 0;
-            if (msg)
-            {
-                const uintptr_t addr = reinterpret_cast<uintptr_t>(msg);
-                for (; i < kMaxSqliteMsgChars; ++i)
-                {
-                    uint8_t ch = 0;
-                    if (!mem::read(addr + i, ch) || ch == 0)
-                        break;
-                    buffer[i] = static_cast<char>(ch);
-                }
-            }
-
-            buffer[i] = '\0';
-            if (i > 0)
+            if (copyGameString(msg, false, buffer, kMaxSqliteMsgChars))
                 LOGC(Warn, kSqliteCategory, "(%d) %s", errCode, buffer);
             g_activeCalls.fetch_sub(1);
         }
@@ -137,9 +139,11 @@ namespace gamelog
             void* realW = iat::resolveImport(k32, kKernel32, kOdsW);
 
             if (realA)
-                g_origA = reinterpret_cast<PfnOdsA>(iat::patchIatSlot(kKernel32, kOdsA, realA, reinterpret_cast<void*>(&hookA), &g_slotA));
+                g_origA = reinterpret_cast<PfnOdsA>(
+                    iat::patchIatSlot(kKernel32, kOdsA, realA, reinterpret_cast<void*>(&hookA), &g_slotA));
             if (realW)
-                g_origW = reinterpret_cast<PfnOdsW>(iat::patchIatSlot(kKernel32, kOdsW, realW, reinterpret_cast<void*>(&hookW), &g_slotW));
+                g_origW = reinterpret_cast<PfnOdsW>(
+                    iat::patchIatSlot(kKernel32, kOdsW, realW, reinterpret_cast<void*>(&hookW), &g_slotW));
             return g_origA || g_origW;
         }
 
@@ -150,30 +154,23 @@ namespace gamelog
             if (!real)
                 return false;
 
-            g_origMsgBoxA = reinterpret_cast<PfnMsgBoxA>(iat::patchIatSlot(kUser32, kMsgBoxA, real, reinterpret_cast<void*>(&hookMsgBoxA), &g_slotMsgBoxA));
+            g_origMsgBoxA = reinterpret_cast<PfnMsgBoxA>(iat::patchIatSlot(
+                kUser32, kMsgBoxA, real, reinterpret_cast<void*>(&hookMsgBoxA), &g_slotMsgBoxA));
             return g_origMsgBoxA != nullptr;
         }
 
         bool installSqliteLog()
         {
-            // kSqliteXLog is a hard data offset for one Cube.exe build. On a mismatch it may not be the
-            // log pointer at all, so writing our callback there could hand the game a bad function
-            // pointer. Skip on a build mismatch (the readable/null checks below are not enough).
-            if (!game::signature::compatibleBuild())
-            {
-                LOGC(Warn, kCategory, "sqlite xLog: skipped, Cube.exe build mismatch (offset 0x%08X is not trusted on this binary)", fmt::u32(off::kSqliteXLog));
-                return false;
-            }
-
             void** xLog = reinterpret_cast<void**>(mem::rebase(off::kSqliteXLog));
             void** logArg = reinterpret_cast<void**>(mem::rebase(off::kSqlitePLogArg));
 
-            LOGC(Debug, kCategory, "sqlite xLog: static 0x%08X -> live 0x%08X, pLogArg static 0x%08X -> live 0x%08X", fmt::u32(off::kSqliteXLog), fmt::ptr(xLog), fmt::u32(off::kSqlitePLogArg), fmt::ptr(logArg));
+            LOGC(Debug, kCategory,
+                 "sqlite xLog: static 0x%08X -> live 0x%08X, pLogArg static 0x%08X -> live 0x%08X",
+                 fmt::u32(off::kSqliteXLog), fmt::ptr(xLog), fmt::u32(off::kSqlitePLogArg), fmt::ptr(logArg));
 
             if (!mem::readable(xLog, sizeof(void*)) || !mem::readable(logArg, sizeof(void*)))
             {
-                LOGC(Warn, kCategory, "sqlite xLog: HOOK FAILED, global 0x%08X not readable",
-                     fmt::ptr(xLog));
+                LOGC(Warn, kCategory, "sqlite xLog: HOOK FAILED, global 0x%08X not readable", fmt::ptr(xLog));
                 return false;
             }
 
@@ -184,15 +181,16 @@ namespace gamelog
                 return false;
             }
 
-            if (!iat::writeSlot(logArg, nullptr) || !iat::writeSlot(xLog, reinterpret_cast<void*>(&sqliteLogHook)))
+            if (!iat::writeSlot(logArg, nullptr) ||
+                !iat::writeSlot(xLog, reinterpret_cast<void*>(&sqliteLogHook)))
             {
-                LOGC(Warn, kCategory, "sqlite xLog: HOOK FAILED, global 0x%08X not writable",
-                     fmt::ptr(xLog));
+                LOGC(Warn, kCategory, "sqlite xLog: HOOK FAILED, global 0x%08X not writable", fmt::ptr(xLog));
                 return false;
             }
 
             g_sqliteXLogSlot = xLog;
-            LOGC(Debug, kCategory, "sqlite xLog: HOOKED, callback 0x%08X written to 0x%08X", fmt::ptr(reinterpret_cast<void*>(&sqliteLogHook)), fmt::ptr(xLog));
+            LOGC(Debug, kCategory, "sqlite xLog: HOOKED, callback 0x%08X written to 0x%08X",
+                 fmt::ptr(reinterpret_cast<void*>(&sqliteLogHook)), fmt::ptr(xLog));
             return true;
         }
 
@@ -212,7 +210,8 @@ namespace gamelog
             return false;
         }
 
-        LOGC(Debug, kCategory, "capturing ods A:%d W:%d msgbox:%d sqlite:%d", g_origA != nullptr, g_origW != nullptr, msgBox, sqlite);
+        LOGC(Debug, kCategory, "capturing ods A:%d W:%d msgbox:%d sqlite:%d", g_origA != nullptr,
+             g_origW != nullptr, msgBox, sqlite);
         return true;
     }
 
@@ -221,21 +220,24 @@ namespace gamelog
         if (g_slotA && g_origA)
         {
             iat::writeSlot(g_slotA, reinterpret_cast<void*>(g_origA));
-            LOGC(Debug, kCategory, "%s: restored IAT slot 0x%08X -> 0x%08X", kOdsA, fmt::ptr(g_slotA), fmt::ptr(reinterpret_cast<void*>(g_origA)));
+            LOGC(Debug, kCategory, "%s: restored IAT slot 0x%08X -> 0x%08X", kOdsA, fmt::ptr(g_slotA),
+                 fmt::ptr(reinterpret_cast<void*>(g_origA)));
             g_slotA = nullptr;
         }
 
         if (g_slotW && g_origW)
         {
             iat::writeSlot(g_slotW, reinterpret_cast<void*>(g_origW));
-            LOGC(Debug, kCategory, "%s: restored IAT slot 0x%08X -> 0x%08X", kOdsW, fmt::ptr(g_slotW), fmt::ptr(reinterpret_cast<void*>(g_origW)));
+            LOGC(Debug, kCategory, "%s: restored IAT slot 0x%08X -> 0x%08X", kOdsW, fmt::ptr(g_slotW),
+                 fmt::ptr(reinterpret_cast<void*>(g_origW)));
             g_slotW = nullptr;
         }
 
         if (g_slotMsgBoxA && g_origMsgBoxA)
         {
             iat::writeSlot(g_slotMsgBoxA, reinterpret_cast<void*>(g_origMsgBoxA));
-            LOGC(Debug, kCategory, "%s: restored IAT slot 0x%08X -> 0x%08X", kMsgBoxA, fmt::ptr(g_slotMsgBoxA), fmt::ptr(reinterpret_cast<void*>(g_origMsgBoxA)));
+            LOGC(Debug, kCategory, "%s: restored IAT slot 0x%08X -> 0x%08X", kMsgBoxA,
+                 fmt::ptr(g_slotMsgBoxA), fmt::ptr(reinterpret_cast<void*>(g_origMsgBoxA)));
             g_slotMsgBoxA = nullptr;
         }
 
