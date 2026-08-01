@@ -28,6 +28,7 @@ namespace config
         constexpr Key kCapture = {"CUBE_MOD_CAPTURE", "capture_game_log"};
         constexpr Key kFaultIsolation = {"CUBE_MOD_FAULT_ISOLATION", "fault_isolation"};
         constexpr Key kOverlay = {"CUBE_MOD_OVERLAY", "overlay"};
+        constexpr Key kAllowBuildMismatch = {"CUBE_MOD_ALLOW_BUILD_MISMATCH", "allow_build_mismatch"};
 
         std::string env(const char* name)
         {
@@ -63,7 +64,8 @@ namespace config
 
         const ini::KeyValues kv = ini::read(paths::join(dllDir, kIniFileName));
 
-        if (std::string v = resolve(kv, kLogLevel); !v.empty() && !logger::parseLevel(ini::trim(v).c_str(), s.logLevel))
+        if (std::string v = resolve(kv, kLogLevel);
+            !v.empty() && !logger::parseLevel(ini::trim(v).c_str(), s.logLevel))
             recordReject(s, kLogLevel, v);
         if (std::string v = resolve(kv, kLogDir); !v.empty())
             s.logDir = v;
@@ -79,14 +81,20 @@ namespace config
             recordReject(s, kFaultIsolation, v);
         if (std::string v = resolve(kv, kOverlay); !v.empty() && !ini::parseBool(v, s.overlay))
             recordReject(s, kOverlay, v);
+        if (std::string v = resolve(kv, kAllowBuildMismatch);
+            !v.empty() && !ini::parseBool(v, s.allowBuildMismatch))
+            recordReject(s, kAllowBuildMismatch, v);
 
         return s;
     }
 
     void dump(const Settings& s)
     {
-        LOGC(Debug, kCategory, "log_level=%s console=%d color=%d color_mode=%s capture_game_log=%d fault_isolation=%d overlay=%d",
-             logger::levelName(s.logLevel), s.console, s.color, s.colorMode.c_str(), s.captureGameLog, s.faultIsolation, s.overlay);
+        LOGC(Debug, kCategory,
+             "log_level=%s console=%d color=%d color_mode=%s capture_game_log=%d fault_isolation=%d "
+             "overlay=%d allow_build_mismatch=%d",
+             logger::levelName(s.logLevel), s.console, s.color, s.colorMode.c_str(), s.captureGameLog,
+             s.faultIsolation, s.overlay, s.allowBuildMismatch);
         LOGC(Debug, kCategory, "log_dir=%s", s.logDir.c_str());
         for (const std::string& r : s.rejected)
             LOGC(Warn, kCategory, "ignored unparseable config value: %s (kept the default)", r.c_str());

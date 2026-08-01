@@ -19,3 +19,11 @@ fault_isolation = 1
 # still load and game-function hooks still fire, but the overlay, its probe device, and
 # render-driven events are off. Use this if the overlay misbehaves on a given machine.
 overlay = 1
+
+# log_dir: where cube_mod.log and any crash dump are written. Default: next to the DLL.
+# log_dir = logs
+
+# allow_build_mismatch: 0 (default) refuses to load on any Cube.exe other than the stock 2013 alpha
+# the loader was built for. Every offset belongs to that one build, so on another binary a read is
+# garbage and a write can corrupt your save. Set 1 only for reverse-engineering a patched binary.
+# allow_build_mismatch = 0

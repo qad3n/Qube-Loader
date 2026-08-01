@@ -6,6 +6,7 @@
 #include "game/gamelog.h"
 #include "game/game.h"
 #include "game/diag.h"
+#include "game/signature.h"
 #include "game/gamehooks/gamehooks.h"
 #include "hooks/detour.h"
 #include "loader/loader.h"
@@ -32,9 +33,9 @@ namespace
     // layers, and in game overlays. These change the device vtable and are the usual cause of an
     // overlay crash or no show on a given machine, so a support log should name any that are present.
     const char* const kInterposerModules[] = {
-        "dxvk", "d3d9on12", "dgvoodoo", "reshade", "rtss", "gameoverlayrenderer", "discord",
-        "nvspcap", "specialk", "fraps", "bandicam", "obs-hook", "amdxx", "gfsdk"
-    };
+        "dxvk",    "d3d9on12", "dgvoodoo", "reshade", "rtss",     "gameoverlayrenderer",
+        "discord", "nvspcap",  "specialk", "fraps",   "bandicam", "obs-hook",
+        "amdxx",   "gfsdk"};
 
     HMODULE g_self = nullptr;
 
@@ -50,11 +51,13 @@ namespace
     // by Windows version. No user or machine names. Info level so it is always in the log.
     void logEnvironment()
     {
-        typedef LONG(WINAPI* RtlGetVersionFn)(LPOSVERSIONINFOEXW);
+        typedef LONG(WINAPI * RtlGetVersionFn)(LPOSVERSIONINFOEXW);
         OSVERSIONINFOEXW osv = {};
         osv.dwOSVersionInfoSize = sizeof(osv);
         HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-        RtlGetVersionFn rtlGetVersion = ntdll ? reinterpret_cast<RtlGetVersionFn>(reinterpret_cast<void*>(GetProcAddress(ntdll, "RtlGetVersion"))) : nullptr;
+        RtlGetVersionFn rtlGetVersion = ntdll ? reinterpret_cast<RtlGetVersionFn>(reinterpret_cast<void*>(
+                                                    GetProcAddress(ntdll, "RtlGetVersion")))
+                                              : nullptr;
         if (rtlGetVersion)
             rtlGetVersion(&osv);
         LOGC(Info, kEnvCategory, "OS Windows %lu.%lu build %lu",
@@ -72,7 +75,8 @@ namespace
             GetModuleFileNameA(d3d9, path, MAX_PATH);
             const UINT sysLen = GetSystemDirectoryA(sysDir, MAX_PATH);
             const bool isSystem = sysLen > 0 && _strnicmp(path, sysDir, sysLen) == 0;
-            LOGC(Info, kEnvCategory, "d3d9.dll: %s (%s)", path, isSystem ? "system" : "LOCAL COPY - wrapper/proxy in game folder");
+            LOGC(Info, kEnvCategory, "d3d9.dll: %s (%s)", path,
+                 isSystem ? "system" : "LOCAL COPY - wrapper/proxy in game folder");
         }
 
         // Injected d3d wrappers / overlays present in the process.
@@ -81,7 +85,8 @@ namespace
         std::string hits;
         if (EnumProcessModules(GetCurrentProcess(), mods, sizeof(mods), &needed))
         {
-            const int count = static_cast<int>((needed < sizeof(mods) ? needed : sizeof(mods)) / sizeof(HMODULE));
+            const int count =
+                static_cast<int>((needed < sizeof(mods) ? needed : sizeof(mods)) / sizeof(HMODULE));
             for (int i = 0; i < count; ++i)
             {
                 char name[MAX_PATH] = {};
@@ -101,12 +106,14 @@ namespace
                 }
             }
         }
-        LOGC(Info, kEnvCategory, "d3d wrappers/overlays injected: %s", hits.empty() ? "none detected" : hits.c_str());
+        LOGC(Info, kEnvCategory, "d3d wrappers/overlays injected: %s",
+             hits.empty() ? "none detected" : hits.c_str());
     }
 
     void reportLoadStatus(bool gamelogEnabled, bool gamelogOk, std::size_t modCount)
     {
-        LOGI("status: gamelog=%s  mods=%zu", gamelogEnabled ? (gamelogOk ? "ok" : "FAILED") : "disabled", modCount);
+        LOGI("status: gamelog=%s  mods=%zu", gamelogEnabled ? (gamelogOk ? "ok" : "FAILED") : "disabled",
+             modCount);
         LOGI("%s", kLoadBanner);
         LOGI(" cube_mod loader ready (ABI v%u). drop mods into the mods/ folder next to this DLL.",
              static_cast<unsigned>(CUBE_ABI_VERSION));
@@ -165,45 +172,74 @@ namespace
         // callback disables that mod instead of crashing the game. Config gated.
         faultguard::install(cfg.faultIsolation);
 
+        // The one build check, before anything reads, writes, or patches the game. Every offset the
+        // loader owns belongs to one Cube.exe; on any other binary a write can corrupt a save, so a
+        // mismatch loads nothing at all rather than running half a loader.
+        if (!game::signature::verifyBuild().ok)
+        {
+            if (!cfg.allowBuildMismatch)
+            {
+                LOGE("%s", kLoadBanner);
+                LOGE(" cube_mod did NOT load: wrong Cube.exe. No mods loaded, nothing hooked.");
+                LOGE(" set allow_build_mismatch=1 in cube_mod.ini to override (RE work only).");
+                LOGE("%s", kLoadBanner);
+                waitForEject();
+
+                // Both filters point into this DLL, so they have to come out before it unmaps.
+                faultguard::remove();
+                crash::remove();
+                logger::shutdown();
+                return;
+            }
+
+            LOGW("allow_build_mismatch=1: continuing on an unrecognized Cube.exe. Offsets are wrong "
+                 "here, so reads are garbage and writes can corrupt your save. BACK UP FIRST.");
+        }
+
         // Guard the session so a std::exception mid init cannot skip teardown and unmap the DLL with
         // hooks still installed. Each teardown step no ops if its install did not run.
-        guard::tryRun("mod session", [&]()
-        {
-            bool gamelogOk = false;
-            if (cfg.captureGameLog)
-                gamelogOk = gamelog::install();
-            else
-                LOGD("game output capture disabled by config");
+        guard::tryRun("mod session",
+                      [&]()
+                      {
+                          bool gamelogOk = false;
+                          if (cfg.captureGameLog)
+                              gamelogOk = gamelog::install();
+                          else
+                              LOGD("game output capture disabled by config");
 
-            // Startup snapshot for RE: base/ASLR slide and the candidate singleton globals.
-            game::logModuleInfo();
-            game::logCandidateGlobals();
+                          // Startup snapshot for RE: base/ASLR slide and the candidate singleton globals.
+                          game::logModuleInfo();
+                          game::logCandidateGlobals();
 
-            // Load mods. The loader arms its game hooks (input freeze, DI passthrough, select/pickup
-            // capture, attack/crit sampling) ONLY when at least one mod is present, and every one is a
-            // transparent pass through until a mod's own callback acts, so with no mods the game runs
-            // exactly as vanilla. See modloader/core/lifecycle.cpp (installModHooks).
-            const std::size_t modCount = modloader::install(dir, cfg.overlay);
+                          // Load mods. The loader arms its game hooks (input freeze, DI passthrough,
+                          // select/pickup capture, attack/crit sampling) ONLY when at least one mod is
+                          // present, and every one is a transparent pass through until a mod's own callback
+                          // acts, so with no mods the game runs exactly as vanilla. See
+                          // modloader/core/lifecycle.cpp (installModHooks).
+                          const std::size_t modCount = modloader::install(dir, cfg.overlay);
 
-            // With no mods loaded, no mod callback will ever run, so mod fault isolation has nothing to
-            // guard. Drop its vectored exception handler now so a mod less loader leaves zero footprint
-            // in the game's exception path (it stays armed through load above to catch a fault in a
-            // mod's init). Idempotent with the teardown remove() below.
-            if (modCount == 0)
-                faultguard::remove();
+                          // With no mods loaded, no mod callback will ever run, so mod fault isolation has
+                          // nothing to guard. Drop its vectored exception handler now so a mod less loader
+                          // leaves zero footprint in the game's exception path (it stays armed through load
+                          // above to catch a fault in a mod's init). Idempotent with the teardown remove()
+                          // below.
+                          if (modCount == 0)
+                              faultguard::remove();
 
-            reportLoadStatus(cfg.captureGameLog, gamelogOk, modCount);
+                          reportLoadStatus(cfg.captureGameLog, gamelogOk, modCount);
 
-            // Verbose init diagnostics: report which offsets/chains resolve now (mostly pending on
-            // the title screen) and which are deferred. gameevents re emits it when a world loads.
-            game::diag::logKnownGaps();
-            game::diag::logResolutionReport();
+                          // Verbose init diagnostics: report which offsets/chains resolve now (mostly pending
+                          // on the title screen) and which are deferred. gameevents re emits it when a world
+                          // loads.
+                          game::diag::logKnownGaps();
+                          game::diag::logResolutionReport();
 
-            waitForEject();
-        });
+                          waitForEject();
+                      });
 
         modloader::remove(); // unsubscribes render + removes the loader's game hooks (select/pickup/DI/input)
-        game::gamehooks::shutdown(); // remove any remaining game function detours (built in reservations + raw)
+        game::gamehooks::shutdown(); // remove any remaining game function detours (built in reservations +
+                                     // raw)
         hooks::detour::shutdown(); // single MinHook owner now that all detour users are gone
 
         LOGD("cube_mod detaching");

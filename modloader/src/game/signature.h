@@ -1,21 +1,25 @@
 #pragma once
-// Build identity guard for the loader's pinned game function detours. Every inline hook targets a hard
-// address from one specific Cube.exe build (the 2013 alpha, 32-bit); on any other build those
-// addresses land mid function and MinHook would corrupt unrelated code, crashing the game on launch.
-// This compares the prologue bytes at each detour target against the reference build and refuses to
-// hook a mismatch. Windows first: the reference bytes come straight from the shipped binary, so the
-// check is identical on Windows and Wine.
+// Every address in offsets.h comes from one specific Cube.exe (2013 alpha, 32-bit). On any other
+// binary a read is garbage and a write lands in whatever occupies that offset, which is what corrupts
+// a save, so the loader verifies once at boot and refuses to load on a mismatch (dllmain runMod).
+//
+// Identity comes from the PE header, not from the prologues of the functions the loader hooks: a
+// prologue check cannot tell a wrong build apart from a correct one another tool already hooked.
 #include <cstdint>
 
 namespace game::signature
 {
-    // True iff the loaded binary matches the reference prologue at `staticAddr` (a known pinned detour
-    // target). Unknown addresses (e.g. a raw mod supplied hook) return true, they are not our sites.
-    // Guarded read; false when the bytes differ or the address is unreadable.
-    bool verifyTarget(uintptr_t staticAddr);
+    struct Result
+    {
+        bool ok = false;
+        bool headerReadable = false;
+        uint32_t timeDateStamp = 0;
+        uint32_t sizeOfImage = 0;
+        uint32_t entryPoint = 0;
+        int32_t targetsHooked = 0; // diagnostic only, never gates
+        int32_t targetCount = 0;
+    };
 
-    // One shot, cached whole binary check across every pinned detour site; logs a report the first time.
-    // MUST be called before any detour patches a site (MinHook overwrites the prologue). The loader
-    // calls it early (gamelog install + installModHooks), so later calls just return the cached result.
-    bool compatibleBuild();
+    // Called once at boot, before anything can patch the image. Logs a full report either way.
+    Result verifyBuild();
 }

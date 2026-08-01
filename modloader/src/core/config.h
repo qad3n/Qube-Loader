@@ -22,6 +22,9 @@ namespace config
         // (mods still load; render driven events and the overlay are off). For users hitting overlay
         // trouble on a given machine. Game function hooks (events/writes) are unaffected.
         bool overlay = true;
+        // Load anyway on a Cube.exe the loader was not built for. RE work against a patched binary
+        // only: every offset is wrong there, so a write can corrupt a save.
+        bool allowBuildMismatch = false;
         // ini/env values that failed to parse; reported once by dump() after the logger is up.
         std::vector<std::string> rejected;
     };
