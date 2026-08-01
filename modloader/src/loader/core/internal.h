@@ -1,6 +1,6 @@
 #pragma once
 // Loader internal shared surface (not part of the public modloader.h API): the loaded mod list plus
-// the discovery and report units that operate on it. Split across core.cpp / loader.cpp / report.cpp.
+// the discovery and report units that operate on it. Split across lifecycle.cpp / loader.cpp / report.cpp.
 
 #include "api/context.h"
 #include "cube_sdk.h"
@@ -28,13 +28,13 @@ namespace modloader
         ModContext context;
         CubeModShutdownFn shutdown = nullptr;
         std::string name;
-        std::string version;                 // copied for dependency version compares (deps::resolve)
-        std::string updateUrl;               // optional home/version URL (ABI 24), reported in the banner
-        uint32_t requiredAbi = 0;            // ABI the mod declared it was built against (0 = unspecified)
+        std::string version; // copied for dependency version compares (deps::resolve)
+        std::string updateUrl; // optional home/version URL (ABI 24), reported in the banner
+        uint32_t requiredAbi = 0; // ABI the mod declared it was built against (0 = unspecified)
         std::vector<Dep> deps;
     };
 
-    // The process wide loaded mod list (owned/defined by core.cpp).
+    // The process wide loaded mod list (owned/defined by lifecycle.cpp).
     std::vector<std::unique_ptr<LoadedMod>>& loadedMods();
 
     // Discovery + loading (loader.cpp): scan the mods dir and load each valid DLL into loadedMods().

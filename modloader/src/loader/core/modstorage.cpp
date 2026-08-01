@@ -20,9 +20,9 @@ namespace modloader::modstorage
         // The directory holding a mod's blobs for its current scope: <data>/<stem>[/<scope>].
         std::string dirOf(const std::string& modStem)
         {
-            std::string dir = paths::join(g_dir, paths::sanitizeComponent(modStem).c_str());
-            const std::map<std::string, std::string>::const_iterator it =
-                g_scope.find(paths::sanitizeComponent(modStem));
+            const std::string safeStem = paths::sanitizeComponent(modStem);
+            std::string dir = paths::join(g_dir, safeStem.c_str());
+            const std::map<std::string, std::string>::const_iterator it = g_scope.find(safeStem);
             if (it != g_scope.end() && !it->second.empty())
                 dir = paths::join(dir, it->second.c_str());
             return dir;
@@ -39,7 +39,8 @@ namespace modloader::modstorage
         g_dir = paths::join(dllDir, kDirName);
         g_scope.clear();
         if (!paths::ensureDir(g_dir))
-            LOGC(Warn, kCategory, "could not create data dir %s; mod save data will not persist", g_dir.c_str());
+            LOGC(Warn, kCategory, "could not create data dir %s; mod save data will not persist",
+                 g_dir.c_str());
     }
 
     void setScope(const std::string& modStem, const std::string& scope)

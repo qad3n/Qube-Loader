@@ -23,14 +23,31 @@ namespace modloader::writeguard
             uint32_t frame;
         };
 
+        constexpr size_t kMaxTrackedAddresses = 4096;
+
         std::mutex g_mutex;
         std::unordered_map<uintptr_t, Record> g_lastWrite;
+
+        // Bounds the map for a mod that writes an unbounded spread of addresses. Only entries past the
+        // cooldown go, so recent contention is still detected. Caller holds g_mutex.
+        void pruneLocked(uint32_t frame)
+        {
+            for (std::unordered_map<uintptr_t, Record>::iterator it = g_lastWrite.begin();
+                 it != g_lastWrite.end();)
+            {
+                if (frame - it->second.frame > kWarnCooldownFrames)
+                    it = g_lastWrite.erase(it);
+                else
+                    ++it;
+            }
+        }
 
         uint64_t conflictSignature(const CubeApi* a, const CubeApi* b, uintptr_t addr)
         {
             const uintptr_t lo = reinterpret_cast<uintptr_t>(a < b ? a : b);
             const uintptr_t hi = reinterpret_cast<uintptr_t>(a < b ? b : a);
-            return static_cast<uint64_t>(lo) ^ (static_cast<uint64_t>(hi) << 1) ^ (static_cast<uint64_t>(addr) << 2);
+            return static_cast<uint64_t>(lo) ^ (static_cast<uint64_t>(hi) << 1) ^
+                   (static_cast<uint64_t>(addr) << 2);
         }
 
         void observe(uintptr_t addr, size_t n)
@@ -47,17 +64,21 @@ namespace modloader::writeguard
                 if (it != g_lastWrite.end() && it->second.owner && it->second.owner != writer)
                     contender = it->second.owner;
 
+                if (it == g_lastWrite.end() && g_lastWrite.size() >= kMaxTrackedAddresses)
+                    pruneLocked(frame);
+
                 g_lastWrite[addr] = Record{writer, frame};
             }
 
-            if (contender && conflict::throttle(conflictSignature(writer, contender, addr), frame, kWarnCooldownFrames))
-                conflict::warn("'%s' and '%s' both write 0x%08X (%zu bytes); last-writer-wins, the game may misbehave",
-                               ownerName(writer), ownerName(contender), static_cast<unsigned>(addr), n);
+            if (contender &&
+                conflict::throttle(conflictSignature(writer, contender, addr), frame, kWarnCooldownFrames))
+                conflict::warn(
+                    "'%s' and '%s' both write 0x%08X (%zu bytes); last-writer-wins, the game may misbehave",
+                    ownerName(writer), ownerName(contender), static_cast<unsigned>(addr), n);
         }
     }
 
-    Scope::Scope(const CubeApi* owner)
-        : m_previous(g_writer)
+    Scope::Scope(const CubeApi* owner) : m_previous(g_writer)
     {
         g_writer = owner;
     }

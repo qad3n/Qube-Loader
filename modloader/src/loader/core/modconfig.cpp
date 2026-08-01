@@ -29,9 +29,8 @@ namespace modloader::modconfig
         }
 
         // The mod's cached file, loaded from disk on first touch. Empty g_dir (init not run) gives empty.
-        File& fileOf(const std::string& modStem)
+        File& fileOf(const std::string& safeStem)
         {
-            const std::string safeStem = paths::sanitizeComponent(modStem);
             File& file = g_files[safeStem];
             if (!file.loaded)
             {
@@ -45,18 +44,40 @@ namespace modloader::modconfig
         // Look up a key (case insensitive, matching ini::read's lowered keys); returns null if absent.
         const std::string* find(const std::string& modStem, const std::string& key)
         {
-            const File& file = fileOf(modStem);
+            const std::string safeStem = paths::sanitizeComponent(modStem);
+            const File& file = fileOf(safeStem);
             const ini::KeyValues::const_iterator it = file.values.find(ini::lower(ini::trim(key)));
             return it == file.values.end() ? nullptr : &it->second;
+        }
+
+        // The flat ini format cannot round-trip these: a newline forks the line, '=' splits the key,
+        // and a leading '[', '#' or ';' makes the line read back as a section or comment.
+        bool storable(const std::string& key, const std::string& value)
+        {
+            if (key.empty() || key.find_first_of("=\r\n") != std::string::npos)
+                return false;
+            if (key[0] == '[' || key[0] == '#' || key[0] == ';')
+                return false;
+
+            return value.find_first_of("\r\n") == std::string::npos;
         }
 
         bool store(const std::string& modStem, const std::string& key, const std::string& value)
         {
             if (g_dir.empty())
                 return false;
+
+            const std::string name = ini::lower(ini::trim(key));
+            if (!storable(name, value))
+            {
+                LOGC(Warn, kCategory, "'%s' config key '%s' rejected; not representable in the ini format",
+                     modStem.c_str(), key.c_str());
+                return false;
+            }
+
             const std::string safeStem = paths::sanitizeComponent(modStem);
-            File& file = fileOf(modStem);
-            file.values[ini::lower(ini::trim(key))] = value;
+            File& file = fileOf(safeStem);
+            file.values[name] = value;
             if (!ini::write(pathOf(safeStem), file.values))
             {
                 LOGC(Warn, kCategory, "could not write config for '%s'", modStem.c_str());
@@ -71,7 +92,8 @@ namespace modloader::modconfig
         g_dir = paths::join(dllDir, kDirName);
         g_files.clear();
         if (!paths::ensureDir(g_dir))
-            LOGC(Warn, kCategory, "could not create config dir %s; mod settings will not persist", g_dir.c_str());
+            LOGC(Warn, kCategory, "could not create config dir %s; mod settings will not persist",
+                 g_dir.c_str());
     }
 
     int32_t getInt(const std::string& modStem, const std::string& key, int32_t fallback)
