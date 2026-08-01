@@ -10,19 +10,55 @@ namespace exmod
 
         // Indexed by CubeEvent value; the name doubles as the log/counter label. Per event payload
         // semantics (subject/param/param2/amount) are documented in the SDK event catalog (enums.h).
-        const char* const kEventNames[CUBE_EVENT_COUNT] =
-        {
-            "Startup", "Shutdown", "Frame", "DeviceReset", "WndProc",
-            "Attack", "Jump", "AreaChange", "Damaged", "EntityDamaged",
-            "Crit", "MenuOpen", "MenuClose", "LevelUp", "Death",
-            "Respawn", "Land", "MovementChanged", "TargetChanged", "EntitySpawn",
-            "EntityDeath", "CoinsChanged", "DayNight", "BuffGained", "BuffLost",
-            "EquipmentChanged", "SkillRankChanged", "AimTargetChanged", "EntityDespawn", "CompanionSummoned",
-            "CompanionDied", "CompanionDismissed", "PlayerStunned", "PlayerKnockedDown", "PlayerRecovered",
-            "EntityStunned", "EntityKnockedDown", "CompanionStunned", "CompanionKnockedDown", "EntitySelected",
-            "EntityRecovered", "CompanionRecovered", "AbilityUsed", "ItemPickup", "PlayerRoll",
-            "Ready", "WorldEnter", "WorldExit", "ChatMessage"
-        };
+        const char* const kEventNames[CUBE_EVENT_COUNT] = {"Startup",
+                                                           "Shutdown",
+                                                           "Frame",
+                                                           "DeviceReset",
+                                                           "WndProc",
+                                                           "Attack",
+                                                           "Jump",
+                                                           "AreaChange",
+                                                           "Damaged",
+                                                           "EntityDamaged",
+                                                           "Crit",
+                                                           "MenuOpen",
+                                                           "MenuClose",
+                                                           "LevelUp",
+                                                           "Death",
+                                                           "Respawn",
+                                                           "Land",
+                                                           "MovementChanged",
+                                                           "TargetChanged",
+                                                           "EntitySpawn",
+                                                           "EntityDeath",
+                                                           "CoinsChanged",
+                                                           "DayNight",
+                                                           "BuffGained",
+                                                           "BuffLost",
+                                                           "EquipmentChanged",
+                                                           "SkillRankChanged",
+                                                           "AimTargetChanged",
+                                                           "EntityDespawn",
+                                                           "CompanionSummoned",
+                                                           "CompanionDied",
+                                                           "CompanionDismissed",
+                                                           "PlayerStunned",
+                                                           "PlayerKnockedDown",
+                                                           "PlayerRecovered",
+                                                           "EntityStunned",
+                                                           "EntityKnockedDown",
+                                                           "CompanionStunned",
+                                                           "CompanionKnockedDown",
+                                                           "EntitySelected",
+                                                           "EntityRecovered",
+                                                           "CompanionRecovered",
+                                                           "AbilityUsed",
+                                                           "ItemPickup",
+                                                           "PlayerRoll",
+                                                           "Ready",
+                                                           "WorldEnter",
+                                                           "WorldExit",
+                                                           "ChatMessage"};
 
         bool inRange(int index)
         {
@@ -50,182 +86,208 @@ namespace exmod
         m_listener = &listener;
         // Each handler takes the enriched overload and logs the real per event data the loader passed,
         // so the Events tab shows what a mod can actually read and branch on inside a listener.
-        listener.onAttack([this](int actionId, unsigned selectedTarget)
-        {
-            char detail[40];
-            std::snprintf(detail, sizeof(detail), "action 0x%02X -> 0x%08X", actionId, selectedTarget);
-            record(CUBE_EVENT_PLAYER_ATTACK, detail);
-        });
-        listener.onAbilityUsed([this](int abilityId, int cooldownMs)
-        {
-            char detail[48];
-            const char* name = cube::catalog::nameOr(g_api, CUBE_CATALOG_ABILITY, abilityId, "ability");
-            std::snprintf(detail, sizeof(detail), "%s (#%d) cd %dms", name, abilityId, cooldownMs);
-            record(CUBE_EVENT_ABILITY_USED, detail);
-        });
-        listener.onJump([this](float verticalVelocity)
-        {
-            char detail[24];
-            std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
-            record(CUBE_EVENT_PLAYER_JUMP, detail);
-        });
-        listener.onAreaChange([this](int zoneX, int zoneY)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "zone %d,%d", zoneX, zoneY);
-            record(CUBE_EVENT_AREA_CHANGE, detail);
-        });
-        listener.onDamaged([this](float damage, int remainingHealth)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "-%.0f hp (%d left)", damage, remainingHealth);
-            record(CUBE_EVENT_PLAYER_DAMAGED, detail);
-        });
-        listener.onEntityDamaged([this](unsigned victim, float damage, int remainingHealth, int category)
-        {
-            char detail[56];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d -%.0f hp (%d left)", victim, category, damage, remainingHealth);
-            record(CUBE_EVENT_CREATURE_DAMAGED, detail);
-        });
+        listener.onAttack(
+            [this](int actionId, unsigned selectedTarget)
+            {
+                char detail[40];
+                std::snprintf(detail, sizeof(detail), "action 0x%02X -> 0x%08X", actionId, selectedTarget);
+                record(CUBE_EVENT_PLAYER_ATTACK, detail);
+            });
+        listener.onAbilityUsed(
+            [this](int abilityId, int cooldownMs)
+            {
+                char detail[48];
+                const char* name = cube::catalog::nameOr(g_api, CUBE_CATALOG_ABILITY, abilityId, "ability");
+                std::snprintf(detail, sizeof(detail), "%s (#%d) cd %dms", name, abilityId, cooldownMs);
+                record(CUBE_EVENT_ABILITY_USED, detail);
+            });
+        listener.onJump(
+            [this](float verticalVelocity)
+            {
+                char detail[24];
+                std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
+                record(CUBE_EVENT_PLAYER_JUMP, detail);
+            });
+        registerAreaChange(listener);
+        listener.onDamaged(
+            [this](float damage, int remainingHealth)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "-%.0f hp (%d left)", damage, remainingHealth);
+                record(CUBE_EVENT_PLAYER_DAMAGED, detail);
+            });
+        listener.onEntityDamaged(
+            [this](unsigned victim, float damage, int remainingHealth, int category)
+            {
+                char detail[56];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d -%.0f hp (%d left)", victim, category,
+                              damage, remainingHealth);
+                record(CUBE_EVENT_CREATURE_DAMAGED, detail);
+            });
         listener.onCrit([this] { record(CUBE_EVENT_PLAYER_CRIT); });
-        listener.onLevelUp([this](int newLevel, int previousLevel)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "%d -> %d", previousLevel, newLevel);
-            record(CUBE_EVENT_PLAYER_LEVELUP, detail);
-        });
-        listener.onMenuOpen([this](int openMask)
-        {
-            char detail[24];
-            std::snprintf(detail, sizeof(detail), "mask 0x%X", openMask);
-            record(CUBE_EVENT_MENU_OPEN, detail);
-        });
+        listener.onLevelUp(
+            [this](int newLevel, int previousLevel)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "%d -> %d", previousLevel, newLevel);
+                record(CUBE_EVENT_PLAYER_LEVELUP, detail);
+            });
+        listener.onMenuOpen(
+            [this](int openMask)
+            {
+                char detail[24];
+                std::snprintf(detail, sizeof(detail), "mask 0x%X", openMask);
+                record(CUBE_EVENT_MENU_OPEN, detail);
+            });
         listener.onMenuClose([this] { record(CUBE_EVENT_MENU_CLOSE); });
         listener.onDeath([this] { record(CUBE_EVENT_PLAYER_DEATH); });
         listener.onRespawn([this] { record(CUBE_EVENT_PLAYER_RESPAWN); });
-        listener.onLand([this](float verticalVelocity)
-        {
-            char detail[24];
-            std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
-            record(CUBE_EVENT_PLAYER_LAND, detail);
-        });
-        listener.onRoll([this](float verticalVelocity)
-        {
-            char detail[24];
-            std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
-            record(CUBE_EVENT_PLAYER_ROLL, detail);
-        });
-        listener.onMovementChanged([this](cube::Movement current, cube::Movement previous)
-        {
-            char detail[40];
-            std::snprintf(detail, sizeof(detail), "%s <- %s", cube::movementName(current), cube::movementName(previous));
-            record(CUBE_EVENT_MOVEMENT_CHANGED, detail);
-        });
-        listener.onTargetChanged([this](unsigned target, unsigned previousTarget)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X <- 0x%08X", target, previousTarget);
-            record(CUBE_EVENT_TARGET_CHANGED, detail);
-        });
-        listener.onEntitySpawn([this](unsigned creature, int category, int type, float health)
-        {
-            char detail[56];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d hp %.0f", creature, category, type, health);
-            record(CUBE_EVENT_CREATURE_SPAWN, detail);
-        });
-        listener.onEntityDeath([this](unsigned creature, int category, int type)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_CREATURE_DEATH, detail);
-        });
-        listener.onCoinsChanged([this](int newTotal, int delta)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "%d (%+d)", newTotal, delta);
-            record(CUBE_EVENT_COINS_CHANGED, detail);
-        });
-        listener.onDayNight([this](bool isDay, int hour)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "%s @ %02dh", isDay ? "day" : "night", hour);
-            record(CUBE_EVENT_DAY_NIGHT, detail);
-        });
-        listener.onBuffGained([this](int type, float magnitude, int remainingMs)
-        {
-            char detail[40];
-            std::snprintf(detail, sizeof(detail), "type %d x%.1f %dms", type, magnitude, remainingMs);
-            record(CUBE_EVENT_BUFF_GAINED, detail);
-        });
-        listener.onBuffLost([this](int type)
-        {
-            char detail[24];
-            std::snprintf(detail, sizeof(detail), "type %d", type);
-            record(CUBE_EVENT_BUFF_LOST, detail);
-        });
-        listener.onEquipmentChanged([this](int slot, int itemType)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "slot %d type %d", slot, itemType);
-            record(CUBE_EVENT_EQUIPMENT_CHANGED, detail);
-        });
-        listener.onSkillRankChanged([this](int index, int newRank)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "skill %d rank %d", index, newRank);
-            record(CUBE_EVENT_SKILL_RANK_CHANGED, detail);
-        });
+        listener.onLand(
+            [this](float verticalVelocity)
+            {
+                char detail[24];
+                std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
+                record(CUBE_EVENT_PLAYER_LAND, detail);
+            });
+        listener.onRoll(
+            [this](float verticalVelocity)
+            {
+                char detail[24];
+                std::snprintf(detail, sizeof(detail), "vz %.1f", verticalVelocity);
+                record(CUBE_EVENT_PLAYER_ROLL, detail);
+            });
+        listener.onMovementChanged(
+            [this](cube::Movement current, cube::Movement previous)
+            {
+                char detail[40];
+                std::snprintf(detail, sizeof(detail), "%s <- %s", cube::movementName(current),
+                              cube::movementName(previous));
+                record(CUBE_EVENT_MOVEMENT_CHANGED, detail);
+            });
+        listener.onTargetChanged(
+            [this](unsigned target, unsigned previousTarget)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X <- 0x%08X", target, previousTarget);
+                record(CUBE_EVENT_TARGET_CHANGED, detail);
+            });
+        listener.onEntitySpawn(
+            [this](unsigned creature, int category, int type, float health)
+            {
+                char detail[56];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d hp %.0f", creature, category,
+                              type, health);
+                record(CUBE_EVENT_CREATURE_SPAWN, detail);
+            });
+        listener.onEntityDeath(
+            [this](unsigned creature, int category, int type)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
+                record(CUBE_EVENT_CREATURE_DEATH, detail);
+            });
+        listener.onCoinsChanged(
+            [this](int newTotal, int delta)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "%d (%+d)", newTotal, delta);
+                record(CUBE_EVENT_COINS_CHANGED, detail);
+            });
+        listener.onDayNight(
+            [this](bool isDay, int hour)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "%s @ %02dh", isDay ? "day" : "night", hour);
+                record(CUBE_EVENT_DAY_NIGHT, detail);
+            });
+        listener.onBuffGained(
+            [this](int type, float magnitude, int remainingMs)
+            {
+                char detail[40];
+                std::snprintf(detail, sizeof(detail), "type %d x%.1f %dms", type, magnitude, remainingMs);
+                record(CUBE_EVENT_BUFF_GAINED, detail);
+            });
+        listener.onBuffLost(
+            [this](int type)
+            {
+                char detail[24];
+                std::snprintf(detail, sizeof(detail), "type %d", type);
+                record(CUBE_EVENT_BUFF_LOST, detail);
+            });
+        listener.onEquipmentChanged(
+            [this](int slot, int itemType)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "slot %d type %d", slot, itemType);
+                record(CUBE_EVENT_EQUIPMENT_CHANGED, detail);
+            });
+        listener.onSkillRankChanged(
+            [this](int index, int newRank)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "skill %d rank %d", index, newRank);
+                record(CUBE_EVENT_SKILL_RANK_CHANGED, detail);
+            });
         listener.onAimTargetChanged([this](unsigned) { record(CUBE_EVENT_AIM_TARGET_CHANGED); });
-        listener.onEntityDespawn([this](unsigned creature, int category, int type)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_CREATURE_DESPAWN, detail);
-        });
+        listener.onEntityDespawn(
+            [this](unsigned creature, int category, int type)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
+                record(CUBE_EVENT_CREATURE_DESPAWN, detail);
+            });
         listener.onCompanionSummoned([this](unsigned) { record(CUBE_EVENT_COMPANION_SUMMONED); });
         listener.onCompanionDied([this](unsigned) { record(CUBE_EVENT_COMPANION_DIED); });
         listener.onCompanionDismissed([this](unsigned) { record(CUBE_EVENT_COMPANION_DISMISSED); });
-        listener.onStunned([this](int hitStun)
-        {
-            char detail[24];
-            std::snprintf(detail, sizeof(detail), "timer %d", hitStun);
-            record(CUBE_EVENT_PLAYER_STUNNED, detail);
-        });
+        listener.onStunned(
+            [this](int hitStun)
+            {
+                char detail[24];
+                std::snprintf(detail, sizeof(detail), "timer %d", hitStun);
+                record(CUBE_EVENT_PLAYER_STUNNED, detail);
+            });
         listener.onKnockedDown([this] { record(CUBE_EVENT_PLAYER_KNOCKED_DOWN); });
         listener.onRecovered([this] { record(CUBE_EVENT_PLAYER_RECOVERED); });
-        listener.onEntityStunned([this](unsigned creature, int category, int type)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_CREATURE_STUNNED, detail);
-        });
-        listener.onEntityRecovered([this](unsigned creature, int category, int type)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_CREATURE_RECOVERED, detail);
-        });
-        listener.onEntityKnockedDown([this](unsigned creature, int category, int type)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
-            record(CUBE_EVENT_CREATURE_KNOCKED_DOWN, detail);
-        });
+        listener.onEntityStunned(
+            [this](unsigned creature, int category, int type)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
+                record(CUBE_EVENT_CREATURE_STUNNED, detail);
+            });
+        listener.onEntityRecovered(
+            [this](unsigned creature, int category, int type)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
+                record(CUBE_EVENT_CREATURE_RECOVERED, detail);
+            });
+        listener.onEntityKnockedDown(
+            [this](unsigned creature, int category, int type)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X cat %d type %d", creature, category, type);
+                record(CUBE_EVENT_CREATURE_KNOCKED_DOWN, detail);
+            });
         listener.onCompanionStunned([this](unsigned) { record(CUBE_EVENT_COMPANION_STUNNED); });
         listener.onCompanionRecovered([this](unsigned) { record(CUBE_EVENT_COMPANION_RECOVERED); });
         listener.onCompanionKnockedDown([this](unsigned) { record(CUBE_EVENT_COMPANION_KNOCKED_DOWN); });
-        listener.onEntitySelected([this](unsigned target, cube::SelectionKind kind, int typeByte)
-        {
-            char detail[48];
-            std::snprintf(detail, sizeof(detail), "0x%08X %s t0x%02X", target, cube::selectionKindName(kind), typeByte);
-            record(CUBE_EVENT_CREATURE_SELECTED, detail);
-        });
-        listener.onItemPickup([this](const cube::Item& item)
-        {
-            char detail[64];
-            std::snprintf(detail, sizeof(detail), "%s x%d (type %d)", item.getName(), item.getStack(), item.getType());
-            record(CUBE_EVENT_ITEM_PICKUP, detail);
-        });
+        listener.onEntitySelected(
+            [this](unsigned target, cube::SelectionKind kind, int typeByte)
+            {
+                char detail[48];
+                std::snprintf(detail, sizeof(detail), "0x%08X %s t0x%02X", target,
+                              cube::selectionKindName(kind), typeByte);
+                record(CUBE_EVENT_CREATURE_SELECTED, detail);
+            });
+        listener.onItemPickup(
+            [this](const cube::Item& item)
+            {
+                char detail[64];
+                std::snprintf(detail, sizeof(detail), "%s x%d (type %d)", item.getName(), item.getStack(),
+                              item.getType());
+                record(CUBE_EVENT_ITEM_PICKUP, detail);
+            });
         // Lifecycle edges (ABI 22): READY fires once after all mods load + deps resolve; WorldEnter/Exit
         // on the title/menu and in world crossing (distinct from AreaChange's zone to zone).
         listener.onReady([this] { record(CUBE_EVENT_READY); });
@@ -233,12 +295,13 @@ namespace exmod
         listener.onWorldExit([this] { record(CUBE_EVENT_WORLD_EXIT); });
         // A new line in the local chat log (ABI 28). Payload is the live message count; read the text
         // itself with cube::Chat(api).newest().
-        listener.onChatMessage([this](int count)
-        {
-            char detail[32];
-            std::snprintf(detail, sizeof(detail), "count=%d", count);
-            record(CUBE_EVENT_CHAT_MESSAGE, detail);
-        });
+        listener.onChatMessage(
+            [this](int count)
+            {
+                char detail[32];
+                std::snprintf(detail, sizeof(detail), "count=%d", count);
+                record(CUBE_EVENT_CHAT_MESSAGE, detail);
+            });
     }
 
     void GameEvents::record(CubeEvent event)
@@ -256,8 +319,8 @@ namespace exmod
         pushLine(kEventNames[index], detail);
 
         if (m_console[index])
-            cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: %s%s%s (#%u)", kEventNames[index],
-                detail ? " " : "", detail ? detail : "", m_counts[index]);
+            cubeLogf(g_api, CUBE_LOG_INFO, "example_mod: %s%s%s (#%u)", kEventNames[index], detail ? " " : "",
+                     detail ? detail : "", m_counts[index]);
     }
 
     void GameEvents::pushLine(const char* name, const char* detail)
@@ -300,20 +363,40 @@ namespace exmod
         m_count = 0;
     }
 
-    void GameEvents::setAreaChangeListening(bool listening)
+    bool GameEvents::isRecorded(int index)
     {
-        if (!m_listener || listening == m_areaChangeListening)
-            return;
-        if (listening)
-            m_listener->onAreaChange([this](int zoneX, int zoneY)
+        switch (index)
+        {
+            case CUBE_EVENT_STARTUP:
+            case CUBE_EVENT_SHUTDOWN:
+            case CUBE_EVENT_FRAME:
+            case CUBE_EVENT_DEVICE_RESET:
+            case CUBE_EVENT_WNDPROC:
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    void GameEvents::registerAreaChange(cube::EventListener& listener)
+    {
+        listener.onAreaChange(
+            [this](int zoneX, int zoneY)
             {
                 char detail[32];
                 std::snprintf(detail, sizeof(detail), "zone %d,%d", zoneX, zoneY);
                 record(CUBE_EVENT_AREA_CHANGE, detail);
             });
+    }
+
+    void GameEvents::setAreaChangeListening(bool listening)
+    {
+        if (!m_listener || listening == m_areaChangeListening)
+            return;
+        if (listening)
+            registerAreaChange(*m_listener);
         else
             m_listener->remove(cube::Event::AreaChange);
         m_areaChangeListening = listening;
     }
 }
-

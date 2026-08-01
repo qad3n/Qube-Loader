@@ -27,6 +27,11 @@ namespace exmod
         const char* nameAt(int index) const;
         bool& consoleEnabled(int index);
 
+        // STARTUP/SHUTDOWN/FRAME/DEVICE_RESET/WNDPROC are deliberately not recorded: the first two
+        // fire before this tab can exist, the rest fire every frame or message and would drown the
+        // ring log. Their counters can never move, so the UI greys them instead of showing a lie.
+        static bool isRecorded(int index);
+
         int logLineCount() const { return m_count; }
         const char* logLineAt(int oldestFirst) const;
         void clearLog();
@@ -37,6 +42,7 @@ namespace exmod
         void setAreaChangeListening(bool listening);
 
     private:
+        void registerAreaChange(cube::EventListener& listener);
         void pushLine(const char* name, const char* detail);
 
         cube::EventListener* m_listener = nullptr;

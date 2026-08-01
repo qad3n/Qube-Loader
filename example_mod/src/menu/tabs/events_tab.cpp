@@ -33,8 +33,8 @@ namespace exmod::menu
     void EventsTab::draw(const CubeEventArgs&)
     {
         ImGui::TextWrapped("mod.eventListener OBSERVES: the loader detects each edge and delivers "
-            "it here (read only; the game runs normally). To INTERCEPT a call instead, "
-            "see the Hooks tab (mod.eventHook).");
+                           "it here (read only; the game runs normally). To INTERCEPT a call instead, "
+                           "see the Hooks tab (mod.eventHook).");
 
         GameEvents& events = gameEvents();
 
@@ -59,7 +59,12 @@ namespace exmod::menu
             if (beginTable("ev_ct"))
             {
                 for (int i = 0; i < CUBE_EVENT_COUNT; ++i)
-                    row(events.nameAt(i), "%u", events.countAt(i));
+                {
+                    if (exmod::GameEvents::isRecorded(i))
+                        row(events.nameAt(i), "%u", events.countAt(i));
+                    else
+                        row(events.nameAt(i), "not tracked by this mod");
+                }
                 ImGui::EndTable();
             }
             ImGui::EndTabItem();
@@ -71,7 +76,9 @@ namespace exmod::menu
             for (int i = 0; i < CUBE_EVENT_COUNT; ++i)
             {
                 ImGui::PushID(i);
+                ImGui::BeginDisabled(!exmod::GameEvents::isRecorded(i));
                 ImGui::Checkbox(events.nameAt(i), &events.consoleEnabled(i));
+                ImGui::EndDisabled();
                 ImGui::PopID();
             }
             ImGui::EndTabItem();

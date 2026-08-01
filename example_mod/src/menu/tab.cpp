@@ -58,14 +58,38 @@ namespace exmod::menu
         ImGui::Separator();
     }
 
+    namespace
+    {
+        // Catalogs are fixed once the game is up, so whether one has names never changes. Without this
+        // every visible editor copied its whole catalog every frame, even with the combo closed.
+        bool catalogHasOptions(CubeCatalog catalog)
+        {
+            enum class Known : uint8_t
+            {
+                Unknown,
+                No,
+                Yes
+            };
+            static Known cache[CUBE_CATALOG_COUNT] = {};
+
+            const int index = static_cast<int>(catalog);
+            if (index < 0 || index >= CUBE_CATALOG_COUNT)
+                return false;
+            if (cache[index] == Known::Unknown)
+                cache[index] = cube::catalog::options(g_api, catalog).empty() ? Known::No : Known::Yes;
+
+            return cache[index] == Known::Yes;
+        }
+    }
+
     bool Tab::idEditor(const char* label, CubeCatalog catalog, int currentId, int& outId)
     {
         outId = currentId;
-        const std::vector<cube::NamedValue> options = cube::catalog::options(g_api, catalog);
-        if (options.empty())
+        if (!catalogHasOptions(catalog))
         {
             ImGui::SetNextItemWidth(sc(kInputWidth));
-            const bool changed = ImGui::DragInt(label, &outId, kIntDragSpeed, kIdMin, kIdMax, "%d", kClampFlags);
+            const bool changed =
+                ImGui::DragInt(label, &outId, kIntDragSpeed, kIdMin, kIdMax, "%d", kClampFlags);
             return changed;
         }
         char preview[kValueBufferSize];
@@ -75,6 +99,8 @@ namespace exmod::menu
         ImGui::SetNextItemWidth(sc(kComboWidth));
         if (ImGui::BeginCombo(label, preview))
         {
+            // Only while the dropdown is actually open.
+            const std::vector<cube::NamedValue> options = cube::catalog::options(g_api, catalog);
             for (const cube::NamedValue& option : options)
             {
                 char optionLabel[kValueBufferSize];

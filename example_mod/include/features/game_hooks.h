@@ -63,13 +63,21 @@ namespace exmod
         void removeRawFromInput();
         bool rawInstalled() const { return m_rawInstalled; }
 
-        // Hand written detour on the crit function (the float/odd arity escape hatch), borrowing the crit slot.
+        // Hand written detour on the crit function (the float/odd arity escape hatch), borrowing the crit
+        // slot.
         bool installRawDetour();
         void removeRawDetour();
         bool rawDetourInstalled() const { return m_rawDetourInstalled; }
+        // The crit slot has one owner; the UI must not offer a re-attach while it is lent out.
+        bool critBorrowed() const { return m_critOwner != CritOwner::None; }
 
     private:
-        enum class CritOwner { None, RawPool, RawDetour };
+        enum class CritOwner
+        {
+            None,
+            RawPool,
+            RawDetour
+        };
 
         void impactHandler(cube::HookCall& call);
         void critHandler(cube::HookCall& call);

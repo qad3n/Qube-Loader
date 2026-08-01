@@ -18,7 +18,7 @@ namespace exmod::menu
         constexpr float kAttackSpeedMin = 0.01f;
         constexpr float kAttackSpeedMax = 100.0f;
         constexpr float kCritMin = 0.0f;
-        constexpr float kCritMax = 100.0f;
+        constexpr float kCritMax = exmod::kFullResource; // the stat is 0..1, see Player::setStealth
         constexpr float kCooldownMin = 0.0f;
         constexpr float kCooldownMax = 100000.0f;
         constexpr int kBuffDurMin = 0;
@@ -89,8 +89,8 @@ namespace exmod::menu
                 player.setHitStun(hitStun);
             ImGui::SeparatorText("stun state");
             const cube::Stun stun = player.getStun();
-            ImGui::Text("stunned: %s   knocked down: %s", stun.isStunned() ? "yes" : "no",
-                        stun.isKnockedDown() ? "yes" : "no");
+            ImGui::Text("stunned: %s   knocked down: %s", yesNo(stun.isStunned()),
+                        yesNo(stun.isKnockedDown()));
             ImGui::Text("lock timer: %d (%.0f%%)", stun.getHitStun(), stun.getHitStunPercent());
             const cube::Vec3 kb = stun.getKnockback();
             ImGui::Text("knockback: %.1f, %.1f", kb.x, kb.y);
@@ -99,8 +99,8 @@ namespace exmod::menu
         }
         ImGui::SeparatorText("health history");
         const HealthHistory& history = healthHistory();
-        ImGui::PlotLines("##hp", history.data(), history.size(), history.head(), nullptr,
-                         FLT_MAX, FLT_MAX, ImVec2(0.0f, sc(kPlotHeight)));
+        ImGui::PlotLines("##hp", history.data(), history.size(), history.head(), nullptr, FLT_MAX, FLT_MAX,
+                         ImVec2(0.0f, sc(kPlotHeight)));
     }
 
     void CombatTab::drawBuffs()
@@ -146,7 +146,8 @@ namespace exmod::menu
 
         // Set a cooldown by ability id (mod.setAbilityCooldown), independent of the live list below.
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::DragInt("ability id##setcd", &m_cdAbilityId, kIntDragSpeed, kSmallCountMin, kSmallCountMax, "%d", kClampFlags);
+        ImGui::DragInt("ability id##setcd", &m_cdAbilityId, kIntDragSpeed, kSmallCountMin, kSmallCountMax,
+                       "%d", kClampFlags);
         ImGui::SetNextItemWidth(sc(kInputWidth));
         ImGui::DragInt("ms##setcd", &m_cdMs, kIntDragSpeed, kBuffDurMin, kBuffDurMax, "%d", kClampFlags);
         ImGui::SameLine();
@@ -177,8 +178,7 @@ namespace exmod::menu
 
                 ImGui::TableNextColumn();
                 int remaining = cd.getRemainingMs();
-                
-        if (dragInt("ms", remaining, kIntDragSpeed, kBuffDurMin, kBuffDurMax))
+                if (dragInt("ms", remaining, kIntDragSpeed, kBuffDurMin, kBuffDurMax))
                     cd.setRemaining(remaining);
 
                 ImGui::SameLine();

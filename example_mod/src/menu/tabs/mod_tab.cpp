@@ -38,11 +38,8 @@ namespace exmod::menu
         };
 
         constexpr CapabilityName kCapabilityNames[] = {
-            {CUBE_CAP_RAW_MEM, "RawMem"},
-            {CUBE_CAP_RAW_HOOKS, "RawHooks"},
-            {CUBE_CAP_WRITES, "Writes"},
-            {CUBE_CAP_OVERLAY, "Overlay"},
-            {CUBE_CAP_ASSETS, "Assets"},
+            {CUBE_CAP_RAW_MEM, "RawMem"},  {CUBE_CAP_RAW_HOOKS, "RawHooks"}, {CUBE_CAP_WRITES, "Writes"},
+            {CUBE_CAP_OVERLAY, "Overlay"}, {CUBE_CAP_ASSETS, "Assets"},
         };
 
         // Formats the declared capability bitset as "RawMem | Writes | ..." (or the unrestricted note)
@@ -54,12 +51,14 @@ namespace exmod::menu
                 std::snprintf(out, size, "(none declared - unrestricted)");
                 return;
             }
+            out[0] = '\0'; // a future CUBE_CAP_ bit matches no name below and would leave this unwritten
             int written = 0;
             for (const CapabilityName& entry : kCapabilityNames)
             {
                 if ((caps & entry.bit) == 0)
                     continue;
-                const int n = std::snprintf(out + written, size - written, "%s%s", written ? " | " : "", entry.name);
+                const int n =
+                    std::snprintf(out + written, size - written, "%s%s", written ? " | " : "", entry.name);
                 if (n < 0 || n >= size - written)
                     break;
                 written += n;
@@ -99,7 +98,7 @@ namespace exmod::menu
         {
             const char* modId = cube::mod().id();
             row("Mod id", "%s", (modId && modId[0]) ? modId : "(stem fallback)");
-            char capsText[96];
+            char capsText[kValueBufferSize];
             formatCapabilities(cube::mod().capabilities(), capsText, sizeof(capsText));
             row("Capabilities", "%s", capsText);
             row("Priority", "%d", cube::mod().priority());
@@ -115,7 +114,8 @@ namespace exmod::menu
         // exactly the pain point config solves (this slider used to reset every launch).
         ImGui::SeparatorText("ui scale (saved to config)");
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        if (ImGui::SliderFloat("scale", &m_uiScale, cube::Menu::kMinUiScale, cube::Menu::kMaxUiScale, "%.2fx", kClampFlags))
+        if (ImGui::SliderFloat("scale", &m_uiScale, cube::Menu::kMinUiScale, cube::Menu::kMaxUiScale, "%.2fx",
+                               kClampFlags))
         {
             cube::mod().menu().setUiScale(m_uiScale);
             cube::mod().config().setFloat(kUiScaleKey, m_uiScale);
@@ -134,9 +134,10 @@ namespace exmod::menu
         if (ImGui::Checkbox("Allow input and movement in menu", &passthrough))
             cube::mod().menu().setPassthrough(passthrough);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Keep moving and looking with the menu open. The menu becomes a display-only\n"
-                              "HUD and the game grabs the cursor, so widgets are not clickable in this mode.\n"
-                              "Press INSERT to close and return to the interactive menu.");
+            ImGui::SetTooltip(
+                "Keep moving and looking with the menu open. The menu becomes a display-only\n"
+                "HUD and the game grabs the cursor, so widgets are not clickable in this mode.\n"
+                "Press INSERT to close and return to the interactive menu.");
     }
 
     void ModTab::drawMemory()
@@ -214,7 +215,8 @@ namespace exmod::menu
 
         ImGui::TextDisabled("mod.config() - settings saved to config/<stem>.ini (all four types)");
         const int levelIndex = (m_log.levelIndex >= 0 && m_log.levelIndex < IM_ARRAYSIZE(kLogLevelNames))
-            ? m_log.levelIndex : CUBE_LOG_INFO;
+                                   ? m_log.levelIndex
+                                   : CUBE_LOG_INFO;
         if (beginTable("mod_cfg"))
         {
             row("ui_scale (float)", "%.2f  [Info tab]", config.getFloat(kUiScaleKey, 1.0f));
@@ -340,7 +342,8 @@ namespace exmod::menu
         {
             const bool ok = assets.set(m_assetKey, m_assetBytes, static_cast<int>(std::strlen(m_assetBytes)));
             emitLog(ok ? CUBE_LOG_INFO : CUBE_LOG_WARN,
-                    ok ? "example_mod: asset override set" : "example_mod: asset override failed (capability or build)");
+                    ok ? "example_mod: asset override set"
+                       : "example_mod: asset override failed (capability or build)");
         }
         ImGui::SameLine();
         ImGui::BeginDisabled(!assets.has(m_assetKey));
@@ -369,6 +372,7 @@ namespace exmod::menu
         {
             row("active locale", "%s", demo.locale().c_str());
             row("greeting", "%s", demo.translate("greeting").c_str());
+            row("farewell", "%s", demo.translate("farewell").c_str());
             row("menu_title", "%s", demo.translate("menu_title").c_str());
             row("missing_key", "%s", demo.translate("missing_key").c_str());
             ImGui::EndTable();

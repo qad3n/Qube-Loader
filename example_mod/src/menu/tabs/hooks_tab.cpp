@@ -13,7 +13,8 @@ namespace exmod::menu
         constexpr float kHookScaleMax = 100.0f;
         const char* const kCallConvNames[] = {"thiscall", "cdecl"};
 
-        // Detach and reattach checkbox for one built in hook (shows EventHook::remove(Hook) plus adding it back).
+        // Detach and reattach checkbox for one built in hook (shows EventHook::remove(Hook) plus adding it
+        // back).
         void attachToggle(GameHooks& hooks, cube::Hook hook, const char* id)
         {
             bool attached = hooks.builtinAttached(hook);
@@ -43,13 +44,14 @@ namespace exmod::menu
         ImGui::Checkbox("rescale incoming damage", &settings.scaleDamage);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::SliderFloat("x##dmg", &settings.damageScale, kHookScaleMin, kHookScaleMax, "%.2fx", kClampFlags);
+        ImGui::SliderFloat("x##dmg", &settings.damageScale, kHookScaleMin, kHookScaleMax, "%.2fx",
+                           kClampFlags);
         ImGui::Text("hits intercepted: %u", hooks.impactHits());
         ImGui::Separator();
 
         ImGui::TextDisabled("Crit roll: force or deny critical hits");
-        // The crit slot is borrowed by the rawDetour demo (Raw tab) while installed.
-        ImGui::BeginDisabled(hooks.rawDetourInstalled());
+        // The crit slot is borrowed by the raw pool / rawDetour demos (Raw tab) while installed.
+        ImGui::BeginDisabled(hooks.rawDetourInstalled() || hooks.critBorrowed());
         attachToggle(hooks, cube::Hook::CritRoll, "att_crit");
         ImGui::EndDisabled();
         ImGui::Checkbox("force crit", &settings.forceCrit);
@@ -63,7 +65,8 @@ namespace exmod::menu
         ImGui::Checkbox("rescale max HP", &settings.scaleMaxHp);
         ImGui::SameLine();
         ImGui::SetNextItemWidth(sc(kInputWidth));
-        ImGui::SliderFloat("x##maxhp", &settings.maxHpScale, kHookScaleMin, kHookScaleMax, "%.2fx", kClampFlags);
+        ImGui::SliderFloat("x##maxhp", &settings.maxHpScale, kHookScaleMin, kHookScaleMax, "%.2fx",
+                           kClampFlags);
         ImGui::Text("max HP computations intercepted: %u", hooks.maxHpCalls());
         ImGui::Separator();
 
