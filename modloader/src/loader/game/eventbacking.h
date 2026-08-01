@@ -28,6 +28,10 @@ namespace modloader::eventbacking
     bool acquire(Backing backing);
     void release(Backing backing);
 
+    // Session long hold taken at most once per backing, for a pull API whose caller has no "done"
+    // edge to release on. Released by releaseAll() at teardown.
+    void acquireOnce(Backing backing);
+
     // Retain/release everything `event` needs. Called from the event bus on the per event subscriber
     // count edges; an event with no backing is a no op.
     void retainEvent(CubeEvent event);
