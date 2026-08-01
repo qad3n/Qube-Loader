@@ -8,7 +8,8 @@ namespace modloader::api
     {
         int32_t CUBE_CALL apiCompanionGet(const CubeApi* api, CubeCompanion* out)
         {
-            return bridgeGet<CubeCompanion>(api, out, &game::readCompanion, "pet.get", "none", &CubeCompanion::address);
+            return bridgeGet<CubeCompanion>(api, out, &game::readCompanion, "companion.get", "none",
+                                            &CubeCompanion::address);
         }
     }
 

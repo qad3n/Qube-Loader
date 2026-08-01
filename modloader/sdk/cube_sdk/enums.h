@@ -3,8 +3,6 @@
 
 #include "cube_sdk/core.h"
 
-#define CUBE_MOD_API CUBE_EXTERN_C __declspec(dllexport)
-
 // Which process this mod instance is running in; check it to branch behavior.
 // Client only data (camera/display/overlay) is unavailable on the server.
 typedef enum CubeEnvironment
@@ -17,16 +15,16 @@ typedef enum CubeEnvironment
 // loader gates a mod only once it declares a non zero set). Enforced at call time: the bridge denies
 // (logs + returns failure) any call whose capability the mod did not declare (see bridge.h
 // capabilityGate). Overlay gates the camera/display/audio/ui reads plus input capture; Writes gates
-// every game state setter, plus audio.stopMusic/setMusicVolume and a built in hook handler that tries
-// to cancel or override a result. Sound playback (audio.playSound) is intentionally ungated.
+// every game state setter, all of audio (playSound/playSoundAt/stopMusic/setMusicVolume), and a built
+// in hook handler that tries to cancel, override a result, or change the call's arguments.
 typedef enum CubeModCapability
 {
     CUBE_CAP_NONE = 0,
-    CUBE_CAP_RAW_MEM = 1 << 0,   // mem.read/readable/write over arbitrary addresses
+    CUBE_CAP_RAW_MEM = 1 << 0, // mem.read/readable/write over arbitrary addresses
     CUBE_CAP_RAW_HOOKS = 1 << 1, // hooks.onRaw / rawDetour on user addresses
-    CUBE_CAP_WRITES = 1 << 2,    // guarded game state writes (setStat/setField)
-    CUBE_CAP_OVERLAY = 1 << 3,   // render/input surfaces (camera/display/ui/input)
-    CUBE_CAP_ASSETS = 1 << 4     // asset overrides (assets.registerAsset)
+    CUBE_CAP_WRITES = 1 << 2, // guarded game state writes (setStat/setField)
+    CUBE_CAP_OVERLAY = 1 << 3, // render/input surfaces (camera/display/ui/input)
+    CUBE_CAP_ASSETS = 1 << 4 // asset overrides (assets.registerAsset)
 } CubeModCapability;
 
 typedef enum CubeLogLevel
@@ -75,16 +73,18 @@ typedef enum CubeEvent
                                // Post mitigation HP delta the loader sees by diffing health, NOT the game's
                                // raw damage number; cause is not attributed. For the attacker + the game's
                                // damage value (and to cancel/rescale) use eventHook().onImpact.
-    CUBE_EVENT_CREATURE_DAMAGED, // ANY nearby creature lost health this frame (NOT necessarily player caused).
-                           // subject = victim, amount = damage (HP lost, float), param = victim category byte,
-                           // param2 = victim remaining health (int). Fires once per damaged creature; the
-                           // attacker is NOT attributed (a monster hitting a monster fires this too). For
-                           // the player's own confirmed, attributed hits use eventHook().onImpact instead.
+    CUBE_EVENT_CREATURE_DAMAGED, // ANY nearby creature lost health this frame (NOT necessarily player
+                                 // caused). subject = victim, amount = damage (HP lost, float), param =
+                                 // victim category byte, param2 = victim remaining health (int). Fires once
+                                 // per damaged creature; the attacker is NOT attributed (a monster hitting a
+                                 // monster fires this too). For the player's own confirmed, attributed hits
+                                 // use eventHook().onImpact instead.
     CUBE_EVENT_PLAYER_CRIT, // local player landed a critical hit (no extra payload). Detour backed: the
                             // crit roll detour is installed only while at least one mod subscribes to
                             // this event or hooks CUBE_HOOK_CRIT_ROLL.
     CUBE_EVENT_MENU_OPEN, // a tracked UI menu opened (polled edge). param = CubeUiMenuMask of open panels
-    CUBE_EVENT_MENU_CLOSE, // all tracked UI menus closed (polled edge). param = CubeUiMenuMask (0 when all closed)
+    CUBE_EVENT_MENU_CLOSE, // all tracked UI menus closed (polled edge). param = CubeUiMenuMask (0 when all
+                           // closed)
     CUBE_EVENT_PLAYER_LEVELUP, // local player's level increased. subject = player, param = new level,
                                // param2 = previous level
     CUBE_EVENT_PLAYER_DEATH, // local player's health reached zero (polled edge). subject = player
@@ -96,10 +96,11 @@ typedef enum CubeEvent
     CUBE_EVENT_TARGET_CHANGED, // selection/interact target changed. subject = new creature (0 if cleared),
                                // param = previous target address
     CUBE_EVENT_CREATURE_SPAWN, // a creature was created / entered range. subject = creature,
-                             // param = its category byte, param2 = its type/species id, amount = its health
+                               // param = its category byte, param2 = its type/species id, amount = its health
     CUBE_EVENT_CREATURE_DEATH, // a tracked creature's health reached zero (killed). subject = creature,
-                             // param = its category byte, param2 = its type/species id
-    CUBE_EVENT_COINS_CHANGED, // coin total changed. param = new coin total, param2 = delta (new coin total minus the old)
+                               // param = its category byte, param2 = its type/species id
+    CUBE_EVENT_COINS_CHANGED, // coin total changed. param = new coin total, param2 = delta (new coin total
+                              // minus the old)
     CUBE_EVENT_DAY_NIGHT, // day/night flipped. param = 1 day / 0 night, param2 = in game hour [0,23]
     CUBE_EVENT_BUFF_GAINED, // a status effect was applied. param = effect type id, param2 = remaining
                             // duration ms, amount = magnitude (looked up by type; first match if duplicated)
@@ -109,28 +110,34 @@ typedef enum CubeEvent
     CUBE_EVENT_SKILL_RANK_CHANGED, // a skill rank changed. param = skill index, param2 = new rank
     CUBE_EVENT_AIM_TARGET_CHANGED, // crosshair hover target changed; args.subject = creature (0 if none)
     CUBE_EVENT_CREATURE_DESPAWN, // a tracked creature was destroyed / left range. subject = its last address,
-                               // param = its last known category byte, param2 = its last known type id
-    CUBE_EVENT_COMPANION_SUMMONED, // the local player's pet was created / changed; args.subject = pet creature
+                                 // param = its last known category byte, param2 = its last known type id
+    CUBE_EVENT_COMPANION_SUMMONED, // the local player's pet was created / changed; args.subject = pet
+                                   // creature
     CUBE_EVENT_COMPANION_DIED, // the local player's pet's health reached zero; args.subject = pet creature
-    CUBE_EVENT_COMPANION_DISMISSED, // the local player's pet was destroyed / dismissed; args.subject = last address
+    CUBE_EVENT_COMPANION_DISMISSED, // the local player's pet was destroyed / dismissed; args.subject = last
+                                    // address
     CUBE_EVENT_PLAYER_STUNNED, // the LOCAL player's stun lock became active from taking damage (cannot act);
-                               // args.subject = player, args.param = stun lock timer. The shared lock the game
-                               // also uses for a dodge roll is filtered out (that raises PLAYER_ROLL instead),
-                               // so this fires on a genuine hit / hard fall. For creatures use CREATURE_STUNNED.
-    CUBE_EVENT_PLAYER_KNOCKED_DOWN, // the LOCAL player entered the downed state (on ground, stars). subject = player
+                               // args.subject = player, args.param = stun lock timer. The shared lock the
+                               // game also uses for a dodge roll is filtered out (that raises PLAYER_ROLL
+                               // instead), so this fires on a genuine hit / hard fall. For creatures use
+                               // CREATURE_STUNNED.
+    CUBE_EVENT_PLAYER_KNOCKED_DOWN, // the LOCAL player entered the downed state (on ground, stars). subject =
+                                    // player
     CUBE_EVENT_PLAYER_RECOVERED, // the LOCAL player's stun lock ended (can act again). subject = player.
-                               // Pairs with PLAYER_STUNNED, so it likewise follows a hard fall/collision, not
-                               // just an enemy stun.
-    CUBE_EVENT_CREATURE_STUNNED, // a nearby creature became stunned. subject = creature, param = category byte, param2 = type id
-    CUBE_EVENT_CREATURE_KNOCKED_DOWN, // a nearby creature was knocked down. subject = creature, param = category, param2 = type id
+                                 // Pairs with PLAYER_STUNNED, so it likewise follows a hard fall/collision,
+                                 // not just an enemy stun.
+    CUBE_EVENT_CREATURE_STUNNED, // a nearby creature became stunned. subject = creature, param = category
+                                 // byte, param2 = type id
+    CUBE_EVENT_CREATURE_KNOCKED_DOWN, // a nearby creature was knocked down. subject = creature, param =
+                                      // category, param2 = type id
     CUBE_EVENT_COMPANION_STUNNED, // the local player's pet became stunned; args.subject = pet creature
     CUBE_EVENT_COMPANION_KNOCKED_DOWN, // the local player's pet was knocked down; args.subject = pet creature
-    CUBE_EVENT_CREATURE_SELECTED, // the player pressed the R / use key (GameController::updateSelectedEntity);
-                         // args.subject = selected target creature (0 for a world object),
-                         // args.param = CubeSelectionKind, args.param2 = raw target discriminator byte
-                         // (CubeSelection.typeByte)
+    CUBE_EVENT_CREATURE_SELECTED, // the player pressed the R / use key
+                                  // (GameController::updateSelectedEntity); args.subject = selected target
+                                  // creature (0 for a world object), args.param = CubeSelectionKind,
+                                  // args.param2 = raw target discriminator byte (CubeSelection.typeByte)
     CUBE_EVENT_CREATURE_RECOVERED, // a nearby creature's stun lock ended (complements CREATURE_STUNNED).
-                                 // subject = creature, param = category byte, param2 = type id
+                                   // subject = creature, param = category byte, param2 = type id
     CUBE_EVENT_COMPANION_RECOVERED, // the local player's pet's stun lock ended; args.subject = pet creature
     CUBE_EVENT_ABILITY_USED, // the local player used a hotbar ability (keys 1 to 5). subject = player,
                              // param = ability id (matches CUBE_CATALOG_ABILITY), param2 = cooldown ms set.
@@ -177,7 +184,8 @@ typedef enum CubeAction
     CUBE_ACTION_DEAD
 } CubeAction;
 
-// Editable local player scalar stats (see player.setStat); value is a double so one entry point covers float and int fields.
+// Editable local player scalar stats (see player.setStat); value is a double so one entry point covers float
+// and int fields.
 typedef enum CubePlayerStat
 {
     CUBE_STAT_HEALTH = 0,
@@ -293,5 +301,44 @@ typedef enum CubeDisplayField
     CUBE_DISPLAY_MIN_TIMESTEP
 } CubeDisplayField;
 
-struct CubeApi;
+// Where the game is (resolved by the loader from the local player + GC).
+typedef enum CubeGameState
+{
+    CUBE_STATE_UNKNOWN = 0,
+    CUBE_STATE_TITLE, // no world / at the menu
+    CUBE_STATE_LOADING,
+    CUBE_STATE_IN_WORLD
+} CubeGameState;
+typedef enum CubeNetworkMode
+{
+    CUBE_NET_UNKNOWN = 0,
+    CUBE_NET_SINGLEPLAYER,
+    CUBE_NET_MULTIPLAYER
+} CubeNetworkMode;
+// Human readable name catalogs, so a mod can render/edit opaque game ids (item
+// type, material, terrain, buff, ...) as names + dropdowns instead of raw numbers.
+typedef enum CubeCatalog
+{
+    CUBE_CATALOG_ITEM_TYPE = 0,
+    CUBE_CATALOG_WEAPON_SUBTYPE,
+    CUBE_CATALOG_MATERIAL,
+    CUBE_CATALOG_ITEM_MODIFIER,
+    CUBE_CATALOG_TERRAIN,
+    CUBE_CATALOG_BUFF_TYPE,
+    CUBE_CATALOG_ACTION,
+    CUBE_CATALOG_STRUCTURE_TYPE,
+    CUBE_CATALOG_CREATURE_CATEGORY,
+    CUBE_CATALOG_CLASS,
+    CUBE_CATALOG_SPECIES,
+    CUBE_CATALOG_SKILL, // indexed by skill array slot (0..CUBE_SKILL_COUNT-1)
+    CUBE_CATALOG_ABILITY, // ability id to name (matches CubeAbilityCooldown.abilityId)
+    CUBE_CATALOG_CONSUMABLE_SUBTYPE, // item subtype when type == Consumable (1): potions/edibles
+    CUBE_CATALOG_FOOD_SUBTYPE, // item subtype when type == Food (20); only named overrides (default = Bait)
+    CUBE_CATALOG_SPECIAL_SUBTYPE, // item subtype when type == Special (11): crafting materials / parts
+    CUBE_CATALOG_ACCESSORY_SUBTYPE, // item subtype when type == Accessory (21): medical / trinkets
+    CUBE_CATALOG_VEHICLE_SUBTYPE, // item subtype when type == Vehicle (23)
+    CUBE_CATALOG_SOUND, // built in sound effect id to wav name (for audio.playSound)
+    CUBE_CATALOG_COUNT
+} CubeCatalog;
 
+struct CubeApi;

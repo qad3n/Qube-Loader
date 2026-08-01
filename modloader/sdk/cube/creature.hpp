@@ -11,7 +11,9 @@ namespace cube
     {
     public:
         Creature() = default;
-        explicit Creature(const CubeCreature& data, const CubeApi* api = nullptr) : m_data(data), m_api(api) {}
+        explicit Creature(const CubeCreature& data, const CubeApi* api = nullptr) : m_data(data), m_api(api)
+        {
+        }
 
         const char* getName() const { return m_data.hasName ? m_data.name : ""; }
         int getCategory() const { return m_data.category; }
@@ -33,8 +35,12 @@ namespace cube
         bool isStaggered() const { return m_data.hitStun > 0; }
         bool isKnockedDown() const { return m_data.knockedDown != 0; }
         // Consolidated stun snapshot for this creature, plus a one call break free.
-        Stun getStun() const { return Stun(m_api, m_data.address); }
-        bool clearStun() const { return m_api && m_data.address && m_api->status.clearStun(m_api, m_data.address) != 0; }
+        // Address 0 means "local player" to the status API, so an unresolved snapshot must not ask.
+        Stun getStun() const { return m_data.address ? Stun(m_api, m_data.address) : Stun(); }
+        bool clearStun() const
+        {
+            return m_api && m_data.address && m_api->status.clearStun(m_api, m_data.address) != 0;
+        }
         unsigned getOwnerAddress() const { return m_data.ownerAddress; }
         bool isAlive() const { return getState() == CreatureState::Alive; }
         bool isHostile() const { return m_data.hostile != 0; } // game's foe rule: kind==monster OR aggroed
@@ -42,22 +48,38 @@ namespace cube
         unsigned getAddress() const { return m_data.address; }
         const CubeCreature& raw() const { return m_data; }
         // True if this is a tameable passive critter (feed it a Food item to tame it as a pet).
-        bool isTameable() const { return m_api && m_data.address && m_api->creatures.isTameable(m_api, m_data.address) != 0; }
+        bool isTameable() const
+        {
+            return m_api && m_data.address && m_api->creatures.isTameable(m_api, m_data.address) != 0;
+        }
         // This creature's inventory / stock (e.g. a shopkeeper's wares). Empty if it carries none.
         std::vector<Item> stock() const;
         // This creature's active status effects (the status list is generic per creature).
         std::vector<class Buff> buffs() const;
         // Live edits to this creature (validated as a Creature by the loader).
-        bool set(PlayerStat stat, double value) const { return m_api && m_data.address && m_api->creatures.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0; }
+        bool set(PlayerStat stat, double value) const
+        {
+            return m_api && m_data.address &&
+                   m_api->creatures.setStat(m_api, m_data.address, static_cast<int32_t>(stat), value) != 0;
+        }
         bool setHealth(float health) const { return set(PlayerStat::Health, health); }
         bool setLevel(int level) const { return set(PlayerStat::Level, level); }
         bool setType(int type) const { return set(PlayerStat::Type, type); }
         bool setFacing(float radians) const { return set(PlayerStat::Facing, radians); }
-        bool setVelocity(float x, float y, float z) const { return set(PlayerStat::VelX, x) && set(PlayerStat::VelY, y) && set(PlayerStat::VelZ, z); }
+        bool setVelocity(float x, float y, float z) const
+        {
+            return set(PlayerStat::VelX, x) && set(PlayerStat::VelY, y) && set(PlayerStat::VelZ, z);
+        }
         bool setCategory(int category) const { return set(PlayerStat::Category, category); }
         bool setRank(int rank) const { return set(PlayerStat::Rank, rank); }
-        bool setName(const char* name) const { return m_api && m_data.address && m_api->creatures.setName(m_api, m_data.address, name) != 0; }
-        bool teleport(float x, float y, float z) const { return m_api && m_data.address && m_api->creatures.teleport(m_api, m_data.address, x, y, z) != 0; }
+        bool setName(const char* name) const
+        {
+            return m_api && m_data.address && m_api->creatures.setName(m_api, m_data.address, name) != 0;
+        }
+        bool teleport(float x, float y, float z) const
+        {
+            return m_api && m_data.address && m_api->creatures.teleport(m_api, m_data.address, x, y, z) != 0;
+        }
         bool teleport(const Vec3& to) const { return teleport(to.x, to.y, to.z); }
 
     private:
@@ -81,7 +103,6 @@ namespace cube
         if (!api)
             return false;
         CubeCreature data = {};
-        data.structSize = sizeof(CubeCreature);
         if (api->creatures.target(api, &data) == 0)
             return false;
         out = Creature(data, api);
@@ -94,7 +115,6 @@ namespace cube
         if (!api)
             return false;
         CubeCreature data = {};
-        data.structSize = sizeof(CubeCreature);
         if (api->creatures.aimTarget(api, &data) == 0)
             return false;
         out = Creature(data, api);
@@ -108,16 +128,21 @@ namespace cube
 
     inline std::vector<Item> inventoryOf(const CubeApi* api)
     {
-        return detail::fillList<CubeItem, Item, CUBE_INVENTORY_MAX>(api, api ? api->items.inventory : nullptr);
+        return detail::fillList<CubeItem, Item, CUBE_INVENTORY_MAX>(api,
+                                                                    api ? api->items.inventory : nullptr);
     }
 
     // The inventory / stock of any creature by address (e.g. a merchant's wares).
     inline std::vector<Item> stockOf(const CubeApi* api, unsigned creatureAddress)
     {
-        return detail::fillListAt<CubeItem, Item, CUBE_INVENTORY_MAX>(api, api ? api->items.inventoryOf : nullptr, creatureAddress);
+        return detail::fillListAt<CubeItem, Item, CUBE_INVENTORY_MAX>(
+            api, api ? api->items.inventoryOf : nullptr, creatureAddress);
     }
 
-    inline std::vector<Item> Creature::stock() const { return stockOf(m_api, m_data.address); }
+    inline std::vector<Item> Creature::stock() const
+    {
+        return stockOf(m_api, m_data.address);
+    }
 
     // Resolve any (type, subtype) to its display name via the full item directory.
     inline const char* itemName(const CubeApi* api, int type, int subtype)
@@ -146,13 +171,19 @@ namespace cube
     {
     public:
         AbilityCooldown() = default;
-        explicit AbilityCooldown(const CubeAbilityCooldown& data, const CubeApi* api = nullptr) : m_data(data), m_api(api) {}
+        explicit AbilityCooldown(const CubeAbilityCooldown& data, const CubeApi* api = nullptr)
+            : m_data(data), m_api(api)
+        {
+        }
 
         int getAbilityId() const { return m_data.abilityId; }
         int getRemainingMs() const { return m_data.remainingMs; }
         bool isReady() const { return m_data.remainingMs <= 0; }
         const CubeAbilityCooldown& raw() const { return m_data; }
-        bool setRemaining(int ms) const { return m_api && m_api->skills.setCooldown(m_api, m_data.abilityId, ms) != 0; }
+        bool setRemaining(int ms) const
+        {
+            return m_api && m_api->skills.setCooldown(m_api, m_data.abilityId, ms) != 0;
+        }
         bool ready() const { return setRemaining(0); }
 
     private:
@@ -162,7 +193,8 @@ namespace cube
 
     inline std::vector<AbilityCooldown> abilityCooldownsOf(const CubeApi* api)
     {
-        return detail::fillList<CubeAbilityCooldown, AbilityCooldown, CUBE_ABILITIES_MAX>(api, api ? api->skills.cooldowns : nullptr);
+        return detail::fillList<CubeAbilityCooldown, AbilityCooldown, CUBE_ABILITIES_MAX>(
+            api, api ? api->skills.cooldowns : nullptr);
     }
 
     // An active status effect / buff / debuff on the local player.
@@ -177,7 +209,11 @@ namespace cube
         int getRemainingMs() const { return m_data.remainingMs; }
         const CubeBuff& raw() const { return m_data; }
         // Live edits to this effect node.
-        bool set(BuffField field, double value) const { return m_api && m_data.address && m_api->status.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0; }
+        bool set(BuffField field, double value) const
+        {
+            return m_api && m_data.address &&
+                   m_api->status.setField(m_api, m_data.address, static_cast<int32_t>(field), value) != 0;
+        }
         bool setType(int type) const { return set(BuffField::Type, type); }
         bool setMagnitude(float magnitude) const { return set(BuffField::Magnitude, magnitude); }
         bool setRemainingMs(int ms) const { return set(BuffField::Duration, ms); }
@@ -195,6 +231,7 @@ namespace cube
     // An creature's own status effects, read through the generic per creature status list.
     inline std::vector<Buff> Creature::buffs() const
     {
-        return detail::fillListAt<CubeBuff, Buff, CUBE_BUFFS_MAX>(m_api, m_api ? m_api->creatures.effects : nullptr, m_data.address);
+        return detail::fillListAt<CubeBuff, Buff, CUBE_BUFFS_MAX>(
+            m_api, m_api ? m_api->creatures.effects : nullptr, m_data.address);
     }
 }

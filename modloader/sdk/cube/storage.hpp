@@ -24,21 +24,12 @@ namespace cube
                 m_api->storage.setScope(m_api, scope);
         }
 
-        bool has(const char* key) const
-        {
-            return m_api && m_api->storage.has(m_api, key) != 0;
-        }
+        bool has(const char* key) const { return m_api && m_api->storage.has(m_api, key) != 0; }
 
-        bool remove(const char* key) const
-        {
-            return m_api && m_api->storage.remove(m_api, key) != 0;
-        }
+        bool remove(const char* key) const { return m_api && m_api->storage.remove(m_api, key) != 0; }
 
         // Stored blob size in bytes (0 if absent), without reading it.
-        int size(const char* key) const
-        {
-            return m_api ? m_api->storage.get(m_api, key, nullptr, 0) : 0;
-        }
+        int size(const char* key) const { return m_api ? m_api->storage.get(m_api, key, nullptr, 0) : 0; }
 
         // The whole blob at key (empty if absent).
         std::vector<uint8_t> get(const char* key) const
@@ -71,7 +62,8 @@ namespace cube
         T getValue(const char* key, T fallback = T{}) const
         {
             T value = fallback;
-            if (m_api && m_api->storage.get(m_api, key, &value, static_cast<int>(sizeof(T))) == static_cast<int>(sizeof(T)))
+            if (m_api && m_api->storage.get(m_api, key, &value, static_cast<int>(sizeof(T))) ==
+                             static_cast<int>(sizeof(T)))
                 return value;
             return fallback;
         }
@@ -90,5 +82,4 @@ namespace cube
     private:
         const CubeApi* m_api;
     };
-
 }

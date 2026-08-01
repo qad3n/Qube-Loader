@@ -4,11 +4,6 @@
 
 #include "cube_sdk.h"
 
-#include <cstdarg>
-#include <cstdio>
-#include <functional>
-#include <map>
-#include <utility>
 #include <vector>
 
 namespace cube
@@ -29,7 +24,8 @@ namespace cube
         // Fills a fixed max C buffer via one list() call and wraps each element; shared by the
         // equipmentOf / inventoryOf / buffsOf / abilityCooldownsOf / structuresOf collection helpers.
         template <typename CObj, typename Wrapper, size_t Max>
-        inline std::vector<Wrapper> fillList(const CubeApi* api, int32_t (CUBE_CALL* list)(const CubeApi*, CObj*, int32_t))
+        inline std::vector<Wrapper> fillList(const CubeApi* api,
+                                             int32_t(CUBE_CALL* list)(const CubeApi*, CObj*, int32_t))
         {
             if (!api || !list)
                 return std::vector<Wrapper>();
@@ -39,12 +35,15 @@ namespace cube
 
         // Same, for a list keyed by a creature address (stockOf / an creature's own buffs).
         template <typename CObj, typename Wrapper, size_t Max>
-        inline std::vector<Wrapper> fillListAt(const CubeApi* api, int32_t (CUBE_CALL* list)(const CubeApi*, uint32_t, CObj*, int32_t), uint32_t address)
+        inline std::vector<Wrapper>
+        fillListAt(const CubeApi* api, int32_t(CUBE_CALL* list)(const CubeApi*, uint32_t, CObj*, int32_t),
+                   uint32_t address)
         {
             if (!api || !list || !address)
                 return std::vector<Wrapper>();
             CObj buffer[Max];
-            return wrapList<CObj, Wrapper>(api, buffer, list(api, address, buffer, static_cast<int32_t>(Max)));
+            return wrapList<CObj, Wrapper>(api, buffer,
+                                           list(api, address, buffer, static_cast<int32_t>(Max)));
         }
     }
 
@@ -115,12 +114,18 @@ namespace cube
     {
         switch (kind)
         {
-            case SelectionKind::Creature: return "creature";
-            case SelectionKind::Container: return "container";
-            case SelectionKind::Dialog: return "dialog";
-            case SelectionKind::Widget: return "widget";
-            case SelectionKind::World: return "world";
-            default: return "none";
+            case SelectionKind::Creature:
+                return "creature";
+            case SelectionKind::Container:
+                return "container";
+            case SelectionKind::Dialog:
+                return "dialog";
+            case SelectionKind::Widget:
+                return "widget";
+            case SelectionKind::World:
+                return "world";
+            default:
+                return "none";
         }
     }
 
@@ -145,7 +150,8 @@ namespace cube
         Impact = CUBE_HOOK_IMPACT, // a melee hit lands; cancel() to negate it, setDamage() to rescale
         CritRoll = CUBE_HOOK_CRIT_ROLL, // a crit roll; setReturnInt(1/0) to force/deny it
         AttackDamage = CUBE_HOOK_ATTACK_DAMAGE, // outgoing attack damage computed; setReturnFloat to rescale
-        MaxHealth = CUBE_HOOK_ATTACK_DAMAGE // deprecated alias of AttackDamage; the address never computed max HP
+        MaxHealth =
+            CUBE_HOOK_ATTACK_DAMAGE // deprecated alias of AttackDamage; the address never computed max HP
     };
 
     // Calling convention of a raw hook target, so the loader picks the matching capture stub.
@@ -191,13 +197,20 @@ namespace cube
     {
         switch (m)
         {
-            case Movement::Grounded: return "grounded";
-            case Movement::Airborne: return "airborne";
-            case Movement::Climbing: return "climbing";
-            case Movement::Swimming: return "swimming";
-            case Movement::Gliding: return "gliding";
-            case Movement::Sneaking: return "sneaking";
-            default: return "unknown";
+            case Movement::Grounded:
+                return "grounded";
+            case Movement::Airborne:
+                return "airborne";
+            case Movement::Climbing:
+                return "climbing";
+            case Movement::Swimming:
+                return "swimming";
+            case Movement::Gliding:
+                return "gliding";
+            case Movement::Sneaking:
+                return "sneaking";
+            default:
+                return "unknown";
         }
     }
 
@@ -205,13 +218,20 @@ namespace cube
     {
         switch (a)
         {
-            case Action::Idle: return "idle";
-            case Action::Attacking: return "attacking";
-            case Action::Casting: return "casting";
-            case Action::Blocking: return "blocking";
-            case Action::Rolling: return "rolling";
-            case Action::Dead: return "dead";
-            default: return "unknown";
+            case Action::Idle:
+                return "idle";
+            case Action::Attacking:
+                return "attacking";
+            case Action::Casting:
+                return "casting";
+            case Action::Blocking:
+                return "blocking";
+            case Action::Rolling:
+                return "rolling";
+            case Action::Dead:
+                return "dead";
+            default:
+                return "unknown";
         }
     }
 
@@ -264,13 +284,20 @@ namespace cube
     {
         switch (r)
         {
-            case Relation::Self: return "self";
-            case Relation::OwnCompanion: return "companion";
-            case Relation::Player: return "player";
-            case Relation::Npc: return "npc";
-            case Relation::Neutral: return "neutral";
-            case Relation::Hostile: return "hostile";
-            default: return "unknown";
+            case Relation::Self:
+                return "self";
+            case Relation::OwnCompanion:
+                return "companion";
+            case Relation::Player:
+                return "player";
+            case Relation::Npc:
+                return "npc";
+            case Relation::Neutral:
+                return "neutral";
+            case Relation::Hostile:
+                return "hostile";
+            default:
+                return "unknown";
         }
     }
 
@@ -278,9 +305,12 @@ namespace cube
     {
         switch (state)
         {
-            case CreatureState::Alive: return "alive";
-            case CreatureState::Dead: return "dead";
-            default: return "unknown";
+            case CreatureState::Alive:
+                return "alive";
+            case CreatureState::Dead:
+                return "dead";
+            default:
+                return "unknown";
         }
     }
 
@@ -405,7 +435,8 @@ namespace cube
 
         inline const char* name(const CubeApi* api, CubeCatalog which, int id)
         {
-            return (api && api->catalog.name) ? api->catalog.name(api, static_cast<int32_t>(which), id) : nullptr;
+            return (api && api->catalog.name) ? api->catalog.name(api, static_cast<int32_t>(which), id)
+                                              : nullptr;
         }
 
         inline const char* nameOr(const CubeApi* api, CubeCatalog which, int id, const char* fallback)
@@ -420,7 +451,8 @@ namespace cube
             if (!api || !api->catalog.list)
                 return result;
             CubeNamedValue buffer[CUBE_CATALOG_MAX];
-            const int32_t count = api->catalog.list(api, static_cast<int32_t>(which), buffer, CUBE_CATALOG_MAX);
+            const int32_t count =
+                api->catalog.list(api, static_cast<int32_t>(which), buffer, CUBE_CATALOG_MAX);
             result.reserve(static_cast<size_t>(count));
             for (int32_t i = 0; i < count; ++i)
                 result.push_back(NamedValue{buffer[i].id, buffer[i].name});

@@ -44,8 +44,9 @@
 #define CUBE_CALL __cdecl
 
 #ifdef __cplusplus
-#define CUBE_EXTERN_C extern "C"
+    #define CUBE_EXTERN_C extern "C"
 #else
-#define CUBE_EXTERN_C
+    #define CUBE_EXTERN_C
 #endif
 
+#define CUBE_MOD_API CUBE_EXTERN_C __declspec(dllexport)

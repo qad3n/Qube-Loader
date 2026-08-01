@@ -194,7 +194,8 @@ typedef struct CubeItem
     int32_t level; // item level; also the heal/nourishment amount for consumables/food
     uint32_t seed; // stat roll variance seed
     int32_t upgradeCount; // spirit / upgrade count
-    char name[CUBE_ITEM_NAME_MAX]; // resolved item name (type,subtype to registry name), computed by the loader
+    char name[CUBE_ITEM_NAME_MAX]; // resolved item name (type,subtype to registry name), computed by the
+                                   // loader
     char typeName[CUBE_ITEM_NAME_MAX]; // coarse category name, computed by the loader
 } CubeItem;
 
@@ -283,8 +284,8 @@ typedef struct CubeDisplay
     // NOTE: vsync / gamma / gui scale / target fps are ABSENT in this build.
 } CubeDisplay;
 
-// Live audio state (client only, read only). Edit volume via display settings (CUBE_DISPLAY_MUSIC_VOLUME / SOUND_VOLUME);
-// no stored track name, and play/stop are game calls not exposed here.
+// Live audio state (client only, read only). Edit volume via display settings (CUBE_DISPLAY_MUSIC_VOLUME /
+// SOUND_VOLUME); no stored track name, and play/stop are game calls not exposed here.
 typedef struct CubeAudio
 {
     uint32_t structSize;
@@ -341,3 +342,44 @@ typedef struct CubeAppearance
     int32_t valid; // 1 if the appearance record resolved
 } CubeAppearance;
 
+// One live ability cooldown timer (only abilities used this session are present). Base durations are code
+// formulas (not stored); only the live remainingMs is editable. `abilityId` matches CUBE_CATALOG_ABILITY.
+typedef struct CubeAbilityCooldown
+{
+    uint32_t structSize;
+    uint32_t address; // live map node base pointer (for raw edits)
+    int32_t abilityId;
+    int32_t remainingMs;
+} CubeAbilityCooldown;
+
+typedef struct CubeSession
+{
+    uint32_t structSize;
+    uint32_t address; // live GameController base pointer (0 if unavailable; for raw use)
+    int32_t gameState; // CubeGameState
+    int32_t networkMode; // CubeNetworkMode (valid if hasNetwork)
+    int32_t connected; // 1 if networking is active (valid if hasNetwork)
+    int32_t playerCount; // players in the session (>=1 in world)
+    int32_t hasNetwork; // 1 if the network fields were resolved
+} CubeSession;
+
+// Which HUD menus are open, so a mod knows not to grab input. `anyOpen` is the
+// consolidated "the player is in a menu" flag.
+typedef struct CubeUi
+{
+    uint32_t structSize;
+    uint32_t address; // live GameController base pointer (0 if unavailable; for raw use)
+    int32_t inventoryOpen;
+    int32_t characterOpen;
+    int32_t mapOpen;
+    int32_t objectiveOpen;
+    int32_t anyOpen;
+    int32_t valid;
+} CubeUi;
+
+// One (id, name) entry of a catalog. `name` is a static string owned by the loader.
+typedef struct CubeNamedValue
+{
+    int32_t id;
+    const char* name;
+} CubeNamedValue;

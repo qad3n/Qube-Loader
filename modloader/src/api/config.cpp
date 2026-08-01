@@ -42,15 +42,12 @@ namespace modloader::api
         {
             if (!out || size <= 0)
                 return 0;
-            const std::string value = (api && key)
-                ? modconfig::getString(ownerStem(api), key, fallback ? fallback : "")
-                : (fallback ? fallback : "");
-            const int32_t copyLen = value.size() < static_cast<size_t>(size - 1)
-                ? static_cast<int32_t>(value.size())
-                : size - 1;
-            std::memcpy(out, value.data(), static_cast<size_t>(copyLen));
-            out[copyLen] = '\0';
-            LOGC(Trace, kApiCategory, "'%s' config.getString(%s) -> \"%s\"", modName(api), key ? key : "(null)", out);
+            const std::string value =
+                (api && key) ? modconfig::getString(ownerStem(api), key, fallback ? fallback : "")
+                             : (fallback ? fallback : "");
+            const int32_t copyLen = copyOut(value, out, size);
+            LOGC(Trace, kApiCategory, "'%s' config.getString(%s) -> \"%s\"", modName(api),
+                 key ? key : "(null)", out);
             return copyLen;
         }
 
@@ -59,7 +56,8 @@ namespace modloader::api
             if (!api || !key)
                 return 0;
             const bool ok = modconfig::setInt(ownerStem(api), key, value);
-            LOGC(Debug, kApiCategory, "'%s' config.setInt(%s, %d) -> %s", modName(api), key, value, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' config.setInt(%s, %d) -> %s", modName(api), key, value,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -68,7 +66,8 @@ namespace modloader::api
             if (!api || !key)
                 return 0;
             const bool ok = modconfig::setFloat(ownerStem(api), key, value);
-            LOGC(Debug, kApiCategory, "'%s' config.setFloat(%s, %.3f) -> %s", modName(api), key, value, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' config.setFloat(%s, %.3f) -> %s", modName(api), key, value,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -77,7 +76,8 @@ namespace modloader::api
             if (!api || !key)
                 return 0;
             const bool ok = modconfig::setBool(ownerStem(api), key, value != 0);
-            LOGC(Debug, kApiCategory, "'%s' config.setBool(%s, %d) -> %s", modName(api), key, value != 0, ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' config.setBool(%s, %d) -> %s", modName(api), key, value != 0,
+                 ok ? "ok" : "fail");
             return okInt(ok);
         }
 
@@ -86,7 +86,8 @@ namespace modloader::api
             if (!api || !key)
                 return 0;
             const bool ok = modconfig::setString(ownerStem(api), key, value ? value : "");
-            LOGC(Debug, kApiCategory, "'%s' config.setString(%s, \"%s\") -> %s", modName(api), key, value ? value : "", ok ? "ok" : "fail");
+            LOGC(Debug, kApiCategory, "'%s' config.setString(%s, \"%s\") -> %s", modName(api), key,
+                 value ? value : "", ok ? "ok" : "fail");
             return okInt(ok);
         }
     }

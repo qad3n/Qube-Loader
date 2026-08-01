@@ -13,6 +13,8 @@
 #include "cube/session.hpp"
 #include "cube/creature.hpp"
 #include "cube/selection.hpp"
+#include "cube/chat.hpp"
+#include "cube/appearance.hpp"
 #include "cube/hookcall.hpp"
 #include "cube/logger.hpp"
 #include "cube/config.hpp"
@@ -21,6 +23,11 @@
 #include "cube/locale.hpp"
 #include "cube/assets.hpp"
 #include "cube/events.hpp"
+
+#include <functional>
+#include <map>
+#include <utility>
+#include <vector>
 
 namespace cube
 {
@@ -64,6 +71,10 @@ namespace cube
         // as it likes, and each is auto released on unload. Defined in cube/menu.hpp.
         Menu& addMenu();
         Selection selection() const { return Selection(m_api); }
+        // The local chat log + input line (ABI 28).
+        Chat chat() const { return Chat(m_api); }
+        // Character appearance of the local player (ABI 29); Appearance(raw(), address) for any creature.
+        Appearance appearance() const { return Appearance(m_api); }
         // Per mod persistence: config() is user editable settings (<stem>.ini); storage() is mod owned
         // binary save data. Both keyed by this mod's DLL stem (stable and available even in init,
         // unlike the manifest id), so a mod's own files stay put regardless of the id it declares.
@@ -73,7 +84,7 @@ namespace cube
         Locale locale() const { return Locale(m_api); }
         // Inter mod ecosystem: publish/resolve a named shared service and message another mod by its id.
         // Resolve peers at eventListener().onReady() (every mod has loaded by then).
-        Services services() const { return Services(m_api, const_cast<Mod*>(this)); }
+        Services services() { return Services(m_api, this); }
         // Asset overrides: replace a game asset (texture/model/...) by its filename key. Requires the
         // Assets capability and a compatible game build.
         Assets assets() const { return Assets(m_api); }
@@ -82,7 +93,6 @@ namespace cube
         Item lastPickup() const
         {
             CubeItem data = {};
-            data.structSize = sizeof(CubeItem);
             if (m_api)
                 m_api->pickup.getLast(m_api, &data);
             return Item(data, m_api);
@@ -100,7 +110,10 @@ namespace cube
         const char* itemName(int type, int subtype) const { return cube::itemName(m_api, type, subtype); }
         std::vector<int> skills() const { return skillsOf(m_api); }
         std::vector<AbilityCooldown> abilityCooldowns() const { return abilityCooldownsOf(m_api); }
-        bool setAbilityCooldown(int abilityId, int remainingMs) const { return m_api && m_api->skills.setCooldown(m_api, abilityId, remainingMs) != 0; }
+        bool setAbilityCooldown(int abilityId, int remainingMs) const
+        {
+            return m_api && m_api->skills.setCooldown(m_api, abilityId, remainingMs) != 0;
+        }
         int clearAbilityCooldowns() const { return m_api ? m_api->skills.clearCooldowns(m_api) : 0; }
         std::vector<Buff> buffs() const { return buffsOf(m_api); }
         std::vector<Structure> structures() const { return structuresOf(m_api); }
@@ -230,7 +243,8 @@ namespace cube
             m_handlers[index].push_back(std::move(fn));
             if (m_api && !m_subscribed[index])
             {
-                const uint32_t token = m_api->events.subscribe(m_api, static_cast<CubeEvent>(event), &trampoline, nullptr);
+                const uint32_t token =
+                    m_api->events.subscribe(m_api, static_cast<CubeEvent>(event), &trampoline, nullptr);
                 if (token)
                 {
                     m_subscribed[index] = true;
@@ -322,9 +336,10 @@ namespace cube
             // Snapshot before calling (see dispatch): a handler may (un)subscribe mid dispatch.
             if (raw->hook == CUBE_HOOK_RAW)
             {
-                if (m_rawHandlers.count(raw->address) == 0)
+                const RawHandlerMap::const_iterator it = m_rawHandlers.find(raw->address);
+                if (it == m_rawHandlers.end())
                     return;
-                const std::vector<std::function<void(HookCall&)>> handlers = m_rawHandlers[raw->address];
+                const std::vector<std::function<void(HookCall&)>> handlers = it->second;
                 for (const std::function<void(HookCall&)>& fn : handlers)
                     fn(call);
                 return;
@@ -366,6 +381,8 @@ namespace cube
         static void CUBE_CALL hookTrampoline(CubeHookCall* call);
         static void CUBE_CALL messageTrampoline(const CubeApi* api, CubeMessageArgs* args, void* user);
 
+        typedef std::map<unsigned, std::vector<std::function<void(HookCall&)>>> RawHandlerMap;
+
         const CubeApi* m_api = nullptr;
         int m_priority = 0;
         const char* m_id = nullptr;
@@ -378,7 +395,7 @@ namespace cube
         uint32_t m_eventTokens[CUBE_EVENT_COUNT] = {};
         std::vector<std::function<void(HookCall&)>> m_hookHandlers[CUBE_HOOK_COUNT];
         bool m_hookSubscribed[CUBE_HOOK_COUNT] = {};
-        std::map<unsigned, std::vector<std::function<void(HookCall&)>>> m_rawHandlers;
+        RawHandlerMap m_rawHandlers;
         std::vector<std::function<void(Message&)>> m_messageHandlers;
         bool m_messageSubscribed = false;
         uint32_t m_messageToken = 0;
@@ -483,8 +500,9 @@ namespace cube
             if (api->abiVersion < CUBE_ABI_VERSION)
             {
                 // log sits at a fixed offset behind the version header, so it is callable on any loader.
-                cubeLogf(api, CUBE_LOG_ERROR, "%s: built against ABI v%u but the loader serves v%u; update the loader",
-                         name, static_cast<unsigned>(CUBE_ABI_VERSION), static_cast<unsigned>(api->abiVersion));
+                cubeLogf(api, CUBE_LOG_ERROR,
+                         "%s: built against ABI v%u but the loader serves v%u; update the loader", name,
+                         static_cast<unsigned>(CUBE_ABI_VERSION), static_cast<unsigned>(api->abiVersion));
                 return nullptr;
             }
             mod().bind(api);
@@ -509,10 +527,10 @@ namespace cube
 
 }
 
-#define CUBE_MOD(modName, modVersion, modAuthor) \
-    static void cube_mod_main(cube::Mod& mod); \
-    CUBE_MOD_API CubeModInfo* CUBE_CALL CubeMod_Init(const CubeApi* api) \
-    { \
-        return cube::detail::boot(api, modName, modVersion, modAuthor, &cube_mod_main); \
-    } \
+#define CUBE_MOD(modName, modVersion, modAuthor)                                                             \
+    static void cube_mod_main(cube::Mod& mod);                                                               \
+    CUBE_MOD_API CubeModInfo* CUBE_CALL CubeMod_Init(const CubeApi* api)                                     \
+    {                                                                                                        \
+        return cube::detail::boot(api, modName, modVersion, modAuthor, &cube_mod_main);                      \
+    }                                                                                                        \
     static void cube_mod_main(cube::Mod& mod)

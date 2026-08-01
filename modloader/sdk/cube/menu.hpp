@@ -31,6 +31,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <string>
 #include <functional>
 
 namespace cube
@@ -46,14 +47,13 @@ namespace cube
         static constexpr float kMinUiScale = 0.5f;
         static constexpr float kMaxUiScale = 3.0f;
 
-        explicit Menu(Mod* mod)
-            : m_api(mod ? mod->raw() : nullptr) {}
+        explicit Menu(Mod* mod) : m_api(mod ? mod->raw() : nullptr) {}
 
         // Sugar: the loader wraps your widgets in ImGui::Begin(title)/End, you write ONLY the widgets
         // inside fn. The window is toggled by the toggle key (INSERT by default). Call again to replace fn.
         Menu& window(const char* title, std::function<void()> fn)
         {
-            m_title = (title && title[0]) ? title : "Menu";
+            m_title = (title && title[0]) ? title : "Menu"; // copied: callers pass c_str()/stack buffers
             m_draw = std::move(fn);
             m_wrapWindow = true;
             ensureRegistered();
@@ -89,10 +89,7 @@ namespace cube
             return *this;
         }
 
-        bool isOpen() const
-        {
-            return m_handle && m_api && m_api->overlay.isVisible(m_api, m_handle) != 0;
-        }
+        bool isOpen() const { return m_handle && m_api && m_api->overlay.isVisible(m_api, m_handle) != 0; }
 
         // HUD passthrough: when true, an open menu does NOT freeze the game (movement/camera stay live,
         // the game grabs the cursor so widgets are display only). Default false (interactive: the menu
@@ -111,7 +108,11 @@ namespace cube
 
         // Shared user UI scale (loader global, since there is one context). Clamped [0.5, 3.0] by the
         // loader and applied on the next frame; multiplies on top of the monitor DPI.
-        void setUiScale(float scale) const { if (m_api) m_api->overlay.setUiScale(m_api, scale); }
+        void setUiScale(float scale) const
+        {
+            if (m_api)
+                m_api->overlay.setUiScale(m_api, scale);
+        }
         float uiScale() const { return m_api ? m_api->overlay.uiScale(m_api) : 1.0f; }
         float dpiScale() const { return m_api ? m_api->overlay.dpiScale(m_api) : 1.0f; }
 
@@ -127,7 +128,8 @@ namespace cube
         {
             if (m_handle || !m_api)
                 return;
-            m_handle = m_api->overlay.registerMenu(m_api, &trampoline, this, m_toggleKey, m_startOpen ? 1 : 0);
+            m_handle =
+                m_api->overlay.registerMenu(m_api, &trampoline, this, m_toggleKey, m_startOpen ? 1 : 0);
         }
 
         // The loader calls this each visible frame between its NewFrame and Render. Bind the shared
@@ -142,7 +144,7 @@ namespace cube
                 return;
             if (self->m_wrapWindow)
             {
-                if (ImGui::Begin(self->m_title))
+                if (ImGui::Begin(self->m_title.c_str()))
                     self->m_draw();
                 ImGui::End();
             }
@@ -175,7 +177,7 @@ namespace cube
 
         const CubeApi* m_api = nullptr;
         std::function<void()> m_draw;
-        const char* m_title = "Menu";
+        std::string m_title = "Menu";
         bool m_wrapWindow = false;
         unsigned m_toggleKey = kDefaultToggleKey;
         bool m_startOpen = false;
