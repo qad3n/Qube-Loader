@@ -10,9 +10,10 @@ namespace modloader::api
         {
             if (!api || !fn)
                 return 0;
-            game::gamehooks::subscribe(api, hook, fn, user);
-            LOGC(Debug, kApiCategory, "'%s' eventHook.on(%s)", modName(api), game::gamehooks::hookName(hook));
-            return 1;
+            const int32_t ok = game::gamehooks::subscribe(api, hook, fn, user);
+            LOGC(Debug, kApiCategory, "'%s' eventHook.on(%s) -> %s", modName(api),
+                 game::gamehooks::hookName(hook), ok ? "ok" : "dropped");
+            return ok;
         }
 
         int32_t CUBE_CALL apiHooksOff(const CubeApi* api, CubeHook hook)

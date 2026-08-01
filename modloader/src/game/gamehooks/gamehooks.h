@@ -16,7 +16,7 @@ namespace game::gamehooks
     void forEachSubscription(const std::function<void(const CubeApi*, const char*)>& fn);
 
     // Loader internal: reserve a built in detour installed so the loader can OBSERVE what it carries
-    // (crit rolls, the game thread attack edge) without a mod hooking it. The reservation keeps the
+    // (crit rolls) without a mod hooking it. The reservation keeps the
     // detour PASS THROUGH: it never flips the dispatch gate, so the observed function runs vanilla and
     // only its side channel is read. It shares one refcount with mod subscriptions, so a detour is
     // never installed twice and stays armed until BOTH the last subscriber and the last observer are
@@ -25,7 +25,8 @@ namespace game::gamehooks
     void releaseObservation(CubeHook hook);
 
     // `owner` is the mod's CubeApi pointer; first subscriber arms the detour, last disarms.
-    void subscribe(const CubeApi* owner, CubeHook hook, CubeHookFn fn, void* user);
+    // 0 means the subscription was dropped (bad hook id, or the detour failed to arm).
+    int32_t subscribe(const CubeApi* owner, CubeHook hook, CubeHookFn fn, void* user);
     int32_t unsubscribeHook(const CubeApi* owner, CubeHook hook);
     void unsubscribeOwner(const CubeApi* owner);
     void clear();

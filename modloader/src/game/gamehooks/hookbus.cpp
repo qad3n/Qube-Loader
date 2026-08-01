@@ -13,21 +13,21 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
+#include <cstring>
 #include <mutex>
 #include <string>
 #include <vector>
 
-// Hook bus: per mod handler registry, multi mod dispatch + reduce, per hook arm/disarm refcount.
 namespace game::gamehooks
 {
     namespace
     {
         constexpr char kCategory[] = "gamehooks";
         constexpr int kLabelMax = 96; // stack buffer for a per handler guard label (no heap alloc)
-        using modloader::ownerName;
-        using modloader::ownerPriority;
-        using modloader::ownerOrder;
         using modloader::ownerMayWrite;
+        using modloader::ownerName;
+        using modloader::ownerOrder;
+        using modloader::ownerPriority;
         using modloader::ownerWarnOnce;
 
         struct HookSub
@@ -78,7 +78,15 @@ namespace game::gamehooks
                 needArm = (g_installRefcount[hook] == 0);
                 ++g_installRefcount[hook];
                 if (!needArm)
-                    return g_armed[hook];
+                {
+                    // Callers treat false as failure and never release, so give the ref back here.
+                    if (!g_armed[hook])
+                    {
+                        --g_installRefcount[hook];
+                        return false;
+                    }
+                    return true;
+                }
             }
 
             const bool ok = armBuiltin(hook);
@@ -148,9 +156,12 @@ namespace game::gamehooks
         {
             const uintptr_t lo = reinterpret_cast<uintptr_t>(first < second ? first : second);
             const uintptr_t hi = reinterpret_cast<uintptr_t>(first < second ? second : first);
-            const uint64_t sig = hashSubject(subject) ^ static_cast<uint64_t>(lo) ^ (static_cast<uint64_t>(hi) << 1);
-            if (modloader::conflict::throttle(sig, modloader::gameevents::currentFrame(), kHookWarnCooldownFrames))
-                modloader::conflict::warn("hook %s: '%s' and '%s' both override the return; last-writer-wins, the game may misbehave",
+            const uint64_t sig =
+                hashSubject(subject) ^ static_cast<uint64_t>(lo) ^ (static_cast<uint64_t>(hi) << 1);
+            if (modloader::conflict::throttle(sig, modloader::gameevents::currentFrame(),
+                                              kHookWarnCooldownFrames))
+                modloader::conflict::warn("hook %s: '%s' and '%s' both override the return; "
+                                          "last-writer-wins, the game may misbehave",
                                           subject, ownerName(first), ownerName(second));
         }
 
@@ -159,13 +170,56 @@ namespace game::gamehooks
         // runs before its dependents; stable so fully equal keys keep subscription (load) order.
         void sortByPriority(std::vector<HookSub>& matched)
         {
-            std::stable_sort(matched.begin(), matched.end(), [](const HookSub& a, const HookSub& b)
-            {
-                if (ownerPriority(a.owner) != ownerPriority(b.owner))
-                    return ownerPriority(a.owner) < ownerPriority(b.owner);
-                return ownerOrder(a.owner) < ownerOrder(b.owner);
-            });
+            std::stable_sort(matched.begin(), matched.end(),
+                             [](const HookSub& a, const HookSub& b)
+                             {
+                                 if (ownerPriority(a.owner) != ownerPriority(b.owner))
+                                     return ownerPriority(a.owner) < ownerPriority(b.owner);
+                                 return ownerOrder(a.owner) < ownerOrder(b.owner);
+                             });
         }
+
+        // Reused per thread snapshot buffer, so an intercepted call does not heap allocate on the game
+        // thread. A handler can trigger another hooked call on this same thread, so a reentrant
+        // dispatch takes its own vector rather than clobbering the outer frame's snapshot.
+        class MatchBuffer
+        {
+        public:
+            MatchBuffer()
+            {
+                m_owned = !storage().inUse;
+                storage().inUse = true;
+                if (m_owned)
+                    storage().subs.clear();
+            }
+
+            ~MatchBuffer()
+            {
+                if (m_owned)
+                    storage().inUse = false;
+            }
+
+            MatchBuffer(const MatchBuffer&) = delete;
+            MatchBuffer& operator=(const MatchBuffer&) = delete;
+
+            std::vector<HookSub>& get() { return m_owned ? storage().subs : m_local; }
+
+        private:
+            struct Storage
+            {
+                std::vector<HookSub> subs;
+                bool inUse = false;
+            };
+
+            static Storage& storage()
+            {
+                static thread_local Storage tls;
+                return tls;
+            }
+
+            std::vector<HookSub> m_local;
+            bool m_owned = false;
+        };
 
         // Reduce: cancel sticky OR, args chain, return last writer wins. Each handler guarded (no SEH
         // under mingw). `subject` names the hook, used both for the per mod guard label (so a throwing
@@ -179,34 +233,55 @@ namespace game::gamehooks
                 if (faultguard::isQuarantined(sub.owner))
                     continue; // a mod disabled after a fault no longer intercepts calls
                 call.cancel = cancel;
+                const bool mayWrite = ownerMayWrite(sub.owner);
                 const int32_t prevOverride = call.overrideReturn;
                 const int32_t prevReturnI = call.returnI;
                 const float prevReturnF = call.returnF;
+                // Only an observe-only mod needs the full argument snapshot to revert against.
+                const uint32_t prevSelf = call.self;
+                const uint32_t prevTarget = call.target;
+                int32_t prevArgI[CUBE_HOOK_ARG_MAX];
+                float prevArgF[CUBE_HOOK_ARG_MAX];
+                if (!mayWrite)
+                {
+                    std::memcpy(prevArgI, call.argi, sizeof(prevArgI));
+                    std::memcpy(prevArgF, call.argf, sizeof(prevArgF));
+                }
                 // Per handler label names the mod + hook so a fault/exception is attributed to it.
                 char label[kLabelMax];
-                std::snprintf(label, sizeof(label), "mod '%s' %s hook callback", ownerName(sub.owner), subject);
-                guard::tryRun(label, sub.owner, [&]()
-                {
-                    sub.fn(&call);
-                });
+                std::snprintf(label, sizeof(label), "mod '%s' %s hook callback", ownerName(sub.owner),
+                              subject);
+                guard::tryRun(label, sub.owner, [&]() { sub.fn(&call); });
 
                 // A mod that declared capabilities but not Writes may observe a built in hook yet not
-                // change its outcome; revert any cancel/override it attempted (mutating combat is a write).
-                if (!ownerMayWrite(sub.owner) &&
+                // change its outcome. Arguments count: the detour bodies re-invoke the original with
+                // call.self/target/argi/argf, so leaving those unreverted would let an observe-only
+                // mod rescale damage or retarget a hit.
+                if (!mayWrite &&
                     (call.cancel != cancel || call.overrideReturn != prevOverride ||
-                     call.returnI != prevReturnI || call.returnF != prevReturnF))
+                     call.returnI != prevReturnI || call.returnF != prevReturnF || call.self != prevSelf ||
+                     call.target != prevTarget || std::memcmp(call.argi, prevArgI, sizeof(prevArgI)) != 0 ||
+                     std::memcmp(call.argf, prevArgF, sizeof(prevArgF)) != 0))
                 {
                     call.cancel = cancel;
                     call.overrideReturn = prevOverride;
                     call.returnI = prevReturnI;
                     call.returnF = prevReturnF;
+                    call.self = prevSelf;
+                    call.target = prevTarget;
+                    std::memcpy(call.argi, prevArgI, sizeof(prevArgI));
+                    std::memcpy(call.argf, prevArgF, sizeof(prevArgF));
                     if (ownerWarnOnce(sub.owner, CUBE_CAP_WRITES))
-                        LOGC(Warn, kCategory, "'%s' tried to alter %s but lacks the Writes capability; ignored (add it to setCapabilities)",
+                        LOGC(Warn, kCategory,
+                             "'%s' tried to alter %s but lacks the Writes capability; ignored (add it to "
+                             "setCapabilities)",
                              ownerName(sub.owner), subject);
                 }
                 cancel |= call.cancel;
 
-                const bool assertedReturn = call.overrideReturn && (!prevOverride || call.returnI != prevReturnI || call.returnF != prevReturnF);
+                const bool assertedReturn =
+                    call.overrideReturn &&
+                    (!prevOverride || call.returnI != prevReturnI || call.returnF != prevReturnF);
                 if (assertedReturn)
                 {
                     if (returnSetter && returnSetter != sub.owner)
@@ -312,7 +387,8 @@ namespace game::gamehooks
             return false;
         }
 
-        LOGC(Debug, kCategory, "observing %s (detour installed, pass-through until a mod subscribes)", hookName(hook));
+        LOGC(Debug, kCategory, "observing %s (detour installed, pass-through until a mod subscribes)",
+             hookName(hook));
         return true;
     }
 
@@ -327,17 +403,17 @@ namespace game::gamehooks
         LOGC(Debug, kCategory, "stopped observing %s", hookName(hook));
     }
 
-    void subscribe(const CubeApi* owner, CubeHook hook, CubeHookFn fn, void* user)
+    int32_t subscribe(const CubeApi* owner, CubeHook hook, CubeHookFn fn, void* user)
     {
         if (!owner || !fn || !validHook(hook))
-            return;
+            return 0;
 
         // Install (arm) the trampoline first; a failed arm must not leave a subscriber registered.
         if (!acquireInstall(hook))
         {
             LOGC(Warn, kCategory, "'%s' built-in hook %s failed to arm; subscription dropped",
                  ownerName(owner), hookName(hook));
-            return;
+            return 0;
         }
 
         int32_t count = 0;
@@ -349,7 +425,9 @@ namespace game::gamehooks
 
         // A real subscriber now exists: leave pass through and dispatch to handlers.
         setBuiltinActive(hook, true);
-        LOGC(Debug, kCategory, "'%s' subscribed built-in hook %s (#%d, now %d subscriber(s))", ownerName(owner), hookName(hook), static_cast<int>(hook), count);
+        LOGC(Debug, kCategory, "'%s' subscribed built-in hook %s (#%d, now %d subscriber(s))",
+             ownerName(owner), hookName(hook), static_cast<int>(hook), count);
+        return 1;
     }
 
     int32_t unsubscribeHook(const CubeApi* owner, CubeHook hook)
@@ -398,7 +476,8 @@ namespace game::gamehooks
         if (!validHook(hook))
             return 0;
 
-        std::vector<HookSub> matched;
+        MatchBuffer buffer;
+        std::vector<HookSub>& matched = buffer.get();
         std::unique_lock<std::mutex> lock(g_mutex);
 
         for (const HookSub& sub : g_subs)
@@ -415,16 +494,19 @@ namespace game::gamehooks
         lock.unlock();
 
         sortByPriority(matched);
-        LOGC(Trace, kCategory, "dispatch %s self=0x%08X target=0x%08X arg0=%d -> %zu handler(s)", hookName(hook), call.self, call.target, call.argi[0], matched.size());
+        LOGC(Trace, kCategory, "dispatch %s self=0x%08X target=0x%08X arg0=%d -> %zu handler(s)",
+             hookName(hook), call.self, call.target, call.argi[0], matched.size());
 
         const int32_t cancel = dispatchMatched(matched, hookName(hook), call);
-        LOGC(Trace, kCategory, "  %s -> %s (returnI=%d returnF=%.3f)", hookName(hook), outcomeName(call), call.returnI, call.returnF);
+        LOGC(Trace, kCategory, "  %s -> %s (returnI=%d returnF=%.3f)", hookName(hook), outcomeName(call),
+             call.returnI, call.returnF);
         return cancel;
     }
 
     int32_t dispatchRaw(uint32_t address, CubeHookCall& call)
     {
-        std::vector<HookSub> matched;
+        MatchBuffer buffer;
+        std::vector<HookSub>& matched = buffer.get();
         std::unique_lock<std::mutex> lock(g_mutex);
 
         for (const RawSub& sub : g_rawSubs)
@@ -443,24 +525,25 @@ namespace game::gamehooks
         sortByPriority(matched);
         char subject[kRawLabelMax];
         formatRawLabel(address, subject, sizeof(subject));
-        LOGC(Trace, kCategory, "dispatch raw 0x%08X self=0x%08X arg0=%d -> %zu handler(s)", address, call.self, call.argi[0], matched.size());
+        LOGC(Trace, kCategory, "dispatch raw 0x%08X self=0x%08X arg0=%d -> %zu handler(s)", address,
+             call.self, call.argi[0], matched.size());
         const int32_t cancel = dispatchMatched(matched, subject, call);
         LOGC(Trace, kCategory, "  raw 0x%08X -> %s", address, outcomeName(call));
         return cancel;
     }
 
-    int32_t installRaw(const CubeApi* owner, uint32_t address, CubeCallConv cc, int32_t argCount, CubeHookFn fn, void* user)
+    int32_t installRaw(const CubeApi* owner, uint32_t address, CubeCallConv cc, int32_t argCount,
+                       CubeHookFn fn, void* user)
     {
         if (!owner || !fn || !address)
             return 0;
 
-        bool needPool = false;
-        {
-            std::lock_guard<std::mutex> lock(g_mutex);
-            needPool = !anyRawSubAt(address); // reuse the slot if another handler already hooked it
-        }
+        // One lock across check, pool install and registration: unlocking between them lets a second
+        // installer double install the address, or a concurrent removeRaw free the slot this
+        // subscription needs, leaving a mod told it succeeded with no hook behind it.
+        std::lock_guard<std::mutex> lock(g_mutex);
 
-        if (needPool)
+        if (!anyRawSubAt(address)) // reuse the slot if another handler already hooked it
         {
             if (!rawpool::install(address, cc, argCount))
             {
@@ -476,15 +559,14 @@ namespace game::gamehooks
             CubeCallConv slotCc = cc;
             int32_t slotArgs = argCount;
             if (rawpool::config(address, slotCc, slotArgs) && (slotCc != cc || slotArgs != argCount))
-                LOGC(Warn, kCategory, "'%s' raw hook 0x%08X uses (cc %d, %d args) but the existing slot is (cc %d, %d args); the first registrant's config wins",
-                     ownerName(owner), address, static_cast<int>(cc), argCount, static_cast<int>(slotCc), slotArgs);
+                LOGC(Warn, kCategory,
+                     "'%s' raw hook 0x%08X uses (cc %d, %d args) but the existing slot is (cc %d, %d args); "
+                     "the first registrant's config wins",
+                     ownerName(owner), address, static_cast<int>(cc), argCount, static_cast<int>(slotCc),
+                     slotArgs);
         }
 
-        {
-            std::lock_guard<std::mutex> lock(g_mutex);
-            g_rawSubs.push_back(RawSub{owner, address, fn, user});
-        }
-
+        g_rawSubs.push_back(RawSub{owner, address, fn, user});
         LOGC(Debug, kCategory, "'%s' raw hooked 0x%08X (cc %d, %d args)", ownerName(owner), address,
              static_cast<int>(cc), argCount);
 
@@ -496,7 +578,8 @@ namespace game::gamehooks
         if (!owner || !address || !detour || !trampoline)
             return 0;
 
-        if (!hooks::detour::create(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), detour, trampoline))
+        if (!hooks::detour::create(reinterpret_cast<void*>(static_cast<uintptr_t>(address)), detour,
+                                   trampoline))
         {
             LOGC(Warn, kCategory, "'%s' raw detour 0x%08X failed to install", ownerName(owner), address);
             return 0;
@@ -641,7 +724,8 @@ namespace game::gamehooks
         std::lock_guard<std::mutex> lock(g_mutex);
 
         if (!g_subs.empty() || !g_rawSubs.empty() || !g_rawDetours.empty())
-            LOGC(Trace, kCategory, "cleared %zu built-in, %zu raw, %zu detour registration(s)", g_subs.size(), g_rawSubs.size(), g_rawDetours.size());
+            LOGC(Trace, kCategory, "cleared %zu built-in, %zu raw, %zu detour registration(s)", g_subs.size(),
+                 g_rawSubs.size(), g_rawDetours.size());
 
         g_subs.clear();
         g_rawSubs.clear();
